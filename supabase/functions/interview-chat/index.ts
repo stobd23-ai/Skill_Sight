@@ -402,8 +402,11 @@ serve(async (req) => {
       "RUNTIME INSTRUCTIONS:",
       `Latest user message: ${lastUserMessage ? JSON.stringify(lastUserMessage) : '"[conversation start]"'}`,
       `Current unanswered question: ${JSON.stringify(lastAssistantQuestion)}`,
-      "Decide whether the latest user message truly answered the question.",
-      "If it did not, keep QUESTION_DELTA at 0 and ask for clarification on the same question.",
+      `Latest user message classification: ${lastUserClassification ?? "none"}`,
+      `Recent substantive answer streak on the current thread: ${recentSubstantiveAnswerStreak}`,
+      shouldForceAdvance
+        ? "You have already received enough same-thread answers. You MUST stop probing this topic and ask one new question on a different skill area. Emit [[QUESTION_DELTA:1]]."
+        : "Decide whether the latest user message truly answered the question. If it did not, keep QUESTION_DELTA at 0 and ask for clarification on the same question.",
       "Never pretend the user already gave a detailed answer if they did not.",
       "Never restart the conversation unless the system explicitly tells you to.",
       "Never output employee-side dialogue.",
