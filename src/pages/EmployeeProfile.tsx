@@ -19,7 +19,7 @@ export default function EmployeeProfile() {
   const { data: skills } = useEmployeeSkills(id);
   const { data: results } = useAlgorithmResults(id);
   const { data: interviews } = useInterviews(id);
-  const { data: bootcamps } = useBootcamps(id);
+  
   const { data: roles } = useRoles();
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
 
