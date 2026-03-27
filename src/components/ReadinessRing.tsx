@@ -28,6 +28,7 @@ export function ReadinessRing({ value, size = "md", label }: ReadinessRingProps)
 
   return (
     <div className="flex flex-col items-center gap-1">
+      <div className="relative" style={{ width: config.total, height: config.total }}>
       <svg width={config.total} height={config.total} className="-rotate-90">
         <circle
           cx={config.total / 2}
