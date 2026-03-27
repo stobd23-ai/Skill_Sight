@@ -235,6 +235,16 @@ const getLastAssistantQuestion = (messages: InterviewMessage[]) => {
   return "Could you tell me a bit more about that?";
 };
 
+const extractLatestQuestion = (value: string) => {
+  const questionLines = value
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => line.includes("?"));
+
+  return questionLines.length > 0 ? questionLines[questionLines.length - 1] : value.trim();
+};
+
 const isRestartCommand = (value: string) => /^(restart( convo| conversation)?|start over|reset|begin again|redo)\b/.test(normalizeText(value));
 const isAdvanceCommand = (value: string) => /^(next|skip|move on|continue|another question|next question|pass)\b[.!?]*$/.test(normalizeText(value));
 const isVagueNonAnswer = (value: string) => /^(yes|no|maybe|sure|okay|ok|alright|fine|idk|i don't know|dont know|not sure|whatever|next|continue|skip|pass)\b/.test(normalizeText(value));
@@ -512,6 +522,10 @@ serve(async (req) => {
     const questionDelta = parsedQuestionDelta ?? (typedMessages.length === 0 ? 1 : 0);
     const effectiveQuestionDelta = shouldForceAdvance && !parsedQuestionDelta ? 1 : shouldForceAdvance ? Math.max(questionDelta, 1) : questionDelta;
     const assistantMessage = sanitizeAssistantMessage(rawAssistantMessage);
+    const latestAssistantQuestion = extractLatestQuestion(assistantMessage);
+    const isRepeatedQuestion =
+      Boolean(lastAssistantQuestion) &&
+      normalizeText(latestAssistantQuestion) === normalizeText(lastAssistantQuestion);
 
     let isComplete = false;
     let extractedData = null;
@@ -526,6 +540,13 @@ serve(async (req) => {
     }
 
     let messageText = assistantMessage;
+    let finalQuestionDelta = effectiveQuestionDelta;
+
+    if (!isComplete && isRepeatedQuestion && lastUserClassification === "substantive") {
+      messageText = buildForcedAdvanceReply(interviewType, targetSkills || [], typedMessages);
+      finalQuestionDelta = 1;
+    }
+
     if (isComplete && extractedData) {
       const jsonStart = assistantMessage.indexOf("{");
       if (jsonStart > 0) {
@@ -534,7 +555,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ message: messageText, isComplete, extractedData, questionDelta: effectiveQuestionDelta }),
+      JSON.stringify({ message: messageText, isComplete, extractedData, questionDelta: finalQuestionDelta }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
