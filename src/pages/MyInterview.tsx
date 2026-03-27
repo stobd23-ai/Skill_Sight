@@ -42,12 +42,24 @@ export default function MyInterview() {
     async (userMessage?: string) => {
       if (!employee || !activeInterview) return;
 
+      // Hard stop at question 12
+      if (questionsAsked >= 12) {
+        await handleComplete(null, messages, questionsAsked);
+        return;
+      }
+
+      // Build history using local variable to avoid stale state
+      const newHistory = userMessage
+        ? [...conversationHistory, { role: "user", content: userMessage }]
+        : conversationHistory;
+
       const newMessages = userMessage
         ? [...messages, { role: "user" as const, content: userMessage, timestamp: new Date() }]
         : messages;
 
       if (userMessage) {
         setMessages(newMessages);
+        setConversationHistory(newHistory);
         setInput("");
       }
 
@@ -56,7 +68,7 @@ export default function MyInterview() {
         const targetSkills = Object.keys((activeInterview as any).extracted_skills || {});
         const { data, error } = await supabase.functions.invoke("interview-chat", {
           body: {
-            messages: newMessages.map(m => ({ role: m.role, content: m.content })),
+            messages: newHistory.map(m => ({ role: m.role === "assistant" ? "ai" : m.role, content: m.content })),
             interviewType: "employee",
             employeeName: employee.name,
             employeeTitle: employee.job_title,
@@ -75,23 +87,28 @@ export default function MyInterview() {
         const questionDelta = typeof data.questionDelta === "number" ? data.questionDelta : 1;
         const nextQuestionsAsked = questionsAsked + questionDelta;
 
+        // Save AI response to both display and history immediately
         setMessages(prev => [...prev, aiMsg]);
+        const historyWithReply = [...newHistory, { role: "ai", content: data.message }];
+        setConversationHistory(historyWithReply);
         setQuestionsAsked(nextQuestionsAsked);
 
+        // Auto-complete if AI says done or we're at Q11+
         if (data.isComplete && data.extractedData) {
           await handleComplete(data.extractedData, [...newMessages, aiMsg], nextQuestionsAsked);
+        } else if (nextQuestionsAsked >= 12) {
+          setTimeout(() => handleComplete(data.extractedData || null, [...newMessages, aiMsg], nextQuestionsAsked), 1500);
         }
       } catch (err) {
         console.error("Interview chat error:", err);
-        setMessages(prev => [
-          ...prev,
-          { role: "ai", content: "I apologize, there was a technical issue. Could you please repeat that?", timestamp: new Date() },
-        ]);
+        const errorMsg: Message = { role: "ai", content: "I apologize, there was a technical issue. Could you please repeat that?", timestamp: new Date() };
+        setMessages(prev => [...prev, errorMsg]);
+        setConversationHistory(prev => [...prev, { role: "ai", content: errorMsg.content }]);
       } finally {
         setIsAiTyping(false);
       }
     },
-    [employee, activeInterview, messages, questionsAsked]
+    [employee, activeInterview, messages, conversationHistory, questionsAsked]
   );
 
   const handleComplete = async (extractedData: any, finalMessages: Message[], finalQuestionCount: number) => {
