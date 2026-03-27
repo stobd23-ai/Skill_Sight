@@ -188,6 +188,28 @@ serve(async (req) => {
       chatMessages.push({ role: "user", content: "Hello, I'm ready to begin." });
     }
 
+    // Ensure conversation doesn't end with assistant message (prevents AI responding to itself)
+    // Filter out any consecutive assistant messages and ensure proper turn-taking
+    const cleanedMessages: any[] = [];
+    for (const msg of chatMessages) {
+      if (msg.role === "system") {
+        cleanedMessages.push(msg);
+        continue;
+      }
+      // Skip assistant messages that follow another assistant message
+      const lastNonSystem = cleanedMessages.filter(m => m.role !== "system").pop();
+      if (msg.role === "assistant" && lastNonSystem?.role === "assistant") {
+        continue;
+      }
+      cleanedMessages.push(msg);
+    }
+
+    // If last message is from assistant, add a nudge so AI doesn't respond to itself
+    const lastMsg = cleanedMessages[cleanedMessages.length - 1];
+    if (lastMsg?.role === "assistant") {
+      cleanedMessages.push({ role: "user", content: "[waiting for employee response — do not generate another message]" });
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -196,7 +218,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
-        messages: chatMessages,
+        messages: cleanedMessages,
         temperature: 0.6,
         max_tokens: 1024,
       }),
