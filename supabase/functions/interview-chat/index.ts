@@ -245,9 +245,48 @@ const extractLatestQuestion = (value: string) => {
   return questionLines.length > 0 ? questionLines[questionLines.length - 1] : value.trim();
 };
 
+const unwrapQuestionPrompt = (value: string) => {
+  let current = value.trim();
+  const wrappers = [
+    /^i want to make sure i understand your experience before we move on\.\s*could you answer this part first:\s*/i,
+    /^i want to make sure i understand your experience before we move on\s*could you answer this part first:\s*/i,
+    /^i didn't quite catch that\.\s*could you rephrase it and answer this part:\s*/i,
+    /^i didn't quite catch that\s*could you rephrase it and answer this part:\s*/i,
+  ];
+
+  for (let i = 0; i < 5; i += 1) {
+    const next = wrappers.reduce((text, pattern) => text.replace(pattern, ""), current).trim();
+    if (next === current) break;
+    current = next;
+  }
+
+  return current;
+};
+
 const isRestartCommand = (value: string) => /^(restart( convo| conversation)?|start over|reset|begin again|redo)\b/.test(normalizeText(value));
 const isAdvanceCommand = (value: string) => /^(next|skip|move on|continue|another question|next question|pass)\b[.!?]*$/.test(normalizeText(value));
-const isVagueNonAnswer = (value: string) => /^(yes|no|maybe|sure|okay|ok|alright|fine|idk|i don't know|dont know|not sure|whatever|next|continue|skip|pass)\b/.test(normalizeText(value));
+const isVagueNonAnswer = (value: string) => {
+  const normalized = normalizeText(value).replace(/[.!?]+$/g, "");
+  return new Set([
+    "yes",
+    "no",
+    "maybe",
+    "sure",
+    "okay",
+    "ok",
+    "alright",
+    "fine",
+    "idk",
+    "i don't know",
+    "dont know",
+    "not sure",
+    "whatever",
+    "next",
+    "continue",
+    "skip",
+    "pass",
+  ]).has(normalized);
+};
 
 const isGibberish = (value: string) => {
   const trimmed = value.trim();
@@ -266,10 +305,10 @@ const isGibberish = (value: string) => {
 };
 
 const buildStayOnQuestionReply = (question: string) =>
-  `I want to make sure I understand your experience before we move on. Could you answer this part first: ${question}`;
+  `I want to make sure I understand your experience before we move on. Could you answer this part first: ${unwrapQuestionPrompt(question)}`;
 
 const buildRephraseReply = (question: string) =>
-  `I didn't quite catch that. Could you rephrase it and answer this part: ${question}`;
+  `I didn't quite catch that. Could you rephrase it and answer this part: ${unwrapQuestionPrompt(question)}`;
 
 const buildForcedAdvanceReply = (interviewType: string, targetSkills: string[] = [], messages: InterviewMessage[]) => {
   const assistantTranscript = messages
@@ -374,7 +413,7 @@ serve(async (req) => {
       : [];
 
     const lastUserMessage = getLastUserMessage(typedMessages);
-    const lastAssistantQuestion = getLastAssistantQuestion(typedMessages);
+    const lastAssistantQuestion = unwrapQuestionPrompt(getLastAssistantQuestion(typedMessages));
     const lastUserClassification = lastUserMessage ? classifyUserMessage(lastUserMessage) : null;
     const recentSubstantiveAnswerStreak = getRecentSubstantiveAnswerStreak(typedMessages);
     const shouldForceAdvance = recentSubstantiveAnswerStreak >= 3 && lastUserClassification === "substantive";
@@ -522,7 +561,7 @@ serve(async (req) => {
     const questionDelta = parsedQuestionDelta ?? (typedMessages.length === 0 ? 1 : 0);
     const effectiveQuestionDelta = shouldForceAdvance && !parsedQuestionDelta ? 1 : shouldForceAdvance ? Math.max(questionDelta, 1) : questionDelta;
     const assistantMessage = sanitizeAssistantMessage(rawAssistantMessage);
-    const latestAssistantQuestion = extractLatestQuestion(assistantMessage);
+    const latestAssistantQuestion = unwrapQuestionPrompt(extractLatestQuestion(assistantMessage));
     const isRepeatedQuestion =
       Boolean(lastAssistantQuestion) &&
       normalizeText(latestAssistantQuestion) === normalizeText(lastAssistantQuestion);
