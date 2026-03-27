@@ -73,6 +73,23 @@ ALGORITHM RESULTS:
 - Final Readiness: ${((algorithmResults.finalReadiness || algorithmResults.overallReadiness) * 100)?.toFixed(1) || 'N/A'}%
 - Manager Adjustment: ${algorithmResults.managerAdjustment || 0}
 
+${momentumData ? `MOMENTUM ASSESSMENT:
+- Momentum Score: ${momentumData.momentumScore?.toFixed(3) || 'N/A'}
+- Learning Velocity: ${momentumData.learningVelocity?.toFixed(3) || 'N/A'}
+- Scope Trajectory: ${momentumData.scopeTrajectory?.toFixed(3) || 'N/A'}
+- Motivation Alignment: ${momentumData.motivationAlignment?.toFixed(3) || 'N/A'}
+- Narrative: ${momentumData.narrative || 'N/A'}
+- Trajectory Risk: ${momentumData.trajectoryRisk || 'none'}` : ''}
+
+${threeLayerScore ? `THREE-LAYER SCORE:
+- Technical Match: ${threeLayerScore.breakdown?.technical?.toFixed(3) || 'N/A'}
+- Capability Match: ${threeLayerScore.breakdown?.capability?.toFixed(3) || 'N/A'}
+- Momentum: ${threeLayerScore.breakdown?.momentum?.toFixed(3) || 'N/A'}
+- Final Three-Layer Score: ${threeLayerScore.threeLayerScore?.toFixed(3) || 'N/A'}
+- Interpretation: ${threeLayerScore.interpretation || 'N/A'}` : ''}
+
+ROLE TYPE: ${roleType || 'technical_specialist'}
+
 GAP ANALYSIS:
 ${JSON.stringify(gapAnalysis, null, 2)}
 
