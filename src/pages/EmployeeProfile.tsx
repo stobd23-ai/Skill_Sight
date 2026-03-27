@@ -43,7 +43,7 @@ export default function EmployeeProfile() {
   const latestResult = results?.[0];
   const readiness = latestResult ? Math.round((latestResult.final_readiness || 0) * 100) : null;
   const empInterviews = interviews?.filter(i => i.employee_id === id) || [];
-  const empBootcamps = bootcamps?.filter(b => b.employee_id === id) || [];
+  
   const completedEmployee = empInterviews.some(i => i.interview_type === 'employee' && i.status === 'completed');
   const completedManager = empInterviews.some(i => i.interview_type === 'manager' && i.status === 'completed');
 
