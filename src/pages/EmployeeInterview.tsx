@@ -165,10 +165,22 @@ export default function EmployeeInterview() {
   };
 
   if (!id) {
-    return <EmployeeSelector title="Employee Interview" subtitle="Select an employee to interview" navigateTo="/interview/employee" />;
+    return <EmployeeSelector title="Employee Interview" subtitle="Select an employee to invite for an interview" navigateTo="/employees" />;
   }
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center"><LoadingSpinner /></div>;
-  if (!employee) return <div className="min-h-screen flex items-center justify-center"><p>Employee not found</p></div>;
+
+  // Redirect managers to use invitation flow on employee profile
+  return (
+    <div className="flex items-center justify-center h-[70vh]">
+      <div className="card-skillsight p-8 max-w-md text-center space-y-4">
+        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+          <ArrowRight className="h-6 w-6 text-primary" />
+        </div>
+        <h2 className="text-lg font-bold">Use the Invitation Flow</h2>
+        <p className="text-sm text-muted-foreground">Employee interviews are now started via invitation. Go to the employee's profile and click "Invite to Interview" to select a focus pack and send the invitation.</p>
+        <Button onClick={() => navigate(`/employees/${id}`)}>Go to Employee Profile →</Button>
+      </div>
+    </div>
+  );
 
   const algorithmLabels = ["Cosine Similarity Analysis", "Jaccard Skill Coverage", "Weighted Gap Scoring", "TF-IDF Rarity Mapping", "Pathfinding Optimisation", "AHP Succession Ranking"];
 
