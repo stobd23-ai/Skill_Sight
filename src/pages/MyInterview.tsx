@@ -20,6 +20,7 @@ export default function MyInterview() {
   const { data: interviews, isLoading: intLoading } = useInterviews(employeeId || undefined);
 
   const [messages, setMessages] = useState<Message[]>([]);
+  const [conversationHistory, setConversationHistory] = useState<{role: string, content: string}[]>([]);
   const [input, setInput] = useState("");
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [questionsAsked, setQuestionsAsked] = useState(0);
