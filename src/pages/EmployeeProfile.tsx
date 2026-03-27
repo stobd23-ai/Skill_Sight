@@ -81,7 +81,7 @@ export default function EmployeeProfile() {
 
   const pipeline = [
     { name: 'HR Data Ingested', done: true, icon: Check },
-    { name: 'Employee Interview', done: completedEmployee, inProgress: empInterviews.some(i => i.interview_type === 'employee' && i.status === 'in_progress'), icon: completedEmployee ? Check : Clock },
+    { name: 'Employee Interview', done: completedEmployee, inProgress: empInterviews.some(i => i.interview_type === 'employee' && i.status === 'in_progress'), pending: !!pendingInvite, icon: completedEmployee ? Check : Clock },
     { name: 'Manager Interview', done: completedManager, inProgress: empInterviews.some(i => i.interview_type === 'manager' && i.status === 'in_progress'), icon: completedManager ? Check : Clock },
     { name: 'Algorithm Analysis', done: !!latestResult, icon: latestResult ? Check : AlertCircle },
   ];
