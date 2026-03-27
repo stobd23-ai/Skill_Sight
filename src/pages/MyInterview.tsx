@@ -111,8 +111,10 @@ export default function MyInterview() {
     [employee, activeInterview, messages, conversationHistory, questionsAsked]
   );
 
-  const handleComplete = async (extractedData: any, finalMessages: Message[], finalQuestionCount: number) => {
+  const handleComplete = async (extractedData: any, finalMessages?: Message[], finalQuestionCount?: number) => {
     if (!activeInterview || !employeeId) return;
+    const msgs = finalMessages || messages;
+    const qCount = finalQuestionCount ?? questionsAsked;
 
     await supabase
       .from("interviews")
