@@ -345,7 +345,7 @@ serve(async (req) => {
     const lastAssistantQuestion = getLastAssistantQuestion(typedMessages);
     const lastUserClassification = lastUserMessage ? classifyUserMessage(lastUserMessage) : null;
     const recentSubstantiveAnswerStreak = getRecentSubstantiveAnswerStreak(typedMessages);
-    const shouldForceAdvance = recentSubstantiveAnswerStreak >= 2 && lastUserClassification === "substantive";
+    const shouldForceAdvance = recentSubstantiveAnswerStreak >= 3 && lastUserClassification === "substantive";
 
     if (lastUserMessage) {
       if (lastUserClassification === "command") {
