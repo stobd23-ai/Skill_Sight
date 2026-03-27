@@ -8,6 +8,14 @@ type InterviewMessage = {
 const EMPLOYEE_SYSTEM_PROMPT = `You are SkillSight, a career development AI at BMW Group.
 Your role: discover real skills through structured conversation. NOT performance evaluation.
 
+CRITICAL ANTI-REPETITION RULES — READ BEFORE EVERY RESPONSE:
+1. Read ALL previous assistant messages in the conversation history before responding.
+2. NEVER ask a question you have already asked in this conversation. Not even a rephrased version.
+3. If the employee has already answered a topic, acknowledge their answer briefly and move to a NEW topic.
+4. If you find yourself starting a response with the same opening as a previous message, STOP and rewrite it completely differently.
+5. Each of your messages must advance the conversation forward. Never loop back.
+6. If you are unsure whether you already asked something, assume you did and skip it.
+
 MISSION: Surface skill evidence. Extract into JSON at interview end.
 NEVER log a skill unless employee said: "I built/implemented/designed/led/wrote/created/delivered/solved/developed"
 NEVER log: "I want to learn", "my team uses", "I've heard of", "I know a bit"
@@ -89,6 +97,14 @@ OUTPUT: After Q12 OR all areas covered — send closing message THEN output JSON
 
 const MANAGER_SYSTEM_PROMPT = `You are SkillSight, a talent intelligence AI at BMW Group.
 You are speaking with a MANAGER about one of their direct reports.
+
+CRITICAL ANTI-REPETITION RULES — READ BEFORE EVERY RESPONSE:
+1. Read ALL previous assistant messages in the conversation history before responding.
+2. NEVER ask a question you have already asked in this conversation. Not even a rephrased version.
+3. If the manager has already answered a topic, acknowledge their answer briefly and move to a NEW topic.
+4. Each of your messages must advance the conversation forward. Never loop back.
+5. If you are unsure whether you already asked something, assume you did and skip it.
+
 Goal: surface insights HR systems cannot capture — hidden potential, observed behaviours, transferable strengths, concerns.
 
 MISSION: Extract manager's honest specific assessment of the employee.
@@ -495,12 +511,27 @@ serve(async (req) => {
       "Never output employee-side dialogue.",
     ].join("\n");
 
+// Strip hardcoded wrapper phrases from assistant messages in history
+// so the AI doesn't see and mimic them
+const cleanAssistantHistoryMessage = (content: string) => {
+  let cleaned = content;
+  // Remove wrapper prefixes that were added by buildStayOnQuestionReply / buildRephraseReply
+  cleaned = cleaned.replace(/^I want to make sure I understand your experience before we move on\.\s*Could you answer this part first:\s*/i, "");
+  cleaned = cleaned.replace(/^I didn't quite catch that\.\s*Could you rephrase it and answer this part:\s*/i, "");
+  // Remove forced advance prefixes
+  cleaned = cleaned.replace(/^Thanks — that helps\.\s*Let's switch gears to\s*/i, "Let's talk about ");
+  cleaned = cleaned.replace(/^Thanks — that gives me a solid picture of that example\.\s*Let's switch gears:\s*/i, "");
+  cleaned = cleaned.replace(/^Thanks — that gives me useful context\.\s*Let's shift to\s*/i, "Let's talk about ");
+  cleaned = cleaned.replace(/^Thanks — that gives me a clearer picture\.\s*Let's shift gears:\s*/i, "");
+  return cleaned.trim();
+};
+
     const chatMessages = [
       { role: "system", content: systemPrompt },
       { role: "system", content: runtimePrompt },
       ...typedMessages.map((message) => ({
         role: message.role === "ai" ? "assistant" : "user",
-        content: message.content,
+        content: message.role === "ai" ? cleanAssistantHistoryMessage(message.content) : message.content,
       })),
     ];
 
@@ -537,7 +568,9 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: cleanedMessages,
-        temperature: 0.35,
+        temperature: 0.5,
+        frequency_penalty: 0.7,
+        presence_penalty: 0.5,
         max_tokens: 900,
       }),
     });
@@ -562,9 +595,17 @@ serve(async (req) => {
     const effectiveQuestionDelta = shouldForceAdvance && !parsedQuestionDelta ? 1 : shouldForceAdvance ? Math.max(questionDelta, 1) : questionDelta;
     const assistantMessage = sanitizeAssistantMessage(rawAssistantMessage);
     const latestAssistantQuestion = unwrapQuestionPrompt(extractLatestQuestion(assistantMessage));
-    const isRepeatedQuestion =
-      Boolean(lastAssistantQuestion) &&
-      normalizeText(latestAssistantQuestion) === normalizeText(lastAssistantQuestion);
+    // Fuzzy repeat detection: check against ALL previous assistant questions, not just the last one
+    const allPreviousAssistantQuestions = typedMessages
+      .filter((m) => m.role === "ai")
+      .map((m) => normalizeText(unwrapQuestionPrompt(extractLatestQuestion(m.content))));
+    const isRepeatedQuestion = allPreviousAssistantQuestions.some(
+      (prevQ) => prevQ.length > 20 && (
+        normalizeText(latestAssistantQuestion) === prevQ ||
+        normalizeText(latestAssistantQuestion).includes(prevQ.slice(0, 60)) ||
+        prevQ.includes(normalizeText(latestAssistantQuestion).slice(0, 60))
+      )
+    );
 
     let isComplete = false;
     let extractedData = null;
