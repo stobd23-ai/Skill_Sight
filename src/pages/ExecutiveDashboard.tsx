@@ -1,17 +1,225 @@
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
-import { Users, BarChart3, GraduationCap, Target } from "lucide-react";
+import { ReadinessRing } from "@/components/ReadinessRing";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { useEmployees, useAlgorithmResults, useInterviews, useBootcamps, useReorgMatches, useAllEmployeeSkills, useRoles } from "@/hooks/useData";
+import { Users, TrendingUp, AlertTriangle, MessageSquare, GraduationCap, DollarSign } from "lucide-react";
+import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Legend } from "recharts";
+import { useNavigate } from "react-router-dom";
+import { useMemo } from "react";
 
 export default function ExecutiveDashboard() {
+  const { data: employees, isLoading: loadingEmp } = useEmployees();
+  const { data: results } = useAlgorithmResults();
+  const { data: interviews } = useInterviews();
+  const { data: bootcamps } = useBootcamps();
+  const { data: reorgMatches } = useReorgMatches();
+  const { data: allSkills } = useAllEmployeeSkills();
+  const { data: roles } = useRoles();
+  const navigate = useNavigate();
+
+  const avgReadiness = useMemo(() => {
+    if (!results?.length) return 0;
+    const withReadiness = results.filter(r => r.final_readiness != null);
+    if (!withReadiness.length) return 0;
+    return Math.round((withReadiness.reduce((s, r) => s + (r.final_readiness || 0), 0) / withReadiness.length) * 100);
+  }, [results]);
+
+  const criticalGaps = useMemo(() => {
+    if (!results?.length) return 0;
+    return results.reduce((count, r) => {
+      const ga = r.gap_analysis as any;
+      if (ga?.criticalGaps) {
+        return count + ga.criticalGaps.filter((g: any) => g.priority === 'critical').length;
+      }
+      return count;
+    }, 0);
+  }, [results]);
+
+  const completedInterviews = interviews?.filter(i => i.status === 'completed').length || 0;
+  const activeBootcamps = bootcamps?.filter(b => b.status !== 'not_started').length || 0;
+  const immediateMatches = reorgMatches?.filter(m => m.immediate_readiness).length || 0;
+  const hiringCostAvoided = immediateMatches * 45000;
+
+  // Radar chart data
+  const radarData = useMemo(() => {
+    const strategicSkills = ['ThermalEngineering', 'Python', 'MachineLearning', 'EVBatterySystems', 'AUTOSAR', 'ProjectManagement', 'DeepLearning', 'ManufacturingProcesses'];
+    if (!allSkills?.length || !roles?.length) return [];
+
+    return strategicSkills.map(skill => {
+      const skillEntries = allSkills.filter(s => s.skill_name === skill);
+      const avgProf = skillEntries.length ? skillEntries.reduce((s, e) => s + (e.proficiency || 0), 0) / skillEntries.length : 0;
+      const maxRequired = Math.max(0, ...roles.map(r => {
+        const req = r.required_skills as any;
+        return req?.[skill] || 0;
+      }));
+      return { skill: skill.replace(/([A-Z])/g, ' $1').trim(), workforce: Math.round(avgProf * 33.3), strategic: Math.round(maxRequired * 33.3) };
+    });
+  }, [allSkills, roles]);
+
+  // Heatmap data
+  const heatmapSkills = ['EVBatterySystems', 'MachineLearning', 'Python', 'AUTOSAR', 'BatteryThermalMgmt', 'DeepLearning'];
+  const heatmapData = useMemo(() => {
+    if (!employees?.length || !allSkills?.length) return [];
+    return (employees || []).slice(0, 5).map(emp => {
+      const empSkills = allSkills.filter(s => s.employee_id === emp.id);
+      const row: any = { name: emp.name?.split(' ')[0] || '' };
+      heatmapSkills.forEach(skill => {
+        const found = empSkills.find(s => s.skill_name === skill);
+        row[skill] = found?.proficiency || 0;
+      });
+      return row;
+    });
+  }, [employees, allSkills]);
+
+  if (loadingEmp) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  const profColors: Record<number, string> = { 0: '#fde8ea', 1: '#fff7ed', 2: '#e8f0fb', 3: '#e6f4ea' };
+  const profText: Record<number, string> = { 0: '#dc3545', 1: '#c2410c', 2: '#1c69d3', 3: '#28a745' };
+
   return (
     <div>
       <PageHeader title="Executive Dashboard" subtitle="Workforce intelligence overview" />
-      <div className="p-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard icon={Users} label="Total Employees" value={8} subtitle="Across all departments" color="blue" />
-          <StatCard icon={BarChart3} label="Avg. Readiness" value="72%" subtitle="Across target roles" color="green" trend={{ value: 4, direction: "up" }} />
-          <StatCard icon={GraduationCap} label="Active Bootcamps" value={0} subtitle="In progress" color="amber" />
-          <StatCard icon={Target} label="Open Roles" value={0} subtitle="Requiring placement" color="red" />
+      <div className="p-6 space-y-6">
+        {/* Stat cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          <StatCard icon={Users} label="Employees Profiled" value={employees?.length || 0} subtitle="Full HR + interview data" color="blue" />
+          <StatCard icon={TrendingUp} label="Avg Readiness Score" value={`${avgReadiness}%`} subtitle="Across all assessments" color="green" />
+          <StatCard icon={AlertTriangle} label="Critical Skill Gaps" value={criticalGaps} subtitle="Require immediate action" color="red" />
+          <StatCard icon={MessageSquare} label="Interviews Completed" value={completedInterviews} subtitle="Employee + manager combined" color="blue" />
+          <StatCard icon={GraduationCap} label="Active Bootcamps" value={activeBootcamps} subtitle="Personalized training plans" color="amber" />
+          <StatCard icon={DollarSign} label="Hiring Cost Avoided" value={hiringCostAvoided > 0 ? `€${(hiringCostAvoided / 1000000).toFixed(1)}M` : '€0'} subtitle="Through internal mobility" color="green" />
+        </div>
+
+        {/* Main content 60/40 split */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* Left column */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Radar Chart */}
+            <div className="card-skillsight p-5">
+              <h3 className="text-[15px] font-semibold mb-4">Skill Coverage vs Strategic Requirements</h3>
+              {radarData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={280}>
+                  <RadarChart data={radarData}>
+                    <PolarGrid stroke="hsl(0, 0%, 90%)" />
+                    <PolarAngleAxis dataKey="skill" tick={{ fontSize: 10 }} />
+                    <Radar name="Current Workforce" dataKey="workforce" stroke="#1c69d3" fill="#1c69d3" fillOpacity={0.3} />
+                    <Radar name="Strategic Need" dataKey="strategic" stroke="#ef4444" fill="#ef4444" fillOpacity={0.2} strokeDasharray="5 5" />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">No skill data available</p>
+              )}
+            </div>
+
+            {/* Neue Klasse Alignment */}
+            <div className="card-skillsight p-6 text-center">
+              <p className="text-xs font-semibold text-muted-foreground mb-2">Neue Klasse Alignment</p>
+              <p className="text-4xl font-bold font-mono">{avgReadiness}%</p>
+              <p className="text-xs text-muted-foreground mt-1">Based on Digital Boost · iFACTORY · EV Battery programs</p>
+              <div className="flex gap-1 mt-4 h-2 rounded-full overflow-hidden bg-secondary">
+                <div className="bg-status-red rounded-l-full" style={{ width: '50%', opacity: avgReadiness < 50 ? 1 : 0.2 }} />
+                <div className="bg-status-amber" style={{ width: '25%', opacity: avgReadiness >= 50 && avgReadiness < 75 ? 1 : 0.2 }} />
+                <div className="bg-status-green rounded-r-full" style={{ width: '25%', opacity: avgReadiness >= 75 ? 1 : 0.2 }} />
+              </div>
+              <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                <span>0-50%</span><span>50-75%</span><span>75-100%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right column */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Heatmap */}
+            <div className="card-skillsight p-5">
+              <h3 className="text-[15px] font-semibold mb-4">Skills × People Heatmap</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr>
+                      <th className="text-left pb-2 font-medium text-muted-foreground pr-2"></th>
+                      {heatmapSkills.map(s => (
+                        <th key={s} className="pb-2 font-medium text-muted-foreground px-1" style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)', fontSize: 10 }}>
+                          {s.replace(/([A-Z])/g, ' $1').trim()}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {heatmapData.map((row, i) => (
+                      <tr key={i} className="cursor-pointer hover:bg-secondary/50" onClick={() => {
+                        const emp = employees?.find(e => e.name?.startsWith(row.name));
+                        if (emp) navigate(`/employees/${emp.id}`);
+                      }}>
+                        <td className="py-1 pr-2 font-medium">{row.name}</td>
+                        {heatmapSkills.map(skill => (
+                          <td key={skill} className="p-1 text-center">
+                            <div
+                              className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-mono font-semibold mx-auto"
+                              style={{ backgroundColor: profColors[row[skill] as number] || profColors[0], color: profText[row[skill] as number] || profText[0] }}
+                            >
+                              {row[skill]}
+                            </div>
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Internal Reorg Opportunity */}
+            <div className="card-skillsight p-5">
+              <h3 className="text-[15px] font-semibold mb-4">Internal Reorg Opportunity</h3>
+              {roles?.map(role => (
+                <div key={role.id} className="mb-3 cursor-pointer" onClick={() => navigate('/reorg')}>
+                  <p className="text-xs font-medium mb-1">{role.title}</p>
+                  <div className="flex gap-0.5 h-3 rounded-full overflow-hidden bg-secondary">
+                    <div className="bg-status-green rounded-l-full" style={{ width: '10%' }} />
+                    <div className="bg-bmw-blue" style={{ width: '20%' }} />
+                    <div className="bg-status-amber rounded-r-full" style={{ width: '30%' }} />
+                  </div>
+                </div>
+              ))}
+              <div className="flex gap-4 mt-3 text-[10px] text-muted-foreground">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-status-green" />≥80%</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-bmw-blue" />60-79%</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-status-amber" />40-59%</span>
+              </div>
+            </div>
+
+            {/* Recent Assessments */}
+            <div className="card-skillsight p-5">
+              <h3 className="text-[15px] font-semibold mb-4">Recent Assessments</h3>
+              {results?.length ? results.slice(0, 5).map((r, i) => {
+                const emp = employees?.find(e => e.id === r.employee_id);
+                const role = roles?.find(ro => ro.id === r.role_id);
+                if (!emp) return null;
+                return (
+                  <div key={r.id} className={`flex items-center gap-3 py-3 ${i > 0 ? 'border-t border-border' : ''}`}>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ backgroundColor: emp.avatar_color || '#1c69d3' }}>
+                      {emp.avatar_initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{emp.name}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{role?.title || 'Unknown role'}</p>
+                    </div>
+                    <ReadinessRing value={Math.round((r.final_readiness || 0) * 100)} size="sm" />
+                  </div>
+                );
+              }) : (
+                <p className="text-xs text-muted-foreground text-center py-4">No assessments yet</p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -1,11 +1,271 @@
+import { useParams, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
+import { ReadinessRing } from "@/components/ReadinessRing";
+import { SkillBadge } from "@/components/SkillBadge";
+import { PriorityBadge } from "@/components/PriorityBadge";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { EmptyState } from "@/components/EmptyState";
+import { Button } from "@/components/ui/button";
+import { useEmployee, useEmployeeSkills, useAlgorithmResults, useInterviews, useBootcamps, useRoles } from "@/hooks/useData";
+import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Legend } from "recharts";
+import { Check, Clock, AlertCircle, MessageSquare, BarChart3, GraduationCap, Database, FileText, Users, Target, Sparkles, ChevronRight } from "lucide-react";
+import { useState, useMemo } from "react";
 
 export default function EmployeeProfile() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { data: employee, isLoading } = useEmployee(id);
+  const { data: skills } = useEmployeeSkills(id);
+  const { data: results } = useAlgorithmResults(id);
+  const { data: interviews } = useInterviews(id);
+  const { data: bootcamps } = useBootcamps(id);
+  const { data: roles } = useRoles();
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
+
+  const latestResult = results?.[0];
+  const readiness = latestResult ? Math.round((latestResult.final_readiness || 0) * 100) : null;
+  const empInterviews = interviews?.filter(i => i.employee_id === id) || [];
+  const empBootcamps = bootcamps?.filter(b => b.employee_id === id) || [];
+  const completedEmployee = empInterviews.some(i => i.interview_type === 'employee' && i.status === 'completed');
+  const completedManager = empInterviews.some(i => i.interview_type === 'manager' && i.status === 'completed');
+
+  // Radar data
+  const selectedRole = roles?.find(r => r.id === (selectedRoleId || latestResult?.role_id));
+  const radarData = useMemo(() => {
+    if (!skills?.length) return [];
+    const requiredSkills = selectedRole?.required_skills as Record<string, number> | null;
+    const allSkillNames = new Set<string>();
+    skills.forEach(s => allSkillNames.add(s.skill_name));
+    if (requiredSkills) Object.keys(requiredSkills).forEach(s => allSkillNames.add(s));
+    
+    return Array.from(allSkillNames).map(name => ({
+      skill: name.replace(/([A-Z])/g, ' $1').trim(),
+      employee: (skills.find(s => s.skill_name === name)?.proficiency || 0),
+      role: requiredSkills?.[name] || 0,
+    }));
+  }, [skills, selectedRole]);
+
+  // AI-discovered skills
+  const aiSkills = skills?.filter(s => s.source === 'employee_interview' || s.source === 'combined') || [];
+
+  if (isLoading) return <div className="flex items-center justify-center h-64"><LoadingSpinner /></div>;
+  if (!employee) return <EmptyState icon={Users} title="Employee not found" description="This employee does not exist." />;
+
+  const reviews = (employee.past_performance_reviews as string[]) || [];
+  const training = (employee.training_history as string[]) || [];
+
+  // Pipeline steps
+  const pipeline = [
+    { name: 'HR Data Ingested', done: true, icon: Check },
+    { name: 'Employee Interview', done: completedEmployee, inProgress: empInterviews.some(i => i.interview_type === 'employee' && i.status === 'in_progress'), icon: completedEmployee ? Check : Clock },
+    { name: 'Manager Interview', done: completedManager, inProgress: empInterviews.some(i => i.interview_type === 'manager' && i.status === 'in_progress'), icon: completedManager ? Check : Clock },
+    { name: 'Algorithm Analysis', done: !!latestResult, icon: latestResult ? Check : AlertCircle },
+    { name: 'AI Bootcamp', done: empBootcamps.length > 0, icon: empBootcamps.length > 0 ? Check : AlertCircle },
+  ];
+
   return (
     <div>
-      <PageHeader title="Employee Profile" subtitle="Detailed employee information" />
-      <div className="p-8">
-        <p className="text-sm text-muted-foreground">Employee profile will be loaded from the database.</p>
+      <PageHeader title="Employee Profile" />
+      <div className="p-6 space-y-6">
+        {/* Profile header */}
+        <div className="card-skillsight p-6">
+          <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex items-start gap-4 flex-1">
+              <div className="w-[72px] h-[72px] rounded-full flex items-center justify-center text-xl font-bold text-white shrink-0" style={{ backgroundColor: employee.avatar_color || '#1c69d3' }}>
+                {employee.avatar_initials}
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">{employee.name}</h2>
+                <p className="text-sm text-muted-foreground">{employee.job_title} · {employee.department}</p>
+                <div className="flex gap-2 mt-2">
+                  <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-secondary text-muted-foreground">{employee.tenure_years} years</span>
+                  {completedEmployee && <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-status-green-light text-status-green">Interviewed</span>}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-6">
+              <ReadinessRing value={Math.round((employee.performance_score || 0) * 100)} size="sm" label="Performance" />
+              <ReadinessRing value={Math.round((employee.learning_agility || 0) * 100)} size="sm" label="Agility" />
+              {readiness !== null && <ReadinessRing value={readiness} size="sm" label="Readiness" />}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-4">
+            <Button size="sm" onClick={() => navigate(`/interview/employee/${id}`)}>Start Employee Interview</Button>
+            <Button size="sm" variant="outline" onClick={() => navigate(`/interview/manager/${id}`)}>Start Manager Interview</Button>
+            {latestResult && <Button size="sm" variant="outline" onClick={() => navigate(`/analysis/${id}`)}>View Analysis</Button>}
+            {empBootcamps.length > 0 && <Button size="sm" variant="outline" onClick={() => navigate(`/bootcamp/${id}`)}>View Bootcamp</Button>}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Assessment Pipeline */}
+          <div className="card-skillsight p-5">
+            <h3 className="text-[15px] font-semibold mb-4">Assessment Status</h3>
+            <div className="flex items-center gap-0">
+              {pipeline.map((step, i) => (
+                <div key={step.name} className="flex items-center flex-1">
+                  <div className="flex flex-col items-center text-center gap-1.5">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step.done ? 'bg-status-green text-white' : step.inProgress ? 'bg-status-amber text-white' : 'bg-secondary text-muted-foreground'}`}>
+                      <step.icon className="h-4 w-4" />
+                    </div>
+                    <span className="text-[10px] font-medium leading-tight max-w-[70px]">{step.name}</span>
+                  </div>
+                  {i < pipeline.length - 1 && <div className={`h-0.5 flex-1 mx-1 ${step.done ? 'bg-status-green' : 'bg-border'}`} />}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Data Sources */}
+          <div className="card-skillsight p-5">
+            <h3 className="text-[15px] font-semibold mb-4">Ingested Data Sources</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: 'HR Skills Database', done: true },
+                { label: `Performance Reviews (${reviews.length})`, done: reviews.length > 0 },
+                { label: `Training History (${training.length})`, done: training.length > 0 },
+                { label: 'Job Description', done: true },
+                { label: 'Manager Assessments', done: completedManager },
+                { label: 'Company Strategy Alignment', done: true },
+              ].map(source => (
+                <div key={source.label} className={`flex items-center gap-2 px-3 py-2 rounded text-xs ${source.done ? 'bg-status-green-light text-status-green' : 'bg-secondary text-muted-foreground'}`}>
+                  {source.done ? <Check className="h-3 w-3 shrink-0" /> : <AlertCircle className="h-3 w-3 shrink-0" />}
+                  {source.label}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Performance Reviews */}
+        <div className="card-skillsight p-5">
+          <h3 className="text-[15px] font-semibold mb-4">Performance Reviews</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {reviews.map((review, i) => {
+              const [year, ...rest] = (review as string).split(': ');
+              return (
+                <div key={i} className="bg-secondary rounded-lg p-4">
+                  <p className="text-xs font-semibold mb-1">{year}</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{rest.join(': ')}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Skills Portfolio */}
+        <div className="card-skillsight p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[15px] font-semibold">Skills Profile</h3>
+            <select value={selectedRoleId || ''} onChange={e => setSelectedRoleId(e.target.value || null)} className="h-8 rounded-md border border-input bg-background px-2 text-xs">
+              <option value="">Select role to compare</option>
+              {roles?.map(r => <option key={r.id} value={r.id}>{r.title}</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Radar */}
+            <div>
+              {radarData.length > 0 && (
+                <ResponsiveContainer width="100%" height={240}>
+                  <RadarChart data={radarData}>
+                    <PolarGrid stroke="hsl(0,0%,90%)" />
+                    <PolarAngleAxis dataKey="skill" tick={{ fontSize: 9 }} />
+                    <Radar name="Employee" dataKey="employee" stroke="#1c69d3" fill="#1c69d3" fillOpacity={0.3} />
+                    {selectedRole && <Radar name="Role" dataKey="role" stroke="#ef4444" fill="none" strokeDasharray="5 5" />}
+                    <Legend wrapperStyle={{ fontSize: 10 }} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+            {/* Skills Grid */}
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {skills?.sort((a, b) => (b.proficiency || 0) - (a.proficiency || 0)).map(s => (
+                <div key={s.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
+                  <div>
+                    <span className="text-xs font-medium">{s.skill_name}</span>
+                    {s.evidence && <p className="text-[10px] italic text-muted-foreground mt-0.5">{s.evidence}</p>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-muted-foreground capitalize">{s.source?.replace('_', ' ')}</span>
+                    <SkillBadge skill="" proficiency={(s.proficiency || 0) as 0 | 1 | 2 | 3} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* AI-Discovered Skills */}
+        {aiSkills.length > 0 && (
+          <div className="card-skillsight p-5 border-l-4 border-l-purple-400">
+            <h3 className="text-[15px] font-semibold mb-3 flex items-center gap-2"><Sparkles className="h-4 w-4 text-purple-500" />AI-Discovered Skills</h3>
+            <div className="flex flex-wrap gap-2">
+              {aiSkills.map(s => <SkillBadge key={s.id} skill={s.skill_name} proficiency={(s.proficiency || 0) as 0 | 1 | 2 | 3} />)}
+            </div>
+          </div>
+        )}
+
+        {/* Interview History */}
+        <div className="card-skillsight p-5">
+          <h3 className="text-[15px] font-semibold mb-4">Interview History</h3>
+          {empInterviews.length > 0 ? (
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 font-medium text-muted-foreground">Date</th>
+                  <th className="text-left py-2 font-medium text-muted-foreground">Type</th>
+                  <th className="text-left py-2 font-medium text-muted-foreground">Role</th>
+                  <th className="text-left py-2 font-medium text-muted-foreground">Status</th>
+                  <th className="text-right py-2 font-medium text-muted-foreground">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {empInterviews.map(interview => {
+                  const role = roles?.find(r => r.id === interview.target_role_id);
+                  return (
+                    <tr key={interview.id} className="border-b border-border last:border-0">
+                      <td className="py-2.5">{interview.started_at ? new Date(interview.started_at).toLocaleDateString() : '—'}</td>
+                      <td className="py-2.5 capitalize">{interview.interview_type}</td>
+                      <td className="py-2.5">{role?.title || '—'}</td>
+                      <td className="py-2.5">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${interview.status === 'completed' ? 'bg-status-green-light text-status-green' : interview.status === 'in_progress' ? 'bg-status-amber-light text-status-amber' : 'bg-secondary text-muted-foreground'}`}>{interview.status}</span>
+                      </td>
+                      <td className="py-2.5 text-right"><button className="text-bmw-blue hover:underline">View →</button></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-4">No interviews conducted yet</p>
+          )}
+        </div>
+
+        {/* Latest Analysis */}
+        <div className="card-skillsight p-5">
+          <h3 className="text-[15px] font-semibold mb-4">Latest Analysis</h3>
+          {latestResult ? (
+            <div className="flex items-center gap-6">
+              <ReadinessRing value={readiness || 0} size="md" label="Overall Readiness" />
+              <div className="flex-1 space-y-2">
+                {((latestResult.gap_analysis as any)?.criticalGaps || []).slice(0, 3).map((gap: any, i: number) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <span className="text-xs">{gap.skill}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-muted-foreground">{gap.current}/{gap.required}</span>
+                      <PriorityBadge priority={gap.priority} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Button variant="outline" size="sm" onClick={() => navigate(`/analysis/${id}`)} className="shrink-0">
+                View Full Analysis <ChevronRight className="h-3 w-3 ml-1" />
+              </Button>
+            </div>
+          ) : (
+            <EmptyState icon={BarChart3} title="No analysis yet" description="Run an interview first to generate skill analysis." action={{ label: "Run Analysis →", onClick: () => navigate(`/interview/employee/${id}`) }} />
+          )}
+        </div>
       </div>
     </div>
   );
