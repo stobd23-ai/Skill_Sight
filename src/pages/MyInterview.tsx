@@ -120,15 +120,15 @@ export default function MyInterview() {
       .from("interviews")
       .update({
         status: "completed",
-        conversation_history: finalMessages.map(m => ({
+        conversation_history: msgs.map(m => ({
           role: m.role,
           content: m.content,
           timestamp: m.timestamp.toISOString(),
         })) as any,
-        questions_asked: finalQuestionCount,
-        extracted_skills: extractedData.extracted_skills || ({} as any),
-        unexpected_skills: extractedData.unexpected_skills || ([] as any),
-        insufficient_evidence: extractedData.insufficient_evidence || ([] as any),
+        questions_asked: qCount,
+        extracted_skills: extractedData?.extracted_skills || ({} as any),
+        unexpected_skills: extractedData?.unexpected_skills || ([] as any),
+        insufficient_evidence: extractedData?.insufficient_evidence || ([] as any),
         completed_at: new Date().toISOString(),
       })
       .eq("id", activeInterview.id);
