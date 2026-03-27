@@ -68,7 +68,7 @@ export default function EmployeeInterview() {
 
       const aiMsg: Message = { role: "ai", content: data.message, timestamp: new Date() };
       const questionDelta = typeof data.questionDelta === "number" ? data.questionDelta : 1;
-      const nextQuestionsAsked = typedQuestions(questionsAsked + questionDelta);
+      const nextQuestionsAsked = Math.min(questionsAsked + questionDelta, 12);
 
       setMessages(prev => [...prev, aiMsg]);
       setQuestionsAsked(nextQuestionsAsked);
