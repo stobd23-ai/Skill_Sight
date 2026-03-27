@@ -6,6 +6,7 @@ import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, UserCheck, Check, ArrowLeft, Star, Eye, AlertTriangle } from "lucide-react";
+import { usePipeline } from "@/contexts/PipelineContext";
 
 type Phase = "setup" | "interviewing" | "algorithms_running" | "complete";
 interface Message { role: "ai" | "user"; content: string; timestamp: Date }
