@@ -19,13 +19,7 @@ serve(async (req) => {
     const { data: existing } = await supabaseAdmin
       .from("user_profiles")
       .select("email")
-      .in("email", ["manager@bmw-skillsight.com", "thomas.bauer@bmw-skillsight.com"]);
-
-    if (existing && existing.length >= 2) {
-      return new Response(JSON.stringify({ message: "Demo users already exist", seeded: false }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+      .in("email", ["manager@bmw-skillsight.com", "thomas.bauer@bmw-skillsight.com", "anna.keller@bmw-skillsight.com"]);
 
     const results: string[] = [];
 
