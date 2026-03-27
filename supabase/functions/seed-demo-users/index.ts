@@ -77,7 +77,39 @@ serve(async (req) => {
           employee_id: thomas?.id || null,
           full_name: "Thomas Bauer",
         });
-        results.push("Employee created");
+        results.push("Employee (Thomas) created");
+      }
+    }
+
+    // Create Employee account (Anna Keller)
+    const annaExists = existing?.some(e => e.email === "anna.keller@bmw-skillsight.com");
+    if (!annaExists) {
+      const { data: anna } = await supabaseAdmin
+        .from("employees")
+        .select("id")
+        .eq("name", "Anna Keller")
+        .limit(1)
+        .single();
+
+      const { data: annaUser, error: annaErr } = await supabaseAdmin.auth.admin.createUser({
+        email: "anna.keller@bmw-skillsight.com",
+        password: "SkillSight2026!",
+        email_confirm: true,
+        user_metadata: { full_name: "Anna Keller" },
+      });
+
+      if (annaErr) {
+        console.error("Anna creation error:", annaErr);
+        results.push(`Anna error: ${annaErr.message}`);
+      } else if (annaUser?.user) {
+        await supabaseAdmin.from("user_profiles").insert({
+          id: annaUser.user.id,
+          email: "anna.keller@bmw-skillsight.com",
+          role: "employee",
+          employee_id: anna?.id || null,
+          full_name: "Anna Keller",
+        });
+        results.push("Employee (Anna) created");
       }
     }
 
