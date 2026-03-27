@@ -18,8 +18,10 @@ export function ReadinessRing({ value, size = "md", label }: ReadinessRingProps)
   const circumference = 2 * Math.PI * config.radius;
   const offset = circumference - (animatedValue / 100) * circumference;
 
-  const color =
-    value < 50 ? "hsl(0, 84%, 60%)" : value < 75 ? "hsl(32, 95%, 44%)" : "hsl(142, 71%, 35%)";
+  const colorClass =
+    value < 50 ? "text-status-red" : value < 75 ? "text-status-amber" : "text-status-green";
+  const strokeColor =
+    value < 50 ? "hsl(var(--red))" : value < 75 ? "hsl(var(--amber))" : "hsl(var(--green))";
 
   useEffect(() => {
     const timer = setTimeout(() => setAnimatedValue(value), 100);
@@ -35,7 +37,7 @@ export function ReadinessRing({ value, size = "md", label }: ReadinessRingProps)
           cy={config.total / 2}
           r={config.radius}
           fill="none"
-          stroke="hsl(0, 0%, 93%)"
+          stroke="hsl(var(--border))"
           strokeWidth={config.stroke}
         />
         <circle
@@ -43,7 +45,7 @@ export function ReadinessRing({ value, size = "md", label }: ReadinessRingProps)
           cy={config.total / 2}
           r={config.radius}
           fill="none"
-          stroke={color}
+          stroke={strokeColor}
           strokeWidth={config.stroke}
           strokeDasharray={circumference}
           strokeDashoffset={offset}
@@ -52,7 +54,7 @@ export function ReadinessRing({ value, size = "md", label }: ReadinessRingProps)
         />
       </svg>
       <span
-        className="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+        className={`absolute inset-0 flex items-center justify-center font-mono font-semibold ${colorClass}`}
         style={{ fontSize: config.fontSize }}
       >
         {value}%

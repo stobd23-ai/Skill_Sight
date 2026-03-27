@@ -43,12 +43,9 @@ export default function SuccessionBoard() {
         const gap = weightedGapScore(input);
         const readiness = gap.readinessPercent;
 
-        return {
-          ...emp, empSkills, cosine, readiness, gap,
-        };
+        return { ...emp, empSkills, cosine, readiness, gap };
       });
 
-      // Run AHP
       const ahpInput = candidates.map(c => ({
         id: c.id, name: c.name, skills: c.empSkills,
         performanceScore: c.performance_score || 0.5,
@@ -59,8 +56,6 @@ export default function SuccessionBoard() {
       candidates.forEach(c => { resultsMap[c.id] = { cosine: c.cosine, readiness: c.readiness / 100 }; });
 
       const ahp = runAHP(ahpInput, resultsMap);
-
-      // Assessed count from algorithm_results
       const assessedCount = allResults?.filter(r => r.role_id === role.id).length || 0;
 
       return {
@@ -79,7 +74,7 @@ export default function SuccessionBoard() {
   return (
     <div>
       <PageHeader title="Succession Planning" subtitle="AHP-ranked internal candidates per strategic role" />
-      <div className="px-8 pb-8 space-y-6">
+      <div className="p-6 space-y-6">
         {/* AHP Explanation */}
         <Collapsible>
           <CollapsibleTrigger asChild>
@@ -114,7 +109,7 @@ export default function SuccessionBoard() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {rankedCandidates.slice(0, 4).map((c) => (
                   <div key={c.employeeId} className="rounded-lg border border-border p-3 hover:shadow-md transition-shadow cursor-pointer"
                     onClick={() => navigate(`/analysis/${c.employeeId}`)}>
@@ -133,7 +128,7 @@ export default function SuccessionBoard() {
                     </div>
                     <div className="space-y-1">
                       {c.topSurplus && (
-                        <Badge className="text-[10px] bg-green-50 text-green-700 border-green-200 w-full justify-start truncate">
+                        <Badge className="text-[10px] bg-status-green-light text-status-green border-status-green/20 w-full justify-start truncate">
                           ↑ {c.topSurplus.skill.replace(/([A-Z])/g, ' $1').trim()}
                         </Badge>
                       )}

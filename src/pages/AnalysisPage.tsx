@@ -37,7 +37,6 @@ export default function AnalysisPage() {
   const managerInterview = interviews?.find(i => i.interview_type === 'manager' && i.status === 'completed');
   const targetRole = roles?.find(r => r.id === latestResult?.role_id);
 
-  // Build algorithm input from live data
   const algorithmInput = useMemo<AlgorithmInput | null>(() => {
     if (!employee || !targetRole || !skills) return null;
     const empSkills: SkillVector = {};
@@ -59,7 +58,6 @@ export default function AnalysisPage() {
     };
   }, [employee, targetRole, skills, roles]);
 
-  // Run algorithms if we have input but no stored results
   useEffect(() => {
     if (algorithmInput && !latestResult) {
       const res = runFullAnalysis(algorithmInput);
@@ -67,7 +65,6 @@ export default function AnalysisPage() {
     }
   }, [algorithmInput, latestResult]);
 
-  // Load existing report
   useEffect(() => {
     if (!id) return;
     supabase.from("reports").select("report_markdown").eq("employee_id", id).order("generated_at", { ascending: false }).limit(1)
@@ -138,41 +135,38 @@ export default function AnalysisPage() {
     }
   }, [employee, targetRole, cosine, jaccBin, jaccW, gapAnalysis, tfidfRarity, upskillingPaths, managerInterview, latestResult, localResults, id, managerAdj]);
 
-  if (empLoading) return <LoadingSpinner />;
+  if (empLoading) return <div className="flex items-center justify-center h-64"><LoadingSpinner /></div>;
   if (!employee) return <div className="p-8 text-center text-muted-foreground">Employee not found</div>;
 
   return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <div className="flex items-center justify-between px-8 pt-6 pb-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(`/employees/${id}`)}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">{employee.name} — Skills Analysis</h1>
-            <p className="text-sm text-muted-foreground">{targetRole?.title || 'No role'} Assessment</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={generateReport} disabled={reportLoading}>
-            <RefreshCw className={`h-3.5 w-3.5 ${reportLoading ? 'animate-spin' : ''}`} />
-            {report ? 'Regenerate Report' : 'Generate Report'}
-          </Button>
-          {report && (
-            <Button variant="outline" size="sm" onClick={() => {
-              const blob = new Blob([report], { type: 'text/markdown' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url; a.download = `${employee.name}_analysis.md`; a.click();
-            }}>
-              <Download className="h-3.5 w-3.5" /> Download Report
+    <div>
+      <PageHeader
+        title={`${employee.name} — Skills Analysis`}
+        subtitle={`${targetRole?.title || 'No role'} Assessment`}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate(`/employees/${id}`)}>
+              <ArrowLeft className="h-3.5 w-3.5" /> Back to Profile
             </Button>
-          )}
-        </div>
-      </div>
+            <Button variant="outline" size="sm" onClick={generateReport} disabled={reportLoading}>
+              <RefreshCw className={`h-3.5 w-3.5 ${reportLoading ? 'animate-spin' : ''}`} />
+              {report ? 'Regenerate Report' : 'Generate Report'}
+            </Button>
+            {report && (
+              <Button variant="outline" size="sm" onClick={() => {
+                const blob = new Blob([report], { type: 'text/markdown' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `${employee.name}_analysis.md`; a.click();
+              }}>
+                <Download className="h-3.5 w-3.5" /> Download
+              </Button>
+            )}
+          </div>
+        }
+      />
 
-      <div className="px-8 pb-8 space-y-6">
+      <div className="p-6 space-y-6">
         {/* Algorithm Results Summary */}
         <Card>
           <CardContent className="p-6">
@@ -185,7 +179,7 @@ export default function AnalysisPage() {
                   {managerAdj !== 0 && <> + Manager: <span className="font-mono">{managerAdj > 0 ? '+' : ''}{Math.round(managerAdj * 100)}%</span></>}
                 </span>
               </div>
-              <div className="flex-1 grid grid-cols-4 gap-4">
+              <div className="flex-1 grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard label="Profile Match" value={`${Math.round(cosine * 100)}%`} icon={<Target className="h-4 w-4" />} />
                 <MetricCard label="Skill Coverage" value={`${Math.round(jaccBin * 100)}%`} icon={<Shield className="h-4 w-4" />} />
                 <MetricCard label="Weighted Overlap" value={`${Math.round(jaccW * 100)}%`} icon={<BarChart3 className="h-4 w-4" />} />
@@ -195,7 +189,7 @@ export default function AnalysisPage() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Skills Radar */}
           <Card>
             <CardHeader className="pb-2">
@@ -250,18 +244,17 @@ export default function AnalysisPage() {
         </div>
 
         {/* Strengths + Rare Skills */}
-        <div className="grid grid-cols-2 gap-6">
-          {/* Strengths Beyond Requirements */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Star className="h-4 w-4 text-amber-500" /> Strengths Beyond Requirements
+                <Star className="h-4 w-4 text-status-amber" /> Strengths Beyond Requirements
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
                 {gapAnalysis?.surplusSkills?.length ? gapAnalysis.surplusSkills.map((s, i) => (
-                  <Badge key={i} className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100">
+                  <Badge key={i} className="bg-status-green-light text-status-green border-status-green/20 hover:bg-status-green-light">
                     {s.skill.replace(/([A-Z])/g, ' $1').trim()} +{s.surplus}
                   </Badge>
                 )) : <p className="text-sm text-muted-foreground">No surplus skills detected</p>}
@@ -269,7 +262,6 @@ export default function AnalysisPage() {
             </CardContent>
           </Card>
 
-          {/* Rare & Valuable Skills */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -420,7 +412,7 @@ export default function AnalysisPage() {
                 )}
                 {(managerInterview.potential_indicators as unknown as string[])?.length > 0 && (
                   <div>
-                    <span className="text-xs text-muted-foreground flex items-center gap-1"><Star className="h-3 w-3 text-amber-500" /> Potential Indicators</span>
+                    <span className="text-xs text-muted-foreground flex items-center gap-1"><Star className="h-3 w-3 text-status-amber" /> Potential Indicators</span>
                     <ul className="mt-1 space-y-1">
                       {(managerInterview.potential_indicators as unknown as string[]).map((p, i) => (
                         <li key={i} className="text-sm text-foreground/80">• {p}</li>
@@ -430,7 +422,7 @@ export default function AnalysisPage() {
                 )}
                 {(managerInterview.concerns as unknown as string[])?.length > 0 && (
                   <div>
-                    <span className="text-xs text-muted-foreground flex items-center gap-1"><AlertTriangle className="h-3 w-3 text-amber-500" /> Concerns</span>
+                    <span className="text-xs text-muted-foreground flex items-center gap-1"><AlertTriangle className="h-3 w-3 text-status-amber" /> Concerns</span>
                     <ul className="mt-1 space-y-1">
                       {(managerInterview.concerns as unknown as string[]).map((c, i) => (
                         <li key={i} className="text-sm text-foreground/80">• {c}</li>

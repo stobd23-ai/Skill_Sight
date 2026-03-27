@@ -8,8 +8,8 @@ interface PriorityBadgeProps {
 
 const priorityConfig: Record<Priority, { bg: string; text: string; label: string }> = {
   critical: { bg: "bg-status-red-light", text: "text-status-red", label: "Critical" },
-  high: { bg: "bg-status-amber-light", text: "text-amber-700", label: "High" },
-  medium: { bg: "bg-orange-50", text: "text-orange-700", label: "Medium" },
+  high: { bg: "bg-status-amber-light", text: "text-status-amber", label: "High" },
+  medium: { bg: "bg-status-orange-light", text: "text-status-orange", label: "Medium" },
   low: { bg: "bg-secondary", text: "text-muted-foreground", label: "Low" },
 };
 
