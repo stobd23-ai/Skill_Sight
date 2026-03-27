@@ -75,7 +75,6 @@ export default function EmployeeProfile() {
     { name: 'Employee Interview', done: completedEmployee, inProgress: empInterviews.some(i => i.interview_type === 'employee' && i.status === 'in_progress'), icon: completedEmployee ? Check : Clock },
     { name: 'Manager Interview', done: completedManager, inProgress: empInterviews.some(i => i.interview_type === 'manager' && i.status === 'in_progress'), icon: completedManager ? Check : Clock },
     { name: 'Algorithm Analysis', done: !!latestResult, icon: latestResult ? Check : AlertCircle },
-    { name: 'AI Bootcamp', done: empBootcamps.length > 0, icon: empBootcamps.length > 0 ? Check : AlertCircle },
   ];
 
   return (
