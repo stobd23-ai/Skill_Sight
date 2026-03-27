@@ -304,6 +304,70 @@ export type Database = {
         }
         Relationships: []
       }
+      interview_invitations: {
+        Row: {
+          accepted_at: string | null
+          employee_id: string | null
+          expires_at: string | null
+          id: string
+          interview_id: string | null
+          invited_at: string | null
+          invited_by_manager: string
+          message: string | null
+          preset_pack: string | null
+          status: string | null
+          target_role_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          employee_id?: string | null
+          expires_at?: string | null
+          id?: string
+          interview_id?: string | null
+          invited_at?: string | null
+          invited_by_manager: string
+          message?: string | null
+          preset_pack?: string | null
+          status?: string | null
+          target_role_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          employee_id?: string | null
+          expires_at?: string | null
+          id?: string
+          interview_id?: string | null
+          invited_at?: string | null
+          invited_by_manager?: string
+          message?: string | null
+          preset_pack?: string | null
+          status?: string | null
+          target_role_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_invitations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_invitations_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_invitations_target_role_id_fkey"
+            columns: ["target_role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       interviews: {
         Row: {
           completed_at: string | null
