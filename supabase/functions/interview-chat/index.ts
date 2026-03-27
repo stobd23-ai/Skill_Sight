@@ -261,6 +261,30 @@ const buildStayOnQuestionReply = (question: string) =>
 const buildRephraseReply = (question: string) =>
   `I didn't quite catch that. Could you rephrase it and answer this part: ${question}`;
 
+const classifyUserMessage = (value: string) => {
+  if (isRestartCommand(value) || isAdvanceCommand(value)) return "command" as const;
+  if (isGibberish(value)) return "gibberish" as const;
+  if (isVagueNonAnswer(value)) return "vague" as const;
+  return "substantive" as const;
+};
+
+const getRecentSubstantiveAnswerStreak = (messages: InterviewMessage[]) => {
+  let streak = 0;
+
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const message = messages[i];
+    if (message.role !== "user") continue;
+
+    const classification = classifyUserMessage(message.content);
+    if (classification !== "substantive") break;
+
+    streak += 1;
+    if (streak >= 3) break;
+  }
+
+  return streak;
+};
+
 const parseQuestionDelta = (value: string) => {
   const match = value.match(/^\s*\[\[QUESTION_DELTA:(0|1)\]\]/);
   return match ? Number(match[1]) : null;
