@@ -94,8 +94,34 @@ ${managerInsights ? `MANAGER INSIGHTS:\n${JSON.stringify(managerInsights, null, 
       }),
     });
 
-    const data = await response.json();
-    const report = data.choices?.[0]?.message?.content || "Report generation failed.";
+    const rawText = await response.text();
+    
+    // Robust JSON parsing - handle markdown fences or malformed responses
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      // Try to extract JSON from markdown-wrapped response
+      let cleaned = rawText
+        .replace(/```json\s*/gi, "")
+        .replace(/```\s*/g, "")
+        .trim();
+      const jsonStart = cleaned.search(/[\{\[]/);
+      const jsonEnd = cleaned.lastIndexOf(jsonStart !== -1 && cleaned[jsonStart] === '[' ? ']' : '}');
+      if (jsonStart !== -1 && jsonEnd !== -1) {
+        cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
+      }
+      try {
+        data = JSON.parse(cleaned);
+      } catch {
+        // If still can't parse, return the raw text as the report
+        return new Response(JSON.stringify({ report: rawText }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+    
+    const report = data.choices?.[0]?.message?.content || data.report || rawText || "Report generation failed.";
 
     return new Response(JSON.stringify({ report }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
