@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { runFullAnalysis, type AlgorithmInput, type SkillVector } from "@/lib/algorithms";
 
-type Phase = 'idle' | 'interview_active' | 'algorithms' | 'generating_report' | 'generating_bootcamp' | 'complete' | 'error';
+type Phase = 'idle' | 'interview_active' | 'algorithms' | 'generating_report' | 'complete' | 'error';
 
 interface PipelineState {
   phase: Phase;
