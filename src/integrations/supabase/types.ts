@@ -14,7 +14,600 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      algorithm_results: {
+        Row: {
+          ahp_data: Json | null
+          computed_at: string | null
+          cosine_similarity: number | null
+          employee_id: string | null
+          employee_interview_id: string | null
+          final_readiness: number | null
+          gap_analysis: Json | null
+          id: string
+          jaccard_binary: number | null
+          jaccard_weighted: number | null
+          manager_interview_id: string | null
+          manager_readiness_adjustment: number | null
+          normalized_gap_score: number | null
+          overall_readiness: number | null
+          role_id: string | null
+          tfidf_rarity: Json | null
+          upskilling_paths: Json | null
+        }
+        Insert: {
+          ahp_data?: Json | null
+          computed_at?: string | null
+          cosine_similarity?: number | null
+          employee_id?: string | null
+          employee_interview_id?: string | null
+          final_readiness?: number | null
+          gap_analysis?: Json | null
+          id?: string
+          jaccard_binary?: number | null
+          jaccard_weighted?: number | null
+          manager_interview_id?: string | null
+          manager_readiness_adjustment?: number | null
+          normalized_gap_score?: number | null
+          overall_readiness?: number | null
+          role_id?: string | null
+          tfidf_rarity?: Json | null
+          upskilling_paths?: Json | null
+        }
+        Update: {
+          ahp_data?: Json | null
+          computed_at?: string | null
+          cosine_similarity?: number | null
+          employee_id?: string | null
+          employee_interview_id?: string | null
+          final_readiness?: number | null
+          gap_analysis?: Json | null
+          id?: string
+          jaccard_binary?: number | null
+          jaccard_weighted?: number | null
+          manager_interview_id?: string | null
+          manager_readiness_adjustment?: number | null
+          normalized_gap_score?: number | null
+          overall_readiness?: number | null
+          role_id?: string | null
+          tfidf_rarity?: Json | null
+          upskilling_paths?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "algorithm_results_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "algorithm_results_employee_interview_id_fkey"
+            columns: ["employee_interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "algorithm_results_manager_interview_id_fkey"
+            columns: ["manager_interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "algorithm_results_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bootcamp_progress: {
+        Row: {
+          bootcamp_id: string | null
+          completed_at: string | null
+          employee_id: string | null
+          id: string
+          module_index: number | null
+          notes: string | null
+          status: string | null
+        }
+        Insert: {
+          bootcamp_id?: string | null
+          completed_at?: string | null
+          employee_id?: string | null
+          id?: string
+          module_index?: number | null
+          notes?: string | null
+          status?: string | null
+        }
+        Update: {
+          bootcamp_id?: string | null
+          completed_at?: string | null
+          employee_id?: string | null
+          id?: string
+          module_index?: number | null
+          notes?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bootcamp_progress_bootcamp_id_fkey"
+            columns: ["bootcamp_id"]
+            isOneToOne: false
+            referencedRelation: "bootcamps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bootcamp_progress_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bootcamps: {
+        Row: {
+          algorithm_result_id: string | null
+          employee_id: string | null
+          expected_outcomes: Json | null
+          generated_at: string | null
+          hours_per_week: number | null
+          id: string
+          milestones: Json | null
+          modules: Json | null
+          status: string | null
+          target_role_id: string | null
+          title: string | null
+          total_duration_weeks: number | null
+        }
+        Insert: {
+          algorithm_result_id?: string | null
+          employee_id?: string | null
+          expected_outcomes?: Json | null
+          generated_at?: string | null
+          hours_per_week?: number | null
+          id?: string
+          milestones?: Json | null
+          modules?: Json | null
+          status?: string | null
+          target_role_id?: string | null
+          title?: string | null
+          total_duration_weeks?: number | null
+        }
+        Update: {
+          algorithm_result_id?: string | null
+          employee_id?: string | null
+          expected_outcomes?: Json | null
+          generated_at?: string | null
+          hours_per_week?: number | null
+          id?: string
+          milestones?: Json | null
+          modules?: Json | null
+          status?: string | null
+          target_role_id?: string | null
+          title?: string | null
+          total_duration_weeks?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bootcamps_algorithm_result_id_fkey"
+            columns: ["algorithm_result_id"]
+            isOneToOne: false
+            referencedRelation: "algorithm_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bootcamps_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bootcamps_target_role_id_fkey"
+            columns: ["target_role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_skills: {
+        Row: {
+          confidence: string | null
+          employee_id: string | null
+          evidence: string | null
+          id: string
+          proficiency: number | null
+          skill_name: string
+          source: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          confidence?: string | null
+          employee_id?: string | null
+          evidence?: string | null
+          id?: string
+          proficiency?: number | null
+          skill_name: string
+          source?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          confidence?: string | null
+          employee_id?: string | null
+          evidence?: string | null
+          id?: string
+          proficiency?: number | null
+          skill_name?: string
+          source?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_skills_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employees: {
+        Row: {
+          avatar_color: string | null
+          avatar_initials: string | null
+          created_at: string | null
+          department: string | null
+          email: string | null
+          id: string
+          job_title: string | null
+          learning_agility: number | null
+          name: string
+          past_performance_reviews: Json | null
+          performance_score: number | null
+          tenure_years: number | null
+          training_history: Json | null
+        }
+        Insert: {
+          avatar_color?: string | null
+          avatar_initials?: string | null
+          created_at?: string | null
+          department?: string | null
+          email?: string | null
+          id?: string
+          job_title?: string | null
+          learning_agility?: number | null
+          name: string
+          past_performance_reviews?: Json | null
+          performance_score?: number | null
+          tenure_years?: number | null
+          training_history?: Json | null
+        }
+        Update: {
+          avatar_color?: string | null
+          avatar_initials?: string | null
+          created_at?: string | null
+          department?: string | null
+          email?: string | null
+          id?: string
+          job_title?: string | null
+          learning_agility?: number | null
+          name?: string
+          past_performance_reviews?: Json | null
+          performance_score?: number | null
+          tenure_years?: number | null
+          training_history?: Json | null
+        }
+        Relationships: []
+      }
+      interviews: {
+        Row: {
+          completed_at: string | null
+          concerns: Json | null
+          conversation_history: Json | null
+          employee_id: string | null
+          extracted_skills: Json | null
+          hidden_role_suggestion: string | null
+          id: string
+          insufficient_evidence: Json | null
+          interview_notes: string | null
+          interview_type: string | null
+          interviewer_name: string | null
+          interviewer_title: string | null
+          leadership_potential_observed: number | null
+          learning_agility_observed: number | null
+          manager_confidence_score: number | null
+          potential_indicators: Json | null
+          questions_asked: number | null
+          started_at: string | null
+          status: string | null
+          target_role_id: string | null
+          unexpected_skills: Json | null
+        }
+        Insert: {
+          completed_at?: string | null
+          concerns?: Json | null
+          conversation_history?: Json | null
+          employee_id?: string | null
+          extracted_skills?: Json | null
+          hidden_role_suggestion?: string | null
+          id?: string
+          insufficient_evidence?: Json | null
+          interview_notes?: string | null
+          interview_type?: string | null
+          interviewer_name?: string | null
+          interviewer_title?: string | null
+          leadership_potential_observed?: number | null
+          learning_agility_observed?: number | null
+          manager_confidence_score?: number | null
+          potential_indicators?: Json | null
+          questions_asked?: number | null
+          started_at?: string | null
+          status?: string | null
+          target_role_id?: string | null
+          unexpected_skills?: Json | null
+        }
+        Update: {
+          completed_at?: string | null
+          concerns?: Json | null
+          conversation_history?: Json | null
+          employee_id?: string | null
+          extracted_skills?: Json | null
+          hidden_role_suggestion?: string | null
+          id?: string
+          insufficient_evidence?: Json | null
+          interview_notes?: string | null
+          interview_type?: string | null
+          interviewer_name?: string | null
+          interviewer_title?: string | null
+          leadership_potential_observed?: number | null
+          learning_agility_observed?: number | null
+          manager_confidence_score?: number | null
+          potential_indicators?: Json | null
+          questions_asked?: number | null
+          started_at?: string | null
+          status?: string | null
+          target_role_id?: string | null
+          unexpected_skills?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interviews_target_role_id_fkey"
+            columns: ["target_role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reorg_matches: {
+        Row: {
+          computed_at: string | null
+          cosine_similarity: number | null
+          department_from: string | null
+          department_to: string | null
+          employee_id: string | null
+          gaps_remaining: Json | null
+          id: string
+          immediate_readiness: boolean | null
+          readiness_percent: number | null
+          role_id: string | null
+          transfer_type: string | null
+          weeks_to_full_readiness: number | null
+        }
+        Insert: {
+          computed_at?: string | null
+          cosine_similarity?: number | null
+          department_from?: string | null
+          department_to?: string | null
+          employee_id?: string | null
+          gaps_remaining?: Json | null
+          id?: string
+          immediate_readiness?: boolean | null
+          readiness_percent?: number | null
+          role_id?: string | null
+          transfer_type?: string | null
+          weeks_to_full_readiness?: number | null
+        }
+        Update: {
+          computed_at?: string | null
+          cosine_similarity?: number | null
+          department_from?: string | null
+          department_to?: string | null
+          employee_id?: string | null
+          gaps_remaining?: Json | null
+          id?: string
+          immediate_readiness?: boolean | null
+          readiness_percent?: number | null
+          role_id?: string | null
+          transfer_type?: string | null
+          weeks_to_full_readiness?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reorg_matches_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reorg_matches_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          algorithm_result_id: string | null
+          employee_id: string | null
+          generated_at: string | null
+          id: string
+          report_markdown: string | null
+          role_id: string | null
+        }
+        Insert: {
+          algorithm_result_id?: string | null
+          employee_id?: string | null
+          generated_at?: string | null
+          id?: string
+          report_markdown?: string | null
+          role_id?: string | null
+        }
+        Update: {
+          algorithm_result_id?: string | null
+          employee_id?: string | null
+          generated_at?: string | null
+          id?: string
+          report_markdown?: string | null
+          role_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_algorithm_result_id_fkey"
+            columns: ["algorithm_result_id"]
+            isOneToOne: false
+            referencedRelation: "algorithm_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          created_at: string | null
+          department: string | null
+          description: string | null
+          headcount_needed: number | null
+          id: string
+          is_open: boolean | null
+          required_skills: Json | null
+          strategic_weights: Json | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          department?: string | null
+          description?: string | null
+          headcount_needed?: number | null
+          id?: string
+          is_open?: boolean | null
+          required_skills?: Json | null
+          strategic_weights?: Json | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          department?: string | null
+          description?: string | null
+          headcount_needed?: number | null
+          id?: string
+          is_open?: boolean | null
+          required_skills?: Json | null
+          strategic_weights?: Json | null
+          title?: string
+        }
+        Relationships: []
+      }
+      skills_catalog: {
+        Row: {
+          category: string | null
+          description: string | null
+          difficulty: number | null
+          id: string
+          is_future_skill: boolean | null
+          name: string
+          strategic_priority: number | null
+        }
+        Insert: {
+          category?: string | null
+          description?: string | null
+          difficulty?: number | null
+          id?: string
+          is_future_skill?: boolean | null
+          name: string
+          strategic_priority?: number | null
+        }
+        Update: {
+          category?: string | null
+          description?: string | null
+          difficulty?: number | null
+          id?: string
+          is_future_skill?: boolean | null
+          name?: string
+          strategic_priority?: number | null
+        }
+        Relationships: []
+      }
+      strategy_documents: {
+        Row: {
+          document_type: string | null
+          extracted_future_skills: Json | null
+          extracted_initiatives: Json | null
+          id: string
+          is_active: boolean | null
+          processed: boolean | null
+          raw_text: string | null
+          summary: string | null
+          time_horizon: string | null
+          title: string
+          uploaded_at: string | null
+        }
+        Insert: {
+          document_type?: string | null
+          extracted_future_skills?: Json | null
+          extracted_initiatives?: Json | null
+          id?: string
+          is_active?: boolean | null
+          processed?: boolean | null
+          raw_text?: string | null
+          summary?: string | null
+          time_horizon?: string | null
+          title: string
+          uploaded_at?: string | null
+        }
+        Update: {
+          document_type?: string | null
+          extracted_future_skills?: Json | null
+          extracted_initiatives?: Json | null
+          id?: string
+          is_active?: boolean | null
+          processed?: boolean | null
+          raw_text?: string | null
+          summary?: string | null
+          time_horizon?: string | null
+          title?: string
+          uploaded_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
