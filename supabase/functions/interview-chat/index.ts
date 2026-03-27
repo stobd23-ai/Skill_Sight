@@ -328,6 +328,25 @@ const buildStayOnQuestionReply = (question: string) =>
 const buildRephraseReply = (question: string) =>
   `I didn't quite catch that. Could you rephrase it and answer this part: ${unwrapQuestionPrompt(question)}`;
 
+const EMPLOYEE_FALLBACK_QUESTIONS = [
+  "What's another project, skill, or challenge you've handled recently that says something important about your strengths?",
+  "Is there a skill or tool you've picked up recently that you're particularly proud of? Tell me how you learned it.",
+  "Can you think of a time you solved a problem that wasn't technically your responsibility? What happened?",
+  "What's something you've built or delivered that had a real impact on your team or department?",
+  "If a colleague described your biggest professional strength, what would they say — and can you give me an example?",
+  "What's the most technically complex thing you've worked on in the last year? Walk me through it.",
+  "Have you ever had to learn something completely new under time pressure? How did you approach it?",
+  "Is there a piece of work you did that you wish more people knew about? Tell me about it.",
+];
+
+const MANAGER_FALLBACK_QUESTIONS = [
+  "What's another strength or behaviour you've observed from this employee that might be easy to miss in formal HR data?",
+  "Can you describe a time this employee surprised you with their capability or initiative?",
+  "What's something this employee does well that isn't captured in their job description?",
+  "Have you seen this employee handle a difficult situation or conflict? What happened?",
+  "If you had to bet on one hidden strength of this employee, what would it be — and why?",
+];
+
 const buildForcedAdvanceReply = (interviewType: string, targetSkills: string[] = [], messages: InterviewMessage[]) => {
   const assistantTranscript = messages
     .filter((message) => message.role === "ai")
@@ -340,14 +359,18 @@ const buildForcedAdvanceReply = (interviewType: string, targetSkills: string[] =
   });
 
   if (interviewType === "manager") {
-    return nextUnusedSkill
-      ? `Thanks — that gives me useful context. Let’s shift to ${nextUnusedSkill}. What’s a specific time you observed this employee demonstrate that in practice?`
-      : "Thanks — that gives me a clearer picture. Let’s shift gears: what’s another strength or behaviour you’ve observed from this employee that might be easy to miss in formal HR data?";
+    if (nextUnusedSkill) {
+      return `Thanks — that gives me useful context. Let's shift to ${nextUnusedSkill}. What's a specific time you observed this employee demonstrate that in practice?`;
+    }
+    const unused = MANAGER_FALLBACK_QUESTIONS.find(q => !assistantTranscript.includes(normalizeText(q.slice(0, 50))));
+    return `Thanks — that gives me a clearer picture. ${unused || "Is there anything else about this employee's potential that we haven't covered yet?"}`;
   }
 
-  return nextUnusedSkill
-    ? `Thanks — that helps. Let’s switch gears to ${nextUnusedSkill}. Can you tell me about a specific time you used that in your work?`
-    : "Thanks — that gives me a solid picture of that example. Let’s switch gears: what’s another project, skill, or challenge you’ve handled recently that says something important about your strengths?";
+  if (nextUnusedSkill) {
+    return `Thanks — that helps. Let's switch gears to ${nextUnusedSkill}. Can you tell me about a specific time you used that in your work?`;
+  }
+  const unused = EMPLOYEE_FALLBACK_QUESTIONS.find(q => !assistantTranscript.includes(normalizeText(q.slice(0, 50))));
+  return `Thanks — that's a great example. ${unused || "We're getting a really solid picture. Is there anything else you'd like to share about your skills or experience?"}`;
 };
 
 const classifyUserMessage = (value: string) => {
@@ -362,7 +385,13 @@ const getRecentSubstantiveAnswerStreak = (messages: InterviewMessage[]) => {
 
   for (let i = messages.length - 1; i >= 0; i -= 1) {
     const message = messages[i];
-    if (message.role !== "user") continue;
+    if (message.role === "ai") {
+      const lower = normalizeText(message.content);
+      if (lower.includes("let's switch gears") || lower.includes("let's shift") || lower.includes("let's talk about") || lower.includes("that's a great example")) {
+        break;
+      }
+      continue;
+    }
 
     const classification = classifyUserMessage(message.content);
     if (classification !== "substantive") break;
