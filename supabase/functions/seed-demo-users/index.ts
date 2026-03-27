@@ -19,7 +19,7 @@ serve(async (req) => {
     const { data: existing } = await supabaseAdmin
       .from("user_profiles")
       .select("email")
-      .in("email", ["manager@bmw-skillsight.com", "thomas.bauer@bmw-skillsight.com", "anna.keller@bmw-skillsight.com"]);
+      .in("email", ["manager@bmw-skillsight.com", "thomas.bauer@bmw-skillsight.com", "anna.keller@bmw-skillsight.com", "jens.richter@bmw.de"]);
 
     const results: string[] = [];
 
@@ -110,6 +110,38 @@ serve(async (req) => {
           full_name: "Anna Keller",
         });
         results.push("Employee (Anna) created");
+      }
+    }
+
+    // Create Employee account (Jens Richter)
+    const jensExists = existing?.some(e => e.email === "jens.richter@bmw.de");
+    if (!jensExists) {
+      const { data: jens } = await supabaseAdmin
+        .from("employees")
+        .select("id")
+        .eq("name", "Jens Richter")
+        .limit(1)
+        .single();
+
+      const { data: jensUser, error: jensErr } = await supabaseAdmin.auth.admin.createUser({
+        email: "jens.richter@bmw.de",
+        password: "SkillSight2026!",
+        email_confirm: true,
+        user_metadata: { full_name: "Jens Richter" },
+      });
+
+      if (jensErr) {
+        console.error("Jens creation error:", jensErr);
+        results.push(`Jens error: ${jensErr.message}`);
+      } else if (jensUser?.user) {
+        await supabaseAdmin.from("user_profiles").insert({
+          id: jensUser.user.id,
+          email: "jens.richter@bmw.de",
+          role: "employee",
+          employee_id: jens?.id || null,
+          full_name: "Jens Richter",
+        });
+        results.push("Employee (Jens) created");
       }
     }
 
