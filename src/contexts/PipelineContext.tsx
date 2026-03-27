@@ -11,7 +11,6 @@ interface PipelineState {
   interviewId: string | null;
   algorithmResultId: string | null;
   reportId: string | null;
-  bootcampId: string | null;
   error: string | null;
 }
 
