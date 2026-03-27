@@ -34,6 +34,12 @@
     --red: 0 84% 60%;
     --red-light: 0 86% 95%;
 
+    /* Extended palette for badges */
+    --purple: 271 81% 56%;
+    --purple-light: 270 80% 96%;
+    --orange: 25 95% 53%;
+    --orange-light: 33 100% 96%;
+
     /* Shadcn overrides */
     --background: 0 0% 100%;
     --foreground: 240 6% 11.8%;

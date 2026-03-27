@@ -41,7 +41,6 @@ export default function ExecutiveDashboard() {
   const immediateMatches = reorgMatches?.filter(m => m.immediate_readiness).length || 0;
   const hiringCostAvoided = immediateMatches * 45000;
 
-  // Radar chart data
   const radarData = useMemo(() => {
     const strategicSkills = ['ThermalEngineering', 'Python', 'MachineLearning', 'EVBatterySystems', 'AUTOSAR', 'ProjectManagement', 'DeepLearning', 'ManufacturingProcesses'];
     if (!allSkills?.length || !roles?.length) return [];
@@ -57,13 +56,12 @@ export default function ExecutiveDashboard() {
     });
   }, [allSkills, roles]);
 
-  // Heatmap data
   const heatmapSkills = ['EVBatterySystems', 'MachineLearning', 'Python', 'AUTOSAR', 'BatteryThermalMgmt', 'DeepLearning'];
   const heatmapData = useMemo(() => {
     if (!employees?.length || !allSkills?.length) return [];
     return (employees || []).slice(0, 5).map(emp => {
       const empSkills = allSkills.filter(s => s.employee_id === emp.id);
-      const row: any = { name: emp.name?.split(' ')[0] || '' };
+      const row: any = { name: emp.name?.split(' ')[0] || '', empId: emp.id };
       heatmapSkills.forEach(skill => {
         const found = empSkills.find(s => s.skill_name === skill);
         row[skill] = found?.proficiency || 0;
@@ -80,8 +78,18 @@ export default function ExecutiveDashboard() {
     );
   }
 
-  const profColors: Record<number, string> = { 0: '#fde8ea', 1: '#fff7ed', 2: '#e8f0fb', 3: '#e6f4ea' };
-  const profText: Record<number, string> = { 0: '#dc3545', 1: '#c2410c', 2: '#1c69d3', 3: '#28a745' };
+  const profBg: Record<number, string> = {
+    0: 'bg-status-red-light',
+    1: 'bg-status-amber-light',
+    2: 'bg-bmw-blue-light',
+    3: 'bg-status-green-light',
+  };
+  const profText: Record<number, string> = {
+    0: 'text-status-red',
+    1: 'text-status-amber',
+    2: 'text-bmw-blue',
+    3: 'text-status-green',
+  };
 
   return (
     <div>
@@ -107,10 +115,10 @@ export default function ExecutiveDashboard() {
               {radarData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={280}>
                   <RadarChart data={radarData}>
-                    <PolarGrid stroke="hsl(0, 0%, 90%)" />
-                    <PolarAngleAxis dataKey="skill" tick={{ fontSize: 10 }} />
-                    <Radar name="Current Workforce" dataKey="workforce" stroke="#1c69d3" fill="#1c69d3" fillOpacity={0.3} />
-                    <Radar name="Strategic Need" dataKey="strategic" stroke="#ef4444" fill="#ef4444" fillOpacity={0.2} strokeDasharray="5 5" />
+                    <PolarGrid stroke="hsl(var(--border))" />
+                    <PolarAngleAxis dataKey="skill" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+                    <Radar name="Current Workforce" dataKey="workforce" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} />
+                    <Radar name="Strategic Need" dataKey="strategic" stroke="hsl(var(--destructive))" fill="hsl(var(--destructive))" fillOpacity={0.2} strokeDasharray="5 5" />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
                   </RadarChart>
                 </ResponsiveContainer>
@@ -154,21 +162,22 @@ export default function ExecutiveDashboard() {
                   </thead>
                   <tbody>
                     {heatmapData.map((row, i) => (
-                      <tr key={i} className="cursor-pointer hover:bg-secondary/50" onClick={() => {
-                        const emp = employees?.find(e => e.name?.startsWith(row.name));
-                        if (emp) navigate(`/employees/${emp.id}`);
+                      <tr key={i} className="cursor-pointer hover:bg-accent/50" onClick={() => {
+                        if (row.empId) navigate(`/employees/${row.empId}`);
                       }}>
                         <td className="py-1 pr-2 font-medium">{row.name}</td>
-                        {heatmapSkills.map(skill => (
-                          <td key={skill} className="p-1 text-center">
-                            <div
-                              className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-mono font-semibold mx-auto"
-                              style={{ backgroundColor: profColors[row[skill] as number] || profColors[0], color: profText[row[skill] as number] || profText[0] }}
-                            >
-                              {row[skill]}
-                            </div>
-                          </td>
-                        ))}
+                        {heatmapSkills.map(skill => {
+                          const val = row[skill] as number;
+                          return (
+                            <td key={skill} className="p-1 text-center">
+                              <div
+                                className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-mono font-semibold mx-auto ${profBg[val] || profBg[0]} ${profText[val] || profText[0]}`}
+                              >
+                                {val}
+                              </div>
+                            </td>
+                          );
+                        })}
                       </tr>
                     ))}
                   </tbody>
@@ -184,14 +193,14 @@ export default function ExecutiveDashboard() {
                   <p className="text-xs font-medium mb-1">{role.title}</p>
                   <div className="flex gap-0.5 h-3 rounded-full overflow-hidden bg-secondary">
                     <div className="bg-status-green rounded-l-full" style={{ width: '10%' }} />
-                    <div className="bg-bmw-blue" style={{ width: '20%' }} />
+                    <div className="bg-primary" style={{ width: '20%' }} />
                     <div className="bg-status-amber rounded-r-full" style={{ width: '30%' }} />
                   </div>
                 </div>
               ))}
               <div className="flex gap-4 mt-3 text-[10px] text-muted-foreground">
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-status-green" />≥80%</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-bmw-blue" />60-79%</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary" />60-79%</span>
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-status-amber" />40-59%</span>
               </div>
             </div>
@@ -204,8 +213,9 @@ export default function ExecutiveDashboard() {
                 const role = roles?.find(ro => ro.id === r.role_id);
                 if (!emp) return null;
                 return (
-                  <div key={r.id} className={`flex items-center gap-3 py-3 ${i > 0 ? 'border-t border-border' : ''}`}>
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ backgroundColor: emp.avatar_color || '#1c69d3' }}>
+                  <div key={r.id} className={`flex items-center gap-3 py-3 cursor-pointer hover:bg-accent/50 rounded-md px-1 ${i > 0 ? 'border-t border-border' : ''}`}
+                    onClick={() => navigate(`/analysis/${emp.id}`)}>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-primary-foreground shrink-0" style={{ backgroundColor: emp.avatar_color || 'hsl(213, 77%, 47%)' }}>
                       {emp.avatar_initials}
                     </div>
                     <div className="flex-1 min-w-0">

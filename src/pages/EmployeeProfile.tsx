@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useEmployee, useEmployeeSkills, useAlgorithmResults, useInterviews, useBootcamps, useRoles } from "@/hooks/useData";
 import { supabase } from "@/integrations/supabase/client";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Legend } from "recharts";
-import { Check, Clock, AlertCircle, MessageSquare, BarChart3, GraduationCap, Database, FileText, Users, Target, Sparkles, ChevronRight } from "lucide-react";
+import { Check, Clock, AlertCircle, Sparkles, ChevronRight, Users, BarChart3 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 
 export default function EmployeeProfile() {
@@ -23,7 +23,6 @@ export default function EmployeeProfile() {
   const { data: roles } = useRoles();
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
 
-  // Realtime: re-fetch when interviews update for this employee
   useEffect(() => {
     if (!id) return;
     const channel = supabase
@@ -34,7 +33,6 @@ export default function EmployeeProfile() {
         table: 'interviews',
         filter: `employee_id=eq.${id}`,
       }, () => {
-        // Refetch all related data
         window.location.reload();
       })
       .subscribe();
@@ -49,7 +47,6 @@ export default function EmployeeProfile() {
   const completedEmployee = empInterviews.some(i => i.interview_type === 'employee' && i.status === 'completed');
   const completedManager = empInterviews.some(i => i.interview_type === 'manager' && i.status === 'completed');
 
-  // Radar data
   const selectedRole = roles?.find(r => r.id === (selectedRoleId || latestResult?.role_id));
   const radarData = useMemo(() => {
     if (!skills?.length) return [];
@@ -57,7 +54,7 @@ export default function EmployeeProfile() {
     const allSkillNames = new Set<string>();
     skills.forEach(s => allSkillNames.add(s.skill_name));
     if (requiredSkills) Object.keys(requiredSkills).forEach(s => allSkillNames.add(s));
-    
+
     return Array.from(allSkillNames).map(name => ({
       skill: name.replace(/([A-Z])/g, ' $1').trim(),
       employee: (skills.find(s => s.skill_name === name)?.proficiency || 0),
@@ -65,7 +62,6 @@ export default function EmployeeProfile() {
     }));
   }, [skills, selectedRole]);
 
-  // AI-discovered skills
   const aiSkills = skills?.filter(s => s.source === 'employee_interview' || s.source === 'combined') || [];
 
   if (isLoading) return <div className="flex items-center justify-center h-64"><LoadingSpinner /></div>;
@@ -74,7 +70,6 @@ export default function EmployeeProfile() {
   const reviews = (employee.past_performance_reviews as string[]) || [];
   const training = (employee.training_history as string[]) || [];
 
-  // Pipeline steps
   const pipeline = [
     { name: 'HR Data Ingested', done: true, icon: Check },
     { name: 'Employee Interview', done: completedEmployee, inProgress: empInterviews.some(i => i.interview_type === 'employee' && i.status === 'in_progress'), icon: completedEmployee ? Check : Clock },
@@ -91,7 +86,7 @@ export default function EmployeeProfile() {
         <div className="card-skillsight p-6">
           <div className="flex flex-col md:flex-row gap-6">
             <div className="flex items-start gap-4 flex-1">
-              <div className="w-[72px] h-[72px] rounded-full flex items-center justify-center text-xl font-bold text-white shrink-0" style={{ backgroundColor: employee.avatar_color || '#1c69d3' }}>
+              <div className="w-[72px] h-[72px] rounded-full flex items-center justify-center text-xl font-bold text-primary-foreground shrink-0" style={{ backgroundColor: employee.avatar_color || 'hsl(213, 77%, 47%)' }}>
                 {employee.avatar_initials}
               </div>
               <div>
@@ -125,7 +120,7 @@ export default function EmployeeProfile() {
               {pipeline.map((step, i) => (
                 <div key={step.name} className="flex items-center flex-1">
                   <div className="flex flex-col items-center text-center gap-1.5">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step.done ? 'bg-status-green text-white' : step.inProgress ? 'bg-status-amber text-white' : 'bg-secondary text-muted-foreground'}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step.done ? 'bg-status-green text-primary-foreground' : step.inProgress ? 'bg-status-amber text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}>
                       <step.icon className="h-4 w-4" />
                     </div>
                     <span className="text-[10px] font-medium leading-tight max-w-[70px]">{step.name}</span>
@@ -158,20 +153,22 @@ export default function EmployeeProfile() {
         </div>
 
         {/* Performance Reviews */}
-        <div className="card-skillsight p-5">
-          <h3 className="text-[15px] font-semibold mb-4">Performance Reviews</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {reviews.map((review, i) => {
-              const [year, ...rest] = (review as string).split(': ');
-              return (
-                <div key={i} className="bg-secondary rounded-lg p-4">
-                  <p className="text-xs font-semibold mb-1">{year}</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{rest.join(': ')}</p>
-                </div>
-              );
-            })}
+        {reviews.length > 0 && (
+          <div className="card-skillsight p-5">
+            <h3 className="text-[15px] font-semibold mb-4">Performance Reviews</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {reviews.map((review, i) => {
+                const [year, ...rest] = (review as string).split(': ');
+                return (
+                  <div key={i} className="bg-secondary rounded-lg p-4">
+                    <p className="text-xs font-semibold mb-1">{year}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{rest.join(': ')}</p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Skills Portfolio */}
         <div className="card-skillsight p-5">
@@ -183,21 +180,19 @@ export default function EmployeeProfile() {
             </select>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Radar */}
             <div>
               {radarData.length > 0 && (
                 <ResponsiveContainer width="100%" height={240}>
                   <RadarChart data={radarData}>
-                    <PolarGrid stroke="hsl(0,0%,90%)" />
-                    <PolarAngleAxis dataKey="skill" tick={{ fontSize: 9 }} />
-                    <Radar name="Employee" dataKey="employee" stroke="#1c69d3" fill="#1c69d3" fillOpacity={0.3} />
-                    {selectedRole && <Radar name="Role" dataKey="role" stroke="#ef4444" fill="none" strokeDasharray="5 5" />}
+                    <PolarGrid stroke="hsl(var(--border))" />
+                    <PolarAngleAxis dataKey="skill" tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} />
+                    <Radar name="Employee" dataKey="employee" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} />
+                    {selectedRole && <Radar name="Role" dataKey="role" stroke="hsl(var(--destructive))" fill="none" strokeDasharray="5 5" />}
                     <Legend wrapperStyle={{ fontSize: 10 }} />
                   </RadarChart>
                 </ResponsiveContainer>
               )}
             </div>
-            {/* Skills Grid */}
             <div className="space-y-2 max-h-[300px] overflow-y-auto">
               {skills?.sort((a, b) => (b.proficiency || 0) - (a.proficiency || 0)).map(s => (
                 <div key={s.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
@@ -217,8 +212,8 @@ export default function EmployeeProfile() {
 
         {/* AI-Discovered Skills */}
         {aiSkills.length > 0 && (
-          <div className="card-skillsight p-5 border-l-4 border-l-purple-400">
-            <h3 className="text-[15px] font-semibold mb-3 flex items-center gap-2"><Sparkles className="h-4 w-4 text-purple-500" />AI-Discovered Skills</h3>
+          <div className="card-skillsight p-5 border-l-4 border-l-status-purple">
+            <h3 className="text-[15px] font-semibold mb-3 flex items-center gap-2"><Sparkles className="h-4 w-4 text-status-purple" />AI-Discovered Skills</h3>
             <div className="flex flex-wrap gap-2">
               {aiSkills.map(s => <SkillBadge key={s.id} skill={s.skill_name} proficiency={(s.proficiency || 0) as 0 | 1 | 2 | 3} />)}
             </div>
@@ -250,7 +245,7 @@ export default function EmployeeProfile() {
                       <td className="py-2.5">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${interview.status === 'completed' ? 'bg-status-green-light text-status-green' : interview.status === 'in_progress' ? 'bg-status-amber-light text-status-amber' : 'bg-secondary text-muted-foreground'}`}>{interview.status}</span>
                       </td>
-                      <td className="py-2.5 text-right"><button className="text-bmw-blue hover:underline">View →</button></td>
+                      <td className="py-2.5 text-right"><button className="text-primary hover:underline">View →</button></td>
                     </tr>
                   );
                 })}
@@ -265,7 +260,7 @@ export default function EmployeeProfile() {
         <div className="card-skillsight p-5">
           <h3 className="text-[15px] font-semibold mb-4">Latest Analysis</h3>
           {latestResult ? (
-            <div className="flex items-center gap-6">
+            <div className="flex flex-col md:flex-row items-center gap-6">
               <ReadinessRing value={readiness || 0} size="md" label="Overall Readiness" />
               <div className="flex-1 space-y-2">
                 {((latestResult.gap_analysis as any)?.criticalGaps || []).slice(0, 3).map((gap: any, i: number) => (

@@ -2,13 +2,14 @@ import { useState, useCallback } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useEmployees, useAllEmployeeSkills, useRoles } from "@/hooks/useData";
 import { supabase } from "@/integrations/supabase/client";
-import { cosineSimilarity, weightedGapScore, findUpskillingPaths, type AlgorithmInput, type SkillVector, type GapItem } from "@/lib/algorithms";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cosineSimilarity, weightedGapScore, type AlgorithmInput, type SkillVector, type GapItem } from "@/lib/algorithms";
+import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ReadinessRing } from "@/components/ReadinessRing";
-import { CheckCircle2, Clock, Sparkles, ArrowRight, Scan } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, Clock, Sparkles, Scan } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface ReorgMatch {
@@ -34,7 +35,6 @@ export default function InternalReorg() {
     setScanning(true);
     setResults(null);
 
-    // Simulate scan delay
     await new Promise(r => setTimeout(r, 1500));
 
     const reqSkills = (selectedRole.required_skills || {}) as SkillVector;
@@ -72,7 +72,6 @@ export default function InternalReorg() {
       return b.readinessPercent - a.readinessPercent;
     });
 
-    // Save to reorg_matches
     await supabase.from("reorg_matches").delete().eq("role_id", selectedRole.id);
     for (const m of matches) {
       await supabase.from("reorg_matches").insert({
@@ -95,10 +94,10 @@ export default function InternalReorg() {
   return (
     <div>
       <PageHeader title="Internal Reorganisation Engine" subtitle="Scan employees against open roles using all six algorithms" />
-      <div className="px-8 pb-8 space-y-6">
+      <div className="p-6 space-y-6">
         {/* Role selector */}
         <Card>
-          <CardContent className="p-4 flex items-center gap-4">
+          <CardContent className="p-4 flex flex-wrap items-center gap-4">
             <Scan className="h-5 w-5 text-primary" />
             <span className="text-sm font-medium">Select a role to scan →</span>
             <Select value={selectedRoleId || ""} onValueChange={v => { setSelectedRoleId(v); setResults(null); }}>
@@ -110,9 +109,9 @@ export default function InternalReorg() {
               </SelectContent>
             </Select>
             {selectedRoleId && (
-              <button onClick={runScan} disabled={scanning} className="ml-auto px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
+              <Button onClick={runScan} disabled={scanning} className="ml-auto">
                 {scanning ? 'Scanning…' : 'Run Scan'}
-              </button>
+              </Button>
             )}
           </CardContent>
         </Card>
@@ -130,27 +129,25 @@ export default function InternalReorg() {
         {/* Results */}
         {results && !scanning && (
           <>
-            {/* Stats */}
-            <div className="flex items-center gap-6">
+            <div className="flex flex-wrap items-center gap-6">
               <div className="flex items-center gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <CheckCircle2 className="h-4 w-4 text-status-green" />
                 <span className="font-semibold">{immediate.length}</span>
                 <span className="text-muted-foreground">Immediately Transferable</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <Clock className="h-4 w-4 text-amber-500" />
+                <Clock className="h-4 w-4 text-status-amber" />
                 <span className="font-semibold">{nearReady.length}</span>
                 <span className="text-muted-foreground">Near-Ready</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <Sparkles className="h-4 w-4 text-primary" />
+                <Sparkles className="h-4 w-4 text-status-purple" />
                 <span className="font-semibold">{results.filter(r => r.transferType === 'hidden_match').length}</span>
                 <span className="text-muted-foreground">Hidden Matches</span>
               </div>
             </div>
 
-            {/* Lanes */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Lane title="Immediate (≥80%)" color="green" matches={immediate} navigate={navigate} />
               <Lane title="Near-Ready (60–79%)" color="amber" matches={nearReady} navigate={navigate} />
               <Lane title="Developing (<60%)" color="muted" matches={developing} navigate={navigate} />
@@ -163,7 +160,7 @@ export default function InternalReorg() {
 }
 
 function Lane({ title, color, matches, navigate }: { title: string; color: string; matches: ReorgMatch[]; navigate: any }) {
-  const borderColor = color === 'green' ? 'border-green-200' : color === 'amber' ? 'border-amber-200' : 'border-border';
+  const borderColor = color === 'green' ? 'border-status-green/30' : color === 'amber' ? 'border-status-amber/30' : 'border-border';
 
   return (
     <div>
@@ -175,7 +172,7 @@ function Lane({ title, color, matches, navigate }: { title: string; color: strin
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-primary-foreground"
-                  style={{ backgroundColor: m.employee.avatar_color || 'hsl(var(--primary))' }}>
+                  style={{ backgroundColor: m.employee.avatar_color || 'hsl(213, 77%, 47%)' }}>
                   {m.employee.avatar_initials || '?'}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -188,10 +185,10 @@ function Lane({ title, color, matches, navigate }: { title: string; color: strin
               <div className="flex items-center justify-between mt-2">
                 <span className="text-[10px] font-mono text-muted-foreground">Match: {m.matchScore.toFixed(2)}</span>
                 {m.transferType === 'hidden_match' && (
-                  <Badge className="text-[10px] bg-purple-50 text-purple-700 border-purple-200">Hidden Match</Badge>
+                  <Badge className="text-[10px] bg-status-purple-light text-status-purple border-status-purple/20">Hidden Match</Badge>
                 )}
                 {m.transferType === 'lateral' && (
-                  <Badge className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">Lateral</Badge>
+                  <Badge className="text-[10px] bg-bmw-blue-light text-bmw-blue border-bmw-blue/20">Lateral</Badge>
                 )}
               </div>
               {m.gapsRemaining.length > 0 && (

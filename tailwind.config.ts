@@ -62,9 +62,9 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
         bmw: {
-          blue: "#1c69d3",
-          "blue-hover": "#1557b8",
-          "blue-light": "#e8f0fb",
+          blue: "hsl(var(--blue))",
+          "blue-hover": "hsl(var(--blue-hover))",
+          "blue-light": "hsl(var(--blue-light))",
         },
         status: {
           green: "hsl(var(--green))",
@@ -73,6 +73,10 @@ export default {
           "amber-light": "hsl(var(--amber-light))",
           red: "hsl(var(--red))",
           "red-light": "hsl(var(--red-light))",
+          purple: "hsl(var(--purple))",
+          "purple-light": "hsl(var(--purple-light))",
+          orange: "hsl(var(--orange))",
+          "orange-light": "hsl(var(--orange-light))",
         },
       },
       borderRadius: {

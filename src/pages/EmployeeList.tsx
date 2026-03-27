@@ -63,7 +63,7 @@ export default function EmployeeList() {
               <button
                 key={f.value}
                 onClick={() => setReadinessFilter(f.value)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${readinessFilter === f.value ? 'bg-bmw-blue text-white' : 'bg-secondary text-muted-foreground hover:bg-accent'}`}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${readinessFilter === f.value ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-accent'}`}
               >
                 {f.label}
               </button>
@@ -83,9 +83,8 @@ export default function EmployeeList() {
 
             return (
               <div key={emp.id} className="card-skillsight p-5 cursor-pointer hover:shadow-skillsight-md hover:-translate-y-0.5 transition-all duration-150">
-                {/* Top row */}
                 <div className="flex items-start gap-3">
-                  <div className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0" style={{ backgroundColor: emp.avatar_color || '#1c69d3' }}>
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold text-primary-foreground shrink-0" style={{ backgroundColor: emp.avatar_color || 'hsl(213, 77%, 47%)' }}>
                     {emp.avatar_initials}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -95,36 +94,32 @@ export default function EmployeeList() {
                   </div>
                 </div>
 
-                {/* Micro stats */}
                 <div className="flex gap-4 mt-3 text-[11px] text-muted-foreground">
                   <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{emp.tenure_years}yrs</span>
                   <span className="flex items-center gap-1 font-mono"><Star className="h-3 w-3" />{Math.round((emp.performance_score || 0) * 100)}% perf</span>
                   <span className="flex items-center gap-1 font-mono"><Zap className="h-3 w-3" />{Math.round((emp.learning_agility || 0) * 100)}% agility</span>
                 </div>
 
-                {/* Readiness */}
                 {readiness !== null ? (
                   <div className="mt-3">
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-muted-foreground">Readiness</span>
-                      <span className="font-mono font-semibold" style={{ color: readiness < 50 ? '#ef4444' : readiness < 75 ? '#f59e0b' : '#22c55e' }}>{readiness}%</span>
+                      <span className={`font-mono font-semibold ${readiness < 50 ? 'text-status-red' : readiness < 75 ? 'text-status-amber' : 'text-status-green'}`}>{readiness}%</span>
                     </div>
                     <div className="h-1 rounded-full bg-secondary overflow-hidden">
-                      <div className="h-full rounded-full bg-bmw-blue transition-all" style={{ width: `${readiness}%` }} />
+                      <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${readiness}%` }} />
                     </div>
                   </div>
                 ) : (
                   <p className="mt-3 text-[11px] italic text-muted-foreground">Not yet assessed</p>
                 )}
 
-                {/* Top skills */}
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   {topSkills.map(s => (
                     <SkillBadge key={s.skill_name} skill={s.skill_name} proficiency={(s.proficiency || 0) as 0 | 1 | 2 | 3} showLabel={false} />
                   ))}
                 </div>
 
-                {/* Actions */}
                 <div className="flex gap-2 mt-4">
                   <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => navigate(`/employees/${emp.id}`)}>View Profile</Button>
                   <Button size="sm" className="flex-1 text-xs" onClick={() => navigate(`/interview/employee/${emp.id}`)}>Start Interview</Button>

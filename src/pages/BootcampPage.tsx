@@ -1,7 +1,8 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
 import { useEmployee, useAlgorithmResults, useRoles, useBootcamps, useInterviews } from "@/hooks/useData";
 import { supabase } from "@/integrations/supabase/client";
+import { PageHeader } from "@/components/PageHeader";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowLeft, RefreshCw, Sparkles, BookOpen, Clock, Calendar,
-  TrendingUp, CheckCircle2, Circle, Play, ChevronDown, ChevronUp, Wrench, GraduationCap, Users,
+  TrendingUp, CheckCircle2, Circle, ChevronDown, ChevronUp, Wrench, GraduationCap, Users,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -76,7 +77,6 @@ export default function BootcampPage() {
       if (error) throw error;
 
       const bc = data.bootcamp;
-      // Delete old bootcamps for this employee
       if (bootcamp?.id) await supabase.from("bootcamps").delete().eq("id", bootcamp.id);
 
       await supabase.from("bootcamps").insert({
@@ -97,29 +97,28 @@ export default function BootcampPage() {
     }
   }, [employee, targetRole, latestResult, readiness, managerInterview, bootcamp, id, refetchBootcamps]);
 
-  if (empLoading) return <LoadingSpinner />;
+  if (empLoading) return <div className="flex items-center justify-center h-64"><LoadingSpinner /></div>;
   if (!employee) return <div className="p-8 text-center text-muted-foreground">Employee not found</div>;
 
   return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <div className="flex items-center justify-between px-8 pt-6 pb-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(`/employees/${id}`)}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">{employee.name} — Personalised Bootcamp</h1>
-            <p className="text-sm text-muted-foreground">{targetRole?.title || 'No role'} Development Plan</p>
+    <div>
+      <PageHeader
+        title={`${employee.name} — Personalised Bootcamp`}
+        subtitle={`${targetRole?.title || 'No role'} Development Plan`}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate(`/employees/${id}`)}>
+              <ArrowLeft className="h-3.5 w-3.5" /> Back to Profile
+            </Button>
+            <Button variant="outline" size="sm" onClick={generateBootcamp} disabled={generating || !latestResult}>
+              <RefreshCw className={`h-3.5 w-3.5 ${generating ? 'animate-spin' : ''}`} />
+              {bootcamp ? 'Regenerate' : 'Generate AI Bootcamp'}
+            </Button>
           </div>
-        </div>
-        <Button variant="outline" size="sm" onClick={generateBootcamp} disabled={generating || !latestResult}>
-          <RefreshCw className={`h-3.5 w-3.5 ${generating ? 'animate-spin' : ''}`} />
-          {bootcamp ? 'Regenerate' : 'Generate AI Bootcamp'}
-        </Button>
-      </div>
+        }
+      />
 
-      <div className="px-8 pb-8 space-y-6">
+      <div className="p-6 space-y-6">
         {/* Empty state */}
         {!bootcamp && !generating && (
           <Card>
@@ -129,7 +128,7 @@ export default function BootcampPage() {
               <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
                 Based on your algorithm results and manager insights, AI will create a personalised BMW training plan.
               </p>
-              <Button onClick={generateBootcamp} disabled={!latestResult} className="bg-primary text-primary-foreground">
+              <Button onClick={generateBootcamp} disabled={!latestResult}>
                 {latestResult ? 'Generate Bootcamp' : 'Run Analysis First'}
               </Button>
             </CardContent>
@@ -154,7 +153,7 @@ export default function BootcampPage() {
         {bootcamp && !generating && (
           <>
             {/* Stats */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <StatBox icon={<BookOpen className="h-4 w-4" />} label="Total Modules" value={`${modules.length}`} />
               <StatBox icon={<Calendar className="h-4 w-4" />} label="Total Duration" value={`${bootcamp.total_duration_weeks || 0} weeks`} />
               <StatBox icon={<Clock className="h-4 w-4" />} label="Hours/Week" value={`${bootcamp.hours_per_week || 5}h`} />
@@ -200,34 +199,30 @@ export default function BootcampPage() {
 
                   {expandedModules.has(i) && (
                     <CardContent className="pt-0 space-y-4">
-                      {/* Objective */}
                       <div>
                         <span className="text-xs font-semibold text-muted-foreground uppercase">Objective</span>
                         <p className="text-sm mt-1">{mod.objective}</p>
                       </div>
 
-                      {/* Weekly Structure */}
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <WeeklyBlock icon={<GraduationCap className="h-3.5 w-3.5" />} label="Theory" hours={mod.weekly_structure?.theory?.hours} content={mod.weekly_structure?.theory?.content} />
                         <WeeklyBlock icon={<Wrench className="h-3.5 w-3.5" />} label="Hands-On" hours={mod.weekly_structure?.hands_on?.hours} content={mod.weekly_structure?.hands_on?.content} />
                         <WeeklyBlock icon={<BookOpen className="h-3.5 w-3.5" />} label="Reflection" hours={mod.weekly_structure?.reflection?.hours} content={mod.weekly_structure?.reflection?.content} />
                       </div>
 
-                      {/* BMW Project */}
                       {mod.bmw_project && (
                         <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
                           <span className="text-xs font-semibold text-primary uppercase">BMW Project</span>
                           <h4 className="text-sm font-semibold mt-1">{mod.bmw_project.title}</h4>
                           <p className="text-xs text-muted-foreground mt-1">{mod.bmw_project.description}</p>
-                          <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
                             <div><span className="text-[10px] font-semibold text-muted-foreground">Deliverable:</span><p className="text-xs">{mod.bmw_project.deliverable}</p></div>
                             <div><span className="text-[10px] font-semibold text-muted-foreground">BMW Connection:</span><p className="text-xs">{mod.bmw_project.bmw_connection}</p></div>
                           </div>
                         </div>
                       )}
 
-                      {/* Success Metrics + Mentoring */}
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <span className="text-xs font-semibold text-muted-foreground uppercase">Success Metrics</span>
                           <ul className="mt-1 space-y-1">
@@ -257,7 +252,7 @@ export default function BootcampPage() {
                   <CardTitle className="text-sm font-semibold">Milestones</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-start gap-4">
+                  <div className="flex flex-col md:flex-row items-start gap-4">
                     {milestones.map((ms, i) => (
                       <div key={i} className="flex-1 text-center">
                         <div className="w-3 h-3 bg-primary/20 rotate-45 mx-auto mb-2" />
@@ -281,7 +276,7 @@ export default function BootcampPage() {
                   <ul className="space-y-1.5">
                     {expectedOutcomes.map((o, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm">
-                        <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />{o}
+                        <CheckCircle2 className="h-4 w-4 text-status-green mt-0.5 shrink-0" />{o}
                       </li>
                     ))}
                   </ul>
