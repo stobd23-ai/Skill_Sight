@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+type InterviewMessage = {
+  role: "ai" | "user";
+  content: string;
+};
+
 const EMPLOYEE_SYSTEM_PROMPT = `You are SkillSight, a career development AI at BMW Group.
 Your role: discover real skills through structured conversation. NOT performance evaluation.
 
@@ -21,6 +26,8 @@ CONVERSATION RULES:
 - Ask ONE follow-up question per response. Never ask multiple questions at once.
 - Keep responses under 80 words. Be warm but focused.
 - Never generate text on behalf of the employee. Never simulate their responses.
+- Never output dialogue for both sides.
+- Never write anything as if you are Thomas/Employee/User speaking in first person.
 - Never repeat yourself or send the same question twice.
 
 RESPONSE EVALUATION (CRITICAL — do this BEFORE every response):
@@ -68,6 +75,14 @@ FLOW:
 5. Warm close + next steps (1 message)
 6. Output JSON
 
+HIDDEN RESPONSE FORMAT:
+- For every normal reply, start with exactly one metadata line:
+[[QUESTION_DELTA:0]] or [[QUESTION_DELTA:1]]
+- Use QUESTION_DELTA:1 ONLY if you are asking a genuinely new question/topic.
+- Use QUESTION_DELTA:0 for clarifications, rephrasing requests, refusals to skip/restart, follow-ups on the same topic, and closing statements.
+- After the metadata line, write ONLY the single assistant message visible to the employee.
+- Never include any employee-side text.
+
 OUTPUT: After Q12 OR all areas covered — send closing message THEN output JSON on new line:
 {"interview_completed":true,"questions_asked":0,"skill_areas_covered":[],"extracted_skills":{"SkillName":{"proficiency":1,"evidence":"exact quote","confidence":"high|medium|low"}},"unexpected_skills":["SkillName"],"insufficient_evidence":["SkillName"]}`;
 
@@ -110,6 +125,14 @@ ANTI-HALLUCINATION:
 Only log if manager described specific observed instance.
 "They're good with data" = NOT evidence
 "They built a Python dashboard on their own initiative" = evidence
+
+HIDDEN RESPONSE FORMAT:
+- For every normal reply, start with exactly one metadata line:
+[[QUESTION_DELTA:0]] or [[QUESTION_DELTA:1]]
+- Use QUESTION_DELTA:1 ONLY if you are asking a genuinely new question/topic.
+- Use QUESTION_DELTA:0 for clarifications, rephrasing requests, same-topic follow-ups, and closing statements.
+- After the metadata line, write ONLY the single assistant message visible to the manager.
+- Never write the manager's side of the conversation for them.
 
 TONE: Safe space for honest feedback. Never formal review feel.
 
@@ -183,17 +206,155 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const normalizeText = (value: string) => value.toLowerCase().trim().replace(/\s+/g, " ");
+
+const getLastUserMessage = (messages: InterviewMessage[]) => {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    if (messages[i].role === "user") return messages[i].content.trim();
+  }
+  return "";
+};
+
+const getLastAssistantQuestion = (messages: InterviewMessage[]) => {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    if (messages[i].role !== "ai") continue;
+    const content = messages[i].content.trim();
+    const questionLines = content
+      .split(/\n+/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .filter((line) => line.includes("?"));
+
+    if (questionLines.length > 0) {
+      return questionLines[questionLines.length - 1];
+    }
+
+    if (content) return content;
+  }
+  return "Could you tell me a bit more about that?";
+};
+
+const isRestartCommand = (value: string) => /^(restart( convo| conversation)?|start over|reset|begin again|redo)\b/.test(normalizeText(value));
+const isAdvanceCommand = (value: string) => /^(next|skip|move on|continue|another question|next question|pass)\b[.!?]*$/.test(normalizeText(value));
+const isVagueNonAnswer = (value: string) => /^(yes|no|maybe|sure|okay|ok|alright|fine|idk|i don't know|dont know|not sure|whatever|next|continue|skip|pass)\b/.test(normalizeText(value));
+
+const isGibberish = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return true;
+  if (/^[^a-zA-Z0-9\s]+$/.test(trimmed)) return true;
+
+  const alnumCount = (trimmed.match(/[a-zA-Z0-9]/g) || []).length;
+  const words = trimmed.split(/\s+/).filter(Boolean);
+  const collapsed = trimmed.replace(/\s+/g, "");
+
+  if (alnumCount <= 2) return true;
+  if (/^(.)\1{4,}$/i.test(collapsed)) return true;
+  if (words.length === 1 && /^[a-z]{1,4}$/i.test(trimmed) && !/^(yes|no|next|okay|sure)$/i.test(trimmed)) return true;
+
+  return false;
+};
+
+const buildStayOnQuestionReply = (question: string) =>
+  `I want to make sure I understand your experience before we move on. Could you answer this part first: ${question}`;
+
+const buildRephraseReply = (question: string) =>
+  `I didn't quite catch that. Could you rephrase it and answer this part: ${question}`;
+
+const parseQuestionDelta = (value: string) => {
+  const match = value.match(/^\s*\[\[QUESTION_DELTA:(0|1)\]\]/);
+  return match ? Number(match[1]) : null;
+};
+
+const stripQuestionDelta = (value: string) => value.replace(/^\s*\[\[QUESTION_DELTA:(0|1)\]\]\s*/m, "").trim();
+
+const sanitizeAssistantMessage = (value: string) => {
+  let cleaned = stripQuestionDelta(value);
+
+  const simulatedUserStarts = [
+    /^hi skillsight/i,
+    /^thanks for having me/i,
+    /^as a\s+/i,
+    /^i primarily focus on/i,
+  ];
+
+  const paragraphs = cleaned
+    .split(/\n{2,}/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const filteredParagraphs = paragraphs.filter(
+    (part) => !simulatedUserStarts.some((pattern) => pattern.test(part))
+  );
+
+  if (filteredParagraphs.length > 0) {
+    cleaned = filteredParagraphs.join("\n\n");
+  }
+
+  if (/^(hi skillsight|thanks for having me|as a\s+)/i.test(cleaned)) {
+    return "I want to make sure I hear this in your own words — could you walk me through a specific example from your work?";
+  }
+
+  return cleaned;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { messages, interviewType, employeeName, employeeTitle, roleName, targetSkills, managerName, presetPack } = await req.json();
+    const { messages = [], interviewType, employeeName, employeeTitle, roleName, targetSkills, managerName, presetPack } = await req.json();
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) {
       throw new Error("LOVABLE_API_KEY not set");
+    }
+
+    const typedMessages: InterviewMessage[] = Array.isArray(messages)
+      ? messages
+          .filter((message) => message && typeof message.content === "string" && (message.role === "ai" || message.role === "user"))
+          .map((message) => ({ role: message.role, content: message.content.trim() }))
+      : [];
+
+    const lastUserMessage = getLastUserMessage(typedMessages);
+    const lastAssistantQuestion = getLastAssistantQuestion(typedMessages);
+
+    if (lastUserMessage) {
+      if (isRestartCommand(lastUserMessage) || isAdvanceCommand(lastUserMessage)) {
+        return new Response(
+          JSON.stringify({
+            message: buildStayOnQuestionReply(lastAssistantQuestion),
+            isComplete: false,
+            extractedData: null,
+            questionDelta: 0,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (isGibberish(lastUserMessage)) {
+        return new Response(
+          JSON.stringify({
+            message: buildRephraseReply(lastAssistantQuestion),
+            isComplete: false,
+            extractedData: null,
+            questionDelta: 0,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (isVagueNonAnswer(lastUserMessage)) {
+        return new Response(
+          JSON.stringify({
+            message: buildStayOnQuestionReply(lastAssistantQuestion),
+            isComplete: false,
+            extractedData: null,
+            questionDelta: 0,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     let systemPrompt: string;
@@ -204,43 +365,52 @@ serve(async (req) => {
       systemPrompt = EMPLOYEE_SYSTEM_PROMPT + `\n\nEmployee: ${employeeName} (${employeeTitle}).\nTarget role: ${roleName}.\nTarget skill areas to probe: ${targetSkills?.join(", ") || "general skills"}`;
     }
 
-    // Inject preset pack if provided
     if (presetPack && PRESET_BLOCKS[presetPack]) {
       systemPrompt += `\n\n${PRESET_BLOCKS[presetPack]}`;
       systemPrompt += `\n\nIMPORTANT: These are starting INSPIRATIONS only. Do not follow them rigidly. If the employee's answers take the conversation somewhere more interesting and relevant, follow that thread. Always prioritise rich evidence over topic coverage.`;
     }
 
+    const runtimePrompt = [
+      "RUNTIME INSTRUCTIONS:",
+      `Latest user message: ${lastUserMessage ? JSON.stringify(lastUserMessage) : '"[conversation start]"'}`,
+      `Current unanswered question: ${JSON.stringify(lastAssistantQuestion)}`,
+      "Decide whether the latest user message truly answered the question.",
+      "If it did not, keep QUESTION_DELTA at 0 and ask for clarification on the same question.",
+      "Never pretend the user already gave a detailed answer if they did not.",
+      "Never restart the conversation unless the system explicitly tells you to.",
+      "Never output employee-side dialogue.",
+    ].join("\n");
+
     const chatMessages = [
       { role: "system", content: systemPrompt },
-      ...messages.map((m: any) => ({
-        role: m.role === "ai" ? "assistant" : "user",
-        content: m.content,
+      { role: "system", content: runtimePrompt },
+      ...typedMessages.map((message) => ({
+        role: message.role === "ai" ? "assistant" : "user",
+        content: message.content,
       })),
     ];
 
-    if (messages.length === 0) {
+    if (typedMessages.length === 0) {
       chatMessages.push({ role: "user", content: "Hello, I'm ready to begin." });
     }
 
-    // Ensure conversation doesn't end with assistant message (prevents AI responding to itself)
-    // Filter out any consecutive assistant messages and ensure proper turn-taking
     const cleanedMessages: any[] = [];
-    for (const msg of chatMessages) {
-      if (msg.role === "system") {
-        cleanedMessages.push(msg);
+    for (const message of chatMessages) {
+      if (message.role === "system") {
+        cleanedMessages.push(message);
         continue;
       }
-      // Skip assistant messages that follow another assistant message
-      const lastNonSystem = cleanedMessages.filter(m => m.role !== "system").pop();
-      if (msg.role === "assistant" && lastNonSystem?.role === "assistant") {
+
+      const lastNonSystem = [...cleanedMessages].reverse().find((entry) => entry.role !== "system");
+      if (message.role === "assistant" && lastNonSystem?.role === "assistant") {
         continue;
       }
-      cleanedMessages.push(msg);
+
+      cleanedMessages.push(message);
     }
 
-    // If last message is from assistant, add a nudge so AI doesn't respond to itself
-    const lastMsg = cleanedMessages[cleanedMessages.length - 1];
-    if (lastMsg?.role === "assistant") {
+    const lastMessage = cleanedMessages[cleanedMessages.length - 1];
+    if (lastMessage?.role === "assistant") {
       cleanedMessages.push({ role: "user", content: "[waiting for employee response — do not generate another message]" });
     }
 
@@ -251,10 +421,10 @@ serve(async (req) => {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-flash-preview",
         messages: cleanedMessages,
-        temperature: 0.6,
-        max_tokens: 1024,
+        temperature: 0.35,
+        max_tokens: 900,
       }),
     });
 
@@ -272,7 +442,9 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const assistantMessage = data.choices?.[0]?.message?.content || "";
+    const rawAssistantMessage = data.choices?.[0]?.message?.content || "";
+    const questionDelta = parseQuestionDelta(rawAssistantMessage) ?? (typedMessages.length === 0 ? 1 : 0);
+    const assistantMessage = sanitizeAssistantMessage(rawAssistantMessage);
 
     let isComplete = false;
     let extractedData = null;
@@ -282,7 +454,7 @@ serve(async (req) => {
         extractedData = JSON.parse(jsonMatch[0]);
         isComplete = true;
       }
-    } catch (e) {
+    } catch (_error) {
       // No JSON found, interview continues
     }
 
@@ -295,13 +467,13 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ message: messageText, isComplete, extractedData }),
+      JSON.stringify({ message: messageText, isComplete, extractedData, questionDelta }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Interview chat error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

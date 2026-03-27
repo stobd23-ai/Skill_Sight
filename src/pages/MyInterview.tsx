@@ -92,10 +92,9 @@ export default function MyInterview() {
     [employee, activeInterview, messages, questionsAsked]
   );
 
-  const handleComplete = async (extractedData: any, finalMessages: Message[]) => {
+  const handleComplete = async (extractedData: any, finalMessages: Message[], finalQuestionCount: number) => {
     if (!activeInterview || !employeeId) return;
 
-    // Update interview record
     await supabase
       .from("interviews")
       .update({
@@ -105,7 +104,7 @@ export default function MyInterview() {
           content: m.content,
           timestamp: m.timestamp.toISOString(),
         })) as any,
-        questions_asked: questionsAsked,
+        questions_asked: finalQuestionCount,
         extracted_skills: extractedData.extracted_skills || ({} as any),
         unexpected_skills: extractedData.unexpected_skills || ([] as any),
         insufficient_evidence: extractedData.insufficient_evidence || ([] as any),

@@ -98,15 +98,14 @@ export default function EmployeeInterview() {
 
   const pipeline = usePipeline();
 
-  const handleInterviewComplete = async (extractedData: any, finalMessages: Message[]) => {
-    // Save interview to DB
+  const handleInterviewComplete = async (extractedData: any, finalMessages: Message[], finalQuestionCount: number) => {
     const { data: interview } = await supabase.from("interviews").insert({
       employee_id: id,
       target_role_id: selectedRoleId,
       interview_type: "employee",
       status: "completed",
       conversation_history: finalMessages.map(m => ({ role: m.role, content: m.content, timestamp: m.timestamp.toISOString() })) as any,
-      questions_asked: questionsAsked,
+      questions_asked: finalQuestionCount,
       extracted_skills: extractedData.extracted_skills || {} as any,
       unexpected_skills: extractedData.unexpected_skills || [] as any,
       insufficient_evidence: extractedData.insufficient_evidence || [] as any,
