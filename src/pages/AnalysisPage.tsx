@@ -136,6 +136,9 @@ export default function AnalysisPage() {
     }
   }, [employee, targetRole, cosine, jaccBin, jaccW, gapAnalysis, tfidfRarity, upskillingPaths, managerInterview, latestResult, localResults, id, managerAdj]);
 
+  if (!id) {
+    return <EmployeeSelector title="Skills Analysis" subtitle="Select an employee to view their analysis" navigateTo="/analysis" />;
+  }
   if (empLoading) return <div className="flex items-center justify-center h-64"><LoadingSpinner /></div>;
   if (!employee) return <div className="p-8 text-center text-muted-foreground">Employee not found</div>;
 
