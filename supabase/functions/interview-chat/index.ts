@@ -62,6 +62,7 @@ ADAPTIVE:
 - Employee mentions off-plan skill → follow up ONCE → return to plan
 - Clear expert level → skip basics, go deeper
 - Vague after 2 follow-ups → mark insufficient_evidence, move on
+- HARD LIMIT: never ask more than 2 same-topic follow-up questions after a substantive answer. After that, advance to the next skill area or idea even if evidence is partial.
 
 TONE: Warm senior colleague. Career development conversation, not interview.
 
@@ -260,6 +261,52 @@ const buildStayOnQuestionReply = (question: string) =>
 const buildRephraseReply = (question: string) =>
   `I didn't quite catch that. Could you rephrase it and answer this part: ${question}`;
 
+const buildForcedAdvanceReply = (interviewType: string, targetSkills: string[] = [], messages: InterviewMessage[]) => {
+  const assistantTranscript = messages
+    .filter((message) => message.role === "ai")
+    .map((message) => normalizeText(message.content))
+    .join(" \n ");
+
+  const nextUnusedSkill = targetSkills.find((skill) => {
+    const normalizedSkill = normalizeText(skill);
+    return normalizedSkill && !assistantTranscript.includes(normalizedSkill);
+  });
+
+  if (interviewType === "manager") {
+    return nextUnusedSkill
+      ? `Thanks — that gives me useful context. Let’s shift to ${nextUnusedSkill}. What’s a specific time you observed this employee demonstrate that in practice?`
+      : "Thanks — that gives me a clearer picture. Let’s shift gears: what’s another strength or behaviour you’ve observed from this employee that might be easy to miss in formal HR data?";
+  }
+
+  return nextUnusedSkill
+    ? `Thanks — that helps. Let’s switch gears to ${nextUnusedSkill}. Can you tell me about a specific time you used that in your work?`
+    : "Thanks — that gives me a solid picture of that example. Let’s switch gears: what’s another project, skill, or challenge you’ve handled recently that says something important about your strengths?";
+};
+
+const classifyUserMessage = (value: string) => {
+  if (isRestartCommand(value) || isAdvanceCommand(value)) return "command" as const;
+  if (isGibberish(value)) return "gibberish" as const;
+  if (isVagueNonAnswer(value)) return "vague" as const;
+  return "substantive" as const;
+};
+
+const getRecentSubstantiveAnswerStreak = (messages: InterviewMessage[]) => {
+  let streak = 0;
+
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const message = messages[i];
+    if (message.role !== "user") continue;
+
+    const classification = classifyUserMessage(message.content);
+    if (classification !== "substantive") break;
+
+    streak += 1;
+    if (streak >= 3) break;
+  }
+
+  return streak;
+};
+
 const parseQuestionDelta = (value: string) => {
   const match = value.match(/^\s*\[\[QUESTION_DELTA:(0|1)\]\]/);
   return match ? Number(match[1]) : null;
@@ -318,9 +365,12 @@ serve(async (req) => {
 
     const lastUserMessage = getLastUserMessage(typedMessages);
     const lastAssistantQuestion = getLastAssistantQuestion(typedMessages);
+    const lastUserClassification = lastUserMessage ? classifyUserMessage(lastUserMessage) : null;
+    const recentSubstantiveAnswerStreak = getRecentSubstantiveAnswerStreak(typedMessages);
+    const shouldForceAdvance = recentSubstantiveAnswerStreak >= 3 && lastUserClassification === "substantive";
 
     if (lastUserMessage) {
-      if (isRestartCommand(lastUserMessage) || isAdvanceCommand(lastUserMessage)) {
+      if (lastUserClassification === "command") {
         return new Response(
           JSON.stringify({
             message: buildStayOnQuestionReply(lastAssistantQuestion),
@@ -332,7 +382,7 @@ serve(async (req) => {
         );
       }
 
-      if (isGibberish(lastUserMessage)) {
+      if (lastUserClassification === "gibberish") {
         return new Response(
           JSON.stringify({
             message: buildRephraseReply(lastAssistantQuestion),
@@ -344,13 +394,25 @@ serve(async (req) => {
         );
       }
 
-      if (isVagueNonAnswer(lastUserMessage)) {
+      if (lastUserClassification === "vague") {
         return new Response(
           JSON.stringify({
             message: buildStayOnQuestionReply(lastAssistantQuestion),
             isComplete: false,
             extractedData: null,
             questionDelta: 0,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (shouldForceAdvance) {
+        return new Response(
+          JSON.stringify({
+            message: buildForcedAdvanceReply(interviewType, targetSkills || [], typedMessages),
+            isComplete: false,
+            extractedData: null,
+            questionDelta: 1,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -374,8 +436,11 @@ serve(async (req) => {
       "RUNTIME INSTRUCTIONS:",
       `Latest user message: ${lastUserMessage ? JSON.stringify(lastUserMessage) : '"[conversation start]"'}`,
       `Current unanswered question: ${JSON.stringify(lastAssistantQuestion)}`,
-      "Decide whether the latest user message truly answered the question.",
-      "If it did not, keep QUESTION_DELTA at 0 and ask for clarification on the same question.",
+      `Latest user message classification: ${lastUserClassification ?? "none"}`,
+      `Recent substantive answer streak on the current thread: ${recentSubstantiveAnswerStreak}`,
+      shouldForceAdvance
+        ? "You have already received enough same-thread answers. You MUST stop probing this topic and ask one new question on a different skill area. Emit [[QUESTION_DELTA:1]]."
+        : "Decide whether the latest user message truly answered the question. If it did not, keep QUESTION_DELTA at 0 and ask for clarification on the same question.",
       "Never pretend the user already gave a detailed answer if they did not.",
       "Never restart the conversation unless the system explicitly tells you to.",
       "Never output employee-side dialogue.",
@@ -442,8 +507,9 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const rawAssistantMessage = data.choices?.[0]?.message?.content || "";
-    const questionDelta = parseQuestionDelta(rawAssistantMessage) ?? (typedMessages.length === 0 ? 1 : 0);
+    const parsedQuestionDelta = parseQuestionDelta(rawAssistantMessage);
+    const questionDelta = parsedQuestionDelta ?? (typedMessages.length === 0 ? 1 : 0);
+    const effectiveQuestionDelta = shouldForceAdvance && !parsedQuestionDelta ? 1 : shouldForceAdvance ? Math.max(questionDelta, 1) : questionDelta;
     const assistantMessage = sanitizeAssistantMessage(rawAssistantMessage);
 
     let isComplete = false;
@@ -467,7 +533,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ message: messageText, isComplete, extractedData, questionDelta }),
+      JSON.stringify({ message: messageText, isComplete, extractedData, questionDelta: effectiveQuestionDelta }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
