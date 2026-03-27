@@ -61,7 +61,7 @@ export default function StrategyHub() {
   const updateStrategicWeights = async () => {
     if (!roles) return;
     for (const role of roles) {
-      const weights = { ...(role.strategic_weights || {}) } as Record<string, number>;
+      const weights = Object.assign({}, (role.strategic_weights || {})) as Record<string, number>;
       futureSkills.forEach(fs => {
         weights[fs.skill] = Math.min(fs.suggestedWeight, 1.0);
       });
