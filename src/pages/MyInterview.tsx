@@ -26,6 +26,7 @@ export default function MyInterview() {
   const [completed, setCompleted] = useState(false);
   const [started, setStarted] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const displayedQuestionNumber = Math.min(Math.max(questionsAsked, 1), 12);
 
   // Find an in-progress interview for this employee
   const activeInterview = interviews?.find(
@@ -210,7 +211,7 @@ export default function MyInterview() {
 
         {started && (
           <div className="card-skillsight p-3">
-            <p className="text-[13px] font-semibold">Question {questionsAsked} / 12</p>
+              <p className="text-[13px] font-semibold">Question {displayedQuestionNumber} / 12</p>
             <div className="h-1 rounded-full bg-secondary mt-2 overflow-hidden">
               <div
                 className="h-full bg-primary rounded-full transition-all"
