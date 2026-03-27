@@ -84,7 +84,7 @@ OUTPUT: After Q10 OR all areas covered — send thank-you then JSON on new line:
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -108,31 +108,49 @@ serve(async (req) => {
       systemPrompt = EMPLOYEE_SYSTEM_PROMPT + `\n\nEmployee: ${employeeName} (${employeeTitle}).\nTarget role: ${roleName}.\nTarget skill areas to probe: ${targetSkills?.join(", ") || "general skills"}`;
     }
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    // Build messages for OpenAI-compatible format
+    const chatMessages = [
+      { role: "system", content: systemPrompt },
+      ...messages.map((m: any) => ({
+        role: m.role === "ai" ? "assistant" : "user",
+        content: m.content,
+      })),
+    ];
+
+    // If no user messages yet, add a starter
+    if (messages.length === 0) {
+      chatMessages.push({ role: "user", content: "Hello, I'm ready to begin." });
+    }
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "google/gemini-2.5-flash",
+        messages: chatMessages,
+        temperature: 0.6,
         max_tokens: 1024,
-        system: systemPrompt,
-        messages: messages.map((m: any) => ({
-          role: m.role === "ai" ? "assistant" : "user",
-          content: m.content,
-        })),
       }),
     });
 
     if (!response.ok) {
+      const status = response.status;
+      if (status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limited, please try again shortly." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      if (status === 402) {
+        return new Response(JSON.stringify({ error: "Credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
       const errorText = await response.text();
-      throw new Error(`Anthropic API error: ${response.status} - ${errorText}`);
+      console.error("AI gateway error:", status, errorText);
+      throw new Error(`AI gateway error: ${status}`);
     }
 
     const data = await response.json();
-    const assistantMessage = data.content?.[0]?.text || "";
+    const assistantMessage = data.choices?.[0]?.message?.content || "";
 
     // Try to extract JSON completion data
     let isComplete = false;
@@ -161,6 +179,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
+    console.error("Interview chat error:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

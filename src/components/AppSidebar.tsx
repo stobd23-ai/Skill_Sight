@@ -4,7 +4,7 @@ import {
   MessageSquare,
   UserCheck,
   BarChart3,
-  GraduationCap,
+  
   Target,
   Shuffle,
   Network,
