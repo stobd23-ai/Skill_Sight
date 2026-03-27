@@ -1,10 +1,9 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Index() {
-  const navigate = useNavigate();
-  useEffect(() => {
-    navigate("/dashboard", { replace: true });
-  }, [navigate]);
-  return null;
+  const { profile, loading } = useAuth();
+  if (loading) return null;
+  if (!profile) return <Navigate to="/login" replace />;
+  return <Navigate to={profile.role === "manager" ? "/dashboard" : "/my-profile"} replace />;
 }
