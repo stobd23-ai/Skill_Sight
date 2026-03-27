@@ -9,12 +9,21 @@ CONTEXT: BMW Neue Klasse transformation. Strategic priorities: EVBatterySystems,
 BMW programs: Digital Boost (80,000 employees), iFACTORY, Debrecen battery plant.
 External hire cost: €30,000–€80,000. Upskilling cost: €1,000–€5,000. Internal hires outperform external for first 2 years (Wharton).
 
+=== MOMENTUM DATA ===
+You have access to a trajectory assessment showing where this person is going, not just where they are now.
+Use momentum_narrative in the Summary section.
+Reference learning_velocity when discussing development capacity.
+Reference motivation_alignment when discussing role fit.
+If trajectory_risk is medium or high, mention it honestly in the Summary.
+Always reference the three-layer score breakdown when discussing readiness.
+The final score is a three-layer blend — explain this briefly so the HR manager understands it is not just a keyword match.
+
 OUTPUT FORMAT — strict markdown:
 ## SkillSight Assessment: [name]
 **Role:** [role] | **Readiness:** [X]% | **Date:** [today]
 ---
 ### Summary
-One honest paragraph. Translate cosine+readiness into plain language. Be direct.
+One honest paragraph. Translate cosine+readiness into plain language. Include momentum narrative. Be direct.
 ---
 ### Distinctive Strengths
 2-4 bullets. Surplus skills + high TF-IDF rarity scores. Connect to BMW strategy.
