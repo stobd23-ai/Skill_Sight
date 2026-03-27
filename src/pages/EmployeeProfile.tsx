@@ -7,9 +7,10 @@ import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { useEmployee, useEmployeeSkills, useAlgorithmResults, useInterviews, useBootcamps, useRoles } from "@/hooks/useData";
+import { supabase } from "@/integrations/supabase/client";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Legend } from "recharts";
 import { Check, Clock, AlertCircle, MessageSquare, BarChart3, GraduationCap, Database, FileText, Users, Target, Sparkles, ChevronRight } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 export default function EmployeeProfile() {
   const { id } = useParams();
