@@ -43,7 +43,130 @@ export interface FullResults {
   upskillingPaths: PathResult[]; overallReadiness: number;
 }
 
-// Algorithm 1: Cosine Similarity
+// ─── Role Type Detection ────────────────────────────────────────────
+
+export type RoleType = 'emerging_tech' | 'leadership' | 'technical_specialist' | 'cross_functional' | 'manufacturing'
+
+export function detectRoleType(requiredSkills: Record<string, number>, strategicWeights: Record<string, number>): RoleType {
+  const evSkills = ['EVBatterySystems', 'BatteryThermalMgmt', 'GenSixArchitecture', 'CellChemistry', 'AUTOSAR', 'ADAS', 'FunctionalSafety']
+  const leadershipSkills = ['TeamLeadership', 'StrategicPlanning', 'StakeholderManagement', 'CrossFunctional']
+  const manufacturingSkills = ['ManufacturingProcesses', 'DigitalTwin', 'AQIXQualityAI', 'RoboticsIntegration']
+  const dataSkills = ['MachineLearning', 'DeepLearning', 'DataEngineering', 'MLOps', 'ComputerVision', 'NLP']
+
+  const skillNames = Object.keys(requiredSkills)
+  const evCount = skillNames.filter(s => evSkills.includes(s)).length
+  const leaderCount = skillNames.filter(s => leadershipSkills.includes(s)).length
+  const mfgCount = skillNames.filter(s => manufacturingSkills.includes(s)).length
+  const dataCount = skillNames.filter(s => dataSkills.includes(s)).length
+
+  const topWeightedSkills = Object.entries(strategicWeights)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 3)
+    .map(([k]) => k)
+  const leadershipDominated = topWeightedSkills.length > 0 && topWeightedSkills.every(s => leadershipSkills.includes(s))
+
+  if (leadershipDominated || leaderCount >= 3) return 'leadership'
+  if (evCount >= 3) return 'emerging_tech'
+  if (mfgCount >= 2) return 'manufacturing'
+  if (dataCount >= 3) return 'technical_specialist'
+  if (leaderCount >= 1 && evCount >= 1) return 'cross_functional'
+  return 'technical_specialist'
+}
+
+// ─── Role-Type-Aware AHP Matrices ───────────────────────────────────
+// Criteria order: [SkillsMatch, Performance, LearningAgility, Tenure, StrategicFit]
+
+const AHP_MATRICES: Record<RoleType, number[][]> = {
+  emerging_tech: [
+    [1,   3,   2,   7,   1  ],
+    [1/3, 1,   0.5, 3,   0.5],
+    [0.5, 2,   1,   5,   0.5],
+    [1/7, 1/3, 1/5, 1,   1/6],
+    [1,   2,   2,   6,   1  ]
+  ],
+  leadership: [
+    [1,   2,   1,   4,   0.5],
+    [0.5, 1,   0.5, 3,   0.5],
+    [1,   2,   1,   4,   0.5],
+    [1/4, 1/3, 1/4, 1,   1/5],
+    [2,   2,   2,   5,   1  ]
+  ],
+  technical_specialist: [
+    [1,   4,   2,   6,   1  ],
+    [1/4, 1,   0.5, 3,   0.5],
+    [0.5, 2,   1,   4,   0.5],
+    [1/6, 1/3, 1/4, 1,   1/5],
+    [1,   2,   2,   5,   1  ]
+  ],
+  manufacturing: [
+    [1,   2,   1,   3,   1  ],
+    [0.5, 1,   0.5, 2,   0.5],
+    [1,   2,   1,   3,   1  ],
+    [1/3, 0.5, 1/3, 1,   1/3],
+    [1,   2,   1,   3,   1  ]
+  ],
+  cross_functional: [
+    [1,   2,   0.5, 4,   0.5],
+    [0.5, 1,   0.5, 3,   0.5],
+    [2,   2,   1,   5,   1  ],
+    [1/4, 1/3, 1/5, 1,   1/5],
+    [2,   2,   1,   5,   1  ]
+  ]
+}
+
+export function getAHPWeightsForRole(roleType: RoleType): { weights: number[]; matrix: number[][]; cr: number } {
+  const matrix = AHP_MATRICES[roleType]
+  const n = 5
+  const colSums = Array(n).fill(0)
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) colSums[j] += matrix[i][j]
+  const weights = matrix.map(row => row.reduce((s, v, j) => s + v / colSums[j], 0) / n)
+  const wSums = matrix.map(row => row.reduce((s, v, j) => s + v * weights[j], 0))
+  const lMax = wSums.reduce((s, ws, i) => s + ws / weights[i], 0) / n
+  const cr = ((lMax - n) / (n - 1)) / 1.12
+  return { weights, matrix, cr }
+}
+
+// ─── Three-Layer Score Computation ──────────────────────────────────
+
+export function computeThreeLayerScore(
+  technicalMatch: number,
+  capabilityMatch: number,
+  momentumScore: number,
+  roleType: RoleType
+): {
+  threeLayerScore: number
+  breakdown: { technical: number; capability: number; momentum: number }
+  weights: { technical: number; capability: number; momentum: number }
+  interpretation: string
+} {
+  const layerWeights: Record<RoleType, { technical: number; capability: number; momentum: number }> = {
+    emerging_tech:       { technical: 0.30, capability: 0.30, momentum: 0.40 },
+    leadership:          { technical: 0.25, capability: 0.40, momentum: 0.35 },
+    technical_specialist:{ technical: 0.40, capability: 0.30, momentum: 0.30 },
+    manufacturing:       { technical: 0.35, capability: 0.30, momentum: 0.35 },
+    cross_functional:    { technical: 0.25, capability: 0.35, momentum: 0.40 }
+  }
+
+  const w = layerWeights[roleType]
+  const score = (technicalMatch * w.technical) + (capabilityMatch * w.capability) + (momentumScore * w.momentum)
+
+  let interpretation = ''
+  if (score >= 0.80) interpretation = 'Exceptionally strong candidate — ready with minor development'
+  else if (score >= 0.70) interpretation = 'Strong candidate — clear development path exists'
+  else if (score >= 0.60) interpretation = 'Promising candidate — meaningful gaps but strong trajectory'
+  else if (score >= 0.50) interpretation = 'Developing candidate — significant investment required'
+  else interpretation = 'Early stage — longer development horizon needed'
+
+  return {
+    threeLayerScore: Math.round(score * 100) / 100,
+    breakdown: { technical: technicalMatch, capability: capabilityMatch, momentum: momentumScore },
+    weights: w,
+    interpretation
+  }
+}
+
+// ─── Algorithm 1: Cosine Similarity ─────────────────────────────────
+
 export function cosineSimilarity(input: AlgorithmInput): number {
   const skills = new Set([
     ...Object.keys(input.employee.skills),
@@ -59,7 +182,8 @@ export function cosineSimilarity(input: AlgorithmInput): number {
   return denom === 0 ? 0 : dot / denom
 }
 
-// Algorithm 2: Jaccard (binary + weighted)
+// ─── Algorithm 2: Jaccard (binary + weighted) ───────────────────────
+
 export function jaccardSimilarity(input: AlgorithmInput): { binary: number; weighted: number } {
   const emp = new Set(Object.keys(input.employee.skills).filter(s => input.employee.skills[s] > 0))
   const role = new Set(Object.keys(input.targetRole.requiredSkills).filter(s => input.targetRole.requiredSkills[s] > 0))
@@ -77,7 +201,8 @@ export function jaccardSimilarity(input: AlgorithmInput): { binary: number; weig
   return { binary, weighted: sumMax === 0 ? 0 : sumMin / sumMax }
 }
 
-// Algorithm 3: Weighted Gap Score
+// ─── Algorithm 3: Weighted Gap Score ────────────────────────────────
+
 export function weightedGapScore(input: AlgorithmInput): GapAnalysis {
   const gaps: GapItem[] = []
   const surplus: GapAnalysis['surplusSkills'] = []
@@ -106,7 +231,8 @@ export function weightedGapScore(input: AlgorithmInput): GapAnalysis {
   return { normalizedGapScore, readinessPercent: Math.round((1 - normalizedGapScore) * 100), criticalGaps: gaps, surplusSkills: surplus }
 }
 
-// Algorithm 4: TF-IDF Rarity
+// ─── Algorithm 4: TF-IDF Rarity ─────────────────────────────────────
+
 export function computeTfIdf(input: AlgorithmInput): { [skill: string]: number } {
   if (!input.allRoles?.length) return {}
   const N = input.allRoles.length
@@ -122,7 +248,8 @@ export function computeTfIdf(input: AlgorithmInput): { [skill: string]: number }
   return result
 }
 
-// Algorithm 5: Dijkstra Pathfinding
+// ─── Algorithm 5: Dijkstra Pathfinding ──────────────────────────────
+
 const BMW_SKILL_GRAPH = {
   nodes: [
     'Python', 'Statistics', 'MachineLearning', 'DeepLearning', 'ComputerVision',
@@ -200,28 +327,16 @@ export function findUpskillingPaths(input: AlgorithmInput): PathResult[] {
   return targets.map(t => dijkstra(currentSkills, t)).filter(p => p.path.length > 0)
 }
 
-// Algorithm 6: AHP
-const AHP_MATRIX = [
-  [1, 3, 2, 5, 1],
-  [1 / 3, 1, 1, 3, 0.5],
-  [0.5, 1, 1, 3, 0.5],
-  [1 / 5, 1 / 3, 1 / 3, 1, 0.2],
-  [1, 2, 2, 5, 1],
-]
+// ─── Algorithm 6: AHP ───────────────────────────────────────────────
 
 export function runAHP(
   candidates: AlgorithmInput['employee'][],
-  resultsMap: { [id: string]: { cosine: number; readiness: number } }
-): { weights: number[]; candidates: AHPCandidate[]; cr: number } {
-  const n = 5
-  const colSums = Array(n).fill(0)
-  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) colSums[j] += AHP_MATRIX[i][j]
-  const weights = AHP_MATRIX.map(row => row.reduce((s, v, j) => s + v / colSums[j], 0) / n)
-  const wSums = AHP_MATRIX.map(row => row.reduce((s, v, j) => s + v * weights[j], 0))
-  const lMax = wSums.reduce((s, ws, i) => s + ws / weights[i], 0) / n
-  const cr = ((lMax - n) / (n - 1)) / 1.12
-
+  resultsMap: { [id: string]: { cosine: number; readiness: number } },
+  roleType: RoleType = 'technical_specialist'
+): { weights: number[]; candidates: AHPCandidate[]; cr: number; roleType: RoleType } {
+  const { weights, cr } = getAHPWeightsForRole(roleType)
   const maxTenure = Math.max(...candidates.map(c => c.tenureYears), 1)
+
   const scored: AHPCandidate[] = candidates.map(c => {
     const r = resultsMap[c.id] || { cosine: 0, readiness: 0 }
     const cs = {
@@ -237,10 +352,11 @@ export function runAHP(
   }).sort((a, b) => b.finalScore - a.finalScore)
 
   scored.forEach((c, i) => { c.rank = i + 1 })
-  return { weights, candidates: scored, cr }
+  return { weights, candidates: scored, cr, roleType }
 }
 
-// Main Runner
+// ─── Main Runner ────────────────────────────────────────────────────
+
 export function runFullAnalysis(input: AlgorithmInput): FullResults {
   const cosine = cosineSimilarity(input)
   const jaccard = jaccardSimilarity(input)
