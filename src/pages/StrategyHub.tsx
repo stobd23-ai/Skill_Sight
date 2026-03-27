@@ -46,7 +46,7 @@ export default function StrategyHub() {
       });
     });
 
-    return Object.entries(skillMap).map(([skill, data]) => ({ skill, ...data }))
+    return Object.entries(skillMap).map(([skill, d]) => ({ skill, importance: d.importance, timeHorizon: d.timeHorizon, docCount: d.docCount, currentWeight: d.currentWeight, suggestedWeight: d.suggestedWeight }))
       .sort((a, b) => {
         const order = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
         return (order[a.importance as keyof typeof order] ?? 9) - (order[b.importance as keyof typeof order] ?? 9);
