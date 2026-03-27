@@ -68,7 +68,7 @@ export default function EmployeeInterview() {
 
       const aiMsg: Message = { role: "ai", content: data.message, timestamp: new Date() };
       const questionDelta = typeof data.questionDelta === "number" ? data.questionDelta : 1;
-      const nextQuestionsAsked = questionsAsked + questionDelta;
+      const nextQuestionsAsked = Math.min(questionsAsked + questionDelta, 12);
 
       setMessages(prev => [...prev, aiMsg]);
       setQuestionsAsked(nextQuestionsAsked);
@@ -85,6 +85,8 @@ export default function EmployeeInterview() {
       setIsAiTyping(false);
     }
   }, [employee, selectedRole, messages, questionsAsked]);
+
+  const displayedQuestionNumber = Math.min(Math.max(questionsAsked, 1), 12);
 
   const updateDiscoveredSkills = (skills: Record<string, any>) => {
     const newSkills = Object.entries(skills).map(([name, data]: [string, any]) => ({
@@ -230,7 +232,7 @@ export default function EmployeeInterview() {
           <>
             {/* Progress */}
             <div className="card-skillsight p-3">
-              <p className="text-[13px] font-semibold">Question {questionsAsked} / 12</p>
+              <p className="text-[13px] font-semibold">Question {displayedQuestionNumber} / 12</p>
               <div className="h-1 rounded-full bg-secondary mt-2 overflow-hidden">
                 <div className="h-full bg-bmw-blue rounded-full transition-all" style={{ width: `${(questionsAsked / 12) * 100}%` }} />
               </div>
