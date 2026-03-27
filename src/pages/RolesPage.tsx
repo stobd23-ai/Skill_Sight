@@ -1,12 +1,205 @@
+import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
+import { useRoles, useAlgorithmResults } from "@/hooks/useData";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Plus, Pencil, Trash2, Eye, X } from "lucide-react";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import type { SkillVector } from "@/lib/algorithms";
+
+interface SkillReq { name: string; required: number; weight: number }
 
 export default function RolesPage() {
+  const { data: roles, refetch } = useRoles();
+  const { data: allResults } = useAlgorithmResults();
+  const navigate = useNavigate();
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
+  const [department, setDepartment] = useState("");
+  const [description, setDescription] = useState("");
+  const [headcount, setHeadcount] = useState(1);
+  const [isOpen, setIsOpen] = useState(true);
+  const [skillReqs, setSkillReqs] = useState<SkillReq[]>([]);
+  const [detailRole, setDetailRole] = useState<any>(null);
+
+  const openNew = () => {
+    setEditId(null); setTitle(""); setDepartment(""); setDescription(""); setHeadcount(1); setIsOpen(true); setSkillReqs([]);
+    setEditOpen(true);
+  };
+
+  const openEdit = (role: any) => {
+    setEditId(role.id); setTitle(role.title); setDepartment(role.department || ""); setDescription(role.description || "");
+    setHeadcount(role.headcount_needed || 1); setIsOpen(role.is_open ?? true);
+    const req = (role.required_skills || {}) as Record<string, number>;
+    const w = (role.strategic_weights || {}) as Record<string, number>;
+    setSkillReqs(Object.entries(req).map(([name, required]) => ({ name, required, weight: w[name] || 0.5 })));
+    setEditOpen(true);
+  };
+
+  const addSkill = () => setSkillReqs([...skillReqs, { name: "", required: 2, weight: 0.7 }]);
+  const removeSkill = (i: number) => setSkillReqs(skillReqs.filter((_, j) => j !== i));
+  const updateSkill = (i: number, field: keyof SkillReq, value: string | number) => {
+    setSkillReqs(skillReqs.map((s, j) => j === i ? { ...s, [field]: value } : s));
+  };
+
+  const save = async () => {
+    if (!title.trim()) { toast.error("Title is required"); return; }
+    const required_skills: Record<string, number> = {};
+    const strategic_weights: Record<string, number> = {};
+    skillReqs.forEach(s => {
+      if (s.name.trim()) { required_skills[s.name.trim()] = s.required; strategic_weights[s.name.trim()] = s.weight; }
+    });
+
+    const payload = { title, department, description, headcount_needed: headcount, is_open: isOpen, required_skills: required_skills as any, strategic_weights: strategic_weights as any };
+    if (editId) {
+      await supabase.from("roles").update(payload).eq("id", editId);
+    } else {
+      await supabase.from("roles").insert(payload);
+    }
+    toast.success(editId ? "Role updated" : "Role created");
+    setEditOpen(false); refetch();
+  };
+
   return (
     <div>
-      <PageHeader title="Roles" subtitle="Manage target roles and skill requirements" />
-      <div className="p-8">
-        <p className="text-sm text-muted-foreground">Role definitions will be loaded from the database.</p>
+      <PageHeader title="Roles Manager" subtitle="Define strategic skill requirements for open positions" />
+      <div className="px-8 pb-8 space-y-6">
+        <div className="flex justify-end">
+          <Button onClick={openNew} size="sm"><Plus className="h-3.5 w-3.5" /> Add New Role</Button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          {roles?.map(role => {
+            const reqSkills = Object.keys((role.required_skills || {}) as Record<string, number>);
+            const assessedCount = allResults?.filter(r => r.role_id === role.id).length || 0;
+            return (
+              <Card key={role.id}>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-sm font-bold">{role.title}</CardTitle>
+                      <span className="text-xs text-muted-foreground">{role.department}</span>
+                    </div>
+                    <Badge variant={role.is_open ? "default" : "secondary"} className="text-[10px]">
+                      {role.is_open ? 'Open' : 'Closed'}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {role.description && (
+                    <p className="text-xs text-muted-foreground mb-2">{role.description?.substring(0, 80)}{(role.description?.length || 0) > 80 ? '…' : ''}</p>
+                  )}
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
+                    <span>{reqSkills.length} required skills</span>
+                    <span>·</span>
+                    <span>{assessedCount} employees assessed</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {reqSkills.slice(0, 5).map(s => (
+                      <Badge key={s} variant="outline" className="text-[10px]">{s.replace(/([A-Z])/g, ' $1').trim()}</Badge>
+                    ))}
+                    {reqSkills.length > 5 && <Badge variant="secondary" className="text-[10px]">+{reqSkills.length - 5} more</Badge>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => { setDetailRole(role); setDetailOpen(true); }}>
+                      <Eye className="h-3 w-3" /> View Details
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => openEdit(role)}>
+                      <Pencil className="h-3 w-3" /> Edit
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editId ? 'Edit Role' : 'Add New Role'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div><Label>Title *</Label><Input value={title} onChange={e => setTitle(e.target.value)} /></div>
+            <div><Label>Department</Label><Input value={department} onChange={e => setDepartment(e.target.value)} /></div>
+            <div><Label>Description</Label><Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Headcount Needed</Label><Input type="number" value={headcount} onChange={e => setHeadcount(Number(e.target.value))} min={1} /></div>
+              <div className="flex items-center gap-2 pt-6"><Switch checked={isOpen} onCheckedChange={setIsOpen} /><Label>Is Open</Label></div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label>Skill Requirements</Label>
+                <Button variant="outline" size="sm" onClick={addSkill} className="text-xs h-7"><Plus className="h-3 w-3" /> Add Skill</Button>
+              </div>
+              <div className="space-y-2">
+                {skillReqs.map((s, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Input placeholder="Skill Name" value={s.name} onChange={e => updateSkill(i, 'name', e.target.value)} className="flex-1" />
+                    <Input type="number" value={s.required} onChange={e => updateSkill(i, 'required', Number(e.target.value))} min={1} max={3} className="w-20" placeholder="Req" />
+                    <Input type="number" value={s.weight} onChange={e => updateSkill(i, 'weight', Number(e.target.value))} min={0} max={1} step={0.05} className="w-20" placeholder="Weight" />
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeSkill(i)}><X className="h-3 w-3" /></Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button onClick={save}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail Dialog */}
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{detailRole?.title}</DialogTitle>
+          </DialogHeader>
+          {detailRole && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">{detailRole.description}</p>
+              <div>
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Skill Requirements</h4>
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b border-border">
+                    <th className="text-left py-1 text-xs">Skill</th>
+                    <th className="text-center py-1 text-xs">Required Level</th>
+                    <th className="text-center py-1 text-xs">Strategic Weight</th>
+                  </tr></thead>
+                  <tbody>
+                    {Object.entries((detailRole.required_skills || {}) as Record<string, number>).map(([skill, level]) => (
+                      <tr key={skill} className="border-b border-border/50">
+                        <td className="py-1.5">{skill.replace(/([A-Z])/g, ' $1').trim()}</td>
+                        <td className="text-center font-mono">{level}/3</td>
+                        <td className="text-center font-mono">{((detailRole.strategic_weights as Record<string, number>)?.[skill] || 0.5).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => { setDetailOpen(false); navigate('/reorg'); }}>
+                Run Reorg Scan →
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
