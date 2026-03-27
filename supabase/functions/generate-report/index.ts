@@ -57,7 +57,7 @@ serve(async (req) => {
   }
 
   try {
-    const { employeeName, roleTitle, algorithmResults, gapAnalysis, tfidfRarity, upskillingPaths, managerInsights } = await req.json();
+    const { employeeName, roleTitle, algorithmResults, gapAnalysis, tfidfRarity, upskillingPaths, managerInsights, momentumData, roleType, threeLayerScore, ahpWeightsUsed } = await req.json();
 
     const userContent = `Generate the SkillSight assessment report.
 
