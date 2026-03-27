@@ -56,7 +56,7 @@ export default function LoginPage() {
 
   const hints = {
     manager: { email: "manager@bmw-skillsight.com", password: "SkillSight2026!" },
-    employee: { email: "thomas.bauer@bmw-skillsight.com", password: "SkillSight2026!" },
+    employee: { email: "anna.keller@bmw-skillsight.com", password: "SkillSight2026!" },
   };
 
   if (authLoading) {
