@@ -4,7 +4,9 @@ import { PageHeader } from "@/components/PageHeader";
 import { ReadinessRing } from "@/components/ReadinessRing";
 import { PriorityBadge } from "@/components/PriorityBadge";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
-import { useEmployee, useEmployeeSkills, useAlgorithmResults, useRoles, useInterviews } from "@/hooks/useData";
+import { EmptyState } from "@/components/EmptyState";
+import { EmployeeSelector } from "@/components/EmployeeSelector";
+import { useEmployee, useEmployeeSkills, useAlgorithmResults, useRoles, useInterviews, useEmployees } from "@/hooks/useData";
 import { supabase } from "@/integrations/supabase/client";
 import { runFullAnalysis, type AlgorithmInput, type FullResults, type SkillVector } from "@/lib/algorithms";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -135,6 +137,9 @@ export default function AnalysisPage() {
     }
   }, [employee, targetRole, cosine, jaccBin, jaccW, gapAnalysis, tfidfRarity, upskillingPaths, managerInterview, latestResult, localResults, id, managerAdj]);
 
+  if (!id) {
+    return <EmployeeSelector title="Skills Analysis" subtitle="Select an employee to view their analysis" navigateTo="/analysis" />;
+  }
   if (empLoading) return <div className="flex items-center justify-center h-64"><LoadingSpinner /></div>;
   if (!employee) return <div className="p-8 text-center text-muted-foreground">Employee not found</div>;
 

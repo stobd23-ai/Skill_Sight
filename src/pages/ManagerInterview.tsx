@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { EmployeeSelector } from "@/components/EmployeeSelector";
 import { useParams, useNavigate } from "react-router-dom";
 import { useEmployee, useRoles } from "@/hooks/useData";
 import { supabase } from "@/integrations/supabase/client";
@@ -154,6 +155,9 @@ export default function ManagerInterview() {
     }
   };
 
+  if (!id) {
+    return <EmployeeSelector title="Manager Interview" subtitle="Select an employee to discuss" navigateTo="/interview/manager" />;
+  }
   if (isLoading) return <div className="min-h-screen flex items-center justify-center"><LoadingSpinner /></div>;
   if (!employee) return <div className="min-h-screen flex items-center justify-center"><p>Employee not found</p></div>;
 
