@@ -16,6 +16,7 @@ interface ReorgMatch {
   employee: { id: string; name: string; job_title: string | null; department: string | null; avatar_initials: string | null; avatar_color: string | null };
   matchScore: number; readinessPercent: number; immediateReadiness: boolean;
   transferType: string; gapsRemaining: GapItem[];
+  threeLayerScore?: number;
 }
 
 export default function InternalReorg() {
@@ -40,6 +41,19 @@ export default function InternalReorg() {
     const reqSkills = (selectedRole.required_skills || {}) as SkillVector;
     const stratWeights = (selectedRole.strategic_weights || {}) as SkillVector;
 
+    // Fetch existing three-layer scores from DB
+    const { data: dbResults } = await supabase
+      .from("algorithm_results")
+      .select("employee_id, three_layer_score, momentum_score")
+      .eq("role_id", selectedRole.id);
+
+    const dbScoreMap: Record<string, { threeLayer: number; momentum: number }> = {};
+    dbResults?.forEach((r: any) => {
+      if (r.employee_id) {
+        dbScoreMap[r.employee_id] = { threeLayer: r.three_layer_score || 0, momentum: r.momentum_score || 0 };
+      }
+    });
+
     const matches: ReorgMatch[] = employees.map(emp => {
       const empSkills: SkillVector = {};
       allSkills.filter(s => s.employee_id === emp.id).forEach(s => { empSkills[s.skill_name] = s.proficiency || 0; });
@@ -59,12 +73,20 @@ export default function InternalReorg() {
       const gap = weightedGapScore(input);
       const readiness = gap.readinessPercent;
       const isSameDept = emp.department === selectedRole.department;
-      const transferType = readiness >= 80 ? (isSameDept ? 'direct' : 'lateral') : readiness >= 60 && !isSameDept ? 'hidden_match' : 'develop_promote';
+
+      // Use three-layer score from DB if available, otherwise fall back to gap readiness
+      const dbScore = dbScoreMap[emp.id];
+      const effectiveReadiness = dbScore?.threeLayer
+        ? Math.round(dbScore.threeLayer * 100)
+        : readiness;
+
+      const transferType = effectiveReadiness >= 80 ? (isSameDept ? 'direct' : 'lateral') : effectiveReadiness >= 60 && !isSameDept ? 'hidden_match' : 'develop_promote';
 
       return {
         employee: { id: emp.id, name: emp.name, job_title: emp.job_title, department: emp.department, avatar_initials: emp.avatar_initials, avatar_color: emp.avatar_color },
-        matchScore: cosine, readinessPercent: readiness, immediateReadiness: readiness >= 80,
+        matchScore: cosine, readinessPercent: effectiveReadiness, immediateReadiness: effectiveReadiness >= 80,
         transferType, gapsRemaining: gap.criticalGaps,
+        threeLayerScore: dbScore?.threeLayer,
       };
     }).sort((a, b) => {
       if (a.immediateReadiness && !b.immediateReadiness) return -1;

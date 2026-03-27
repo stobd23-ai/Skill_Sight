@@ -7,6 +7,7 @@ import { Users, TrendingUp, AlertTriangle, MessageSquare, GraduationCap, DollarS
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Legend } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { useMemo } from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function ExecutiveDashboard() {
   const { data: employees, isLoading: loadingEmp } = useEmployees();
@@ -20,9 +21,17 @@ export default function ExecutiveDashboard() {
 
   const avgReadiness = useMemo(() => {
     if (!results?.length) return 0;
-    const withReadiness = results.filter(r => r.final_readiness != null);
-    if (!withReadiness.length) return 0;
-    return Math.round((withReadiness.reduce((s, r) => s + (r.final_readiness || 0), 0) / withReadiness.length) * 100);
+    const withScore = results.filter(r => {
+      const tls = (r as any).three_layer_score;
+      return tls != null || r.final_readiness != null;
+    });
+    if (!withScore.length) return 0;
+    return Math.round(
+      (withScore.reduce((s, r) => {
+        const tls = (r as any).three_layer_score;
+        return s + (tls != null ? tls : (r.final_readiness || 0));
+      }, 0) / withScore.length) * 100
+    );
   }, [results]);
 
   const criticalGaps = useMemo(() => {
@@ -98,7 +107,18 @@ export default function ExecutiveDashboard() {
         {/* Stat cards */}
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           <StatCard icon={Users} label="Employees Profiled" value={employees?.length || 0} subtitle="Full HR + interview data" color="blue" />
-          <StatCard icon={TrendingUp} label="Avg Readiness Score" value={`${avgReadiness}%`} subtitle="Across all assessments" color="green" />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <StatCard icon={TrendingUp} label="Avg Readiness Score" value={`${avgReadiness}%`} subtitle="Three-layer score" color="green" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Three-layer score: Technical Match + Capability Match + Momentum Score</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <StatCard icon={AlertTriangle} label="Critical Skill Gaps" value={criticalGaps} subtitle="Require immediate action" color="red" />
           <StatCard icon={MessageSquare} label="Interviews Completed" value={completedInterviews} subtitle="Employee + manager combined" color="blue" />
           <StatCard icon={GraduationCap} label="Active Bootcamps" value={activeBootcamps} subtitle="Personalized training plans" color="amber" />
@@ -212,6 +232,8 @@ export default function ExecutiveDashboard() {
                 const emp = employees?.find(e => e.id === r.employee_id);
                 const role = roles?.find(ro => ro.id === r.role_id);
                 if (!emp) return null;
+                const tls = (r as any).three_layer_score;
+                const displayScore = tls != null ? Math.round(tls * 100) : Math.round((r.final_readiness || 0) * 100);
                 return (
                   <div key={r.id} className={`flex items-center gap-3 py-3 cursor-pointer hover:bg-accent/50 rounded-md px-1 ${i > 0 ? 'border-t border-border' : ''}`}
                     onClick={() => navigate(`/analysis/${emp.id}`)}>
@@ -222,7 +244,7 @@ export default function ExecutiveDashboard() {
                       <p className="text-xs font-medium truncate">{emp.name}</p>
                       <p className="text-[10px] text-muted-foreground truncate">{role?.title || 'Unknown role'}</p>
                     </div>
-                    <ReadinessRing value={Math.round((r.final_readiness || 0) * 100)} size="sm" />
+                    <ReadinessRing value={displayScore} size="sm" />
                   </div>
                 );
               }) : (
