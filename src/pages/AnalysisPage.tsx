@@ -411,31 +411,32 @@ export default function AnalysisPage() {
 
           {/* Priority Skill Gaps */}
           <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold">Priority Skill Gaps</CardTitle>
-                {gapAnalysis?.criticalGaps && (
-                  <Badge variant="secondary" className="text-xs">{gapAnalysis.criticalGaps.length} gaps</Badge>
-                )}
-              </div>
+            <CardHeader className="pb-1">
+              <CardTitle className="text-xs font-semibold">Priority Skill Gaps</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {gapAnalysis?.criticalGaps?.slice(0, 6).map((gap, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <PriorityBadge priority={gap.priority as 'critical' | 'high' | 'medium' | 'low'} />
-                    <span className="text-sm font-medium flex-1">{gap.skill.replace(/([A-Z])/g, ' $1').trim()}</span>
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <span className="font-mono text-muted-foreground">{gap.currentProficiency}</span>
-                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                      <span className="font-mono font-semibold">{gap.requiredProficiency}</span>
-                    </div>
-                    <span className="text-[11px] text-muted-foreground font-mono w-10 text-right">
-                      {(gap.strategicWeight * 100).toFixed(0)}%
-                    </span>
+            <CardContent className="pt-2">
+              {(() => {
+                const critical = gapAnalysis?.criticalGaps?.filter((g: any) => g.priority === 'critical' || g.priority === 'high') || [];
+                const minor = gapAnalysis?.criticalGaps?.filter((g: any) => g.priority !== 'critical' && g.priority !== 'high') || [];
+                return (
+                  <div className="space-y-1.5">
+                    {critical.length > 0 ? critical.slice(0, 4).map((gap: any, i: number) => (
+                      <div key={i} className="flex items-center gap-2 py-1">
+                        <PriorityBadge priority={gap.priority as 'critical' | 'high' | 'medium' | 'low'} />
+                        <span className="text-xs font-medium flex-1">{gap.skill.replace(/([A-Z])/g, ' $1').trim()}</span>
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          wt {(gap.strategicWeight * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                    )) : <p className="text-xs text-muted-foreground">No critical gaps identified</p>}
+                    {minor.length > 0 && (
+                      <p className="text-[10px] text-muted-foreground pt-1 border-t border-border">
+                        + {minor.length} minor gap{minor.length > 1 ? 's' : ''} ({minor.map((g: any) => g.skill.replace(/([A-Z])/g, ' $1').trim()).join(', ')})
+                      </p>
+                    )}
                   </div>
-                )) || <p className="text-sm text-muted-foreground">No gaps identified</p>}
-              </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </div>
