@@ -45,9 +45,10 @@ function hybridWorthinessDecision(
   experienceProfile: any,
   aiJudgment: any
 ): HybridResult {
-  const requiredSkills = Object.keys(targetRole.required_skills || {});
+  const requiredSkills = Object.keys(targetRole?.required_skills || {});
+  const safeSkills = extractedSkills || {};
   const coveredSkills = requiredSkills.filter(
-    (s) => extractedSkills[s] && extractedSkills[s].proficiency >= 1
+    (s) => safeSkills[s] && safeSkills[s].proficiency >= 1
   );
   const coverageRatio = requiredSkills.length > 0 ? coveredSkills.length / requiredSkills.length : 0;
 
