@@ -19,7 +19,7 @@ serve(async (req) => {
     const { data: existing } = await supabaseAdmin
       .from("user_profiles")
       .select("email")
-      .in("email", ["manager@bmw-skillsight.com", "thomas.bauer@bmw-skillsight.com", "anna.keller@bmw-skillsight.com", "jens.richter@bmw.de"]);
+      .in("email", ["manager@bmw-skillsight.com", "thomas.bauer@bmw-skillsight.com", "anna.keller@bmw-skillsight.com", "jens.richter@bmw.de", "marcus.schmidt@bmw.de"]);
 
     const results: string[] = [];
 
