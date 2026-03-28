@@ -18,7 +18,7 @@ import {
   ArrowLeft, ArrowRight, UserPlus, Target, Zap, Brain, BarChart3, Shield, TrendingUp,
   FileText, Sparkles, ExternalLink, Mail, Eye, EyeOff, Quote, AlertTriangle,
   CheckCircle, XCircle, ChevronDown, ChevronUp, Star, Heart, Route, Search, ShieldAlert,
-  Copy, RefreshCw,
+  Copy, RefreshCw, Trash2,
 } from "lucide-react";
 
 function markdownToHtml(md: string): string {
@@ -82,6 +82,8 @@ export default function ExternalCandidateProfile() {
   const [transcriptOpen, setTranscriptOpen] = useState(false);
   const [declineOpen, setDeclineOpen] = useState(false);
   const [declineNote, setDeclineNote] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: candidate, isLoading, refetch } = useQuery({
     queryKey: ["external_candidate_detail", id],
@@ -202,6 +204,18 @@ export default function ExternalCandidateProfile() {
     refetch();
   };
 
+  const handleDelete = async () => {
+    setDeleting(true);
+    const { error } = await supabase.from("external_candidates").delete().eq("id", candidate.id);
+    if (error) {
+      toast.error("Failed to delete candidate");
+      setDeleting(false);
+      return;
+    }
+    toast.success("Candidate deleted");
+    navigate("/employees?tab=external");
+  };
+
   const conversationHistory = interview?.conversation_history as any[] || [];
 
   return (
@@ -286,6 +300,11 @@ export default function ExternalCandidateProfile() {
                   View Full Assessment
                 </Button>
               </>
+            )}
+            {candidate.status === "rejected" && (
+              <Button variant="destructive" size="sm" className="text-xs" onClick={() => setDeleteOpen(true)}>
+                <Trash2 className="h-3 w-3 mr-1" />Delete Candidate
+              </Button>
             )}
           </div>
         </div>
@@ -891,6 +910,22 @@ export default function ExternalCandidateProfile() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeclineOpen(false)}>Cancel</Button>
             <Button variant="destructive" onClick={handleDecline}>Confirm Decline</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete {candidate.name}?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">This will permanently remove this candidate and all their data. This action cannot be undone.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? "Deleting…" : "Delete Permanently"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
