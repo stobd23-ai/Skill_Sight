@@ -55,20 +55,35 @@ export default function ExternalCandidateProfile() {
     enabled: !!id,
   });
 
+  const candidateInterviewId = candidate?.interview_id;
+
   // Fetch interview data if exists
   const { data: interview } = useQuery({
-    queryKey: ["external_interview", candidate?.interview_id],
+    queryKey: ["external_interview", candidateInterviewId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("interviews")
         .select("*")
-        .eq("id", candidate!.interview_id!)
+        .eq("id", candidateInterviewId!)
         .single();
       if (error) throw error;
       return data;
     },
-    enabled: !!candidate?.interview_id,
+    enabled: !!candidateInterviewId,
   });
+
+  // Risk factors from report - must be before conditional returns
+  const results_raw = (candidate?.full_algorithm_results || {}) as any;
+  const report_raw = results_raw.reportMarkdown;
+  const riskFactors = useMemo(() => {
+    if (!report_raw) return [];
+    const riskSection = report_raw.match(/### Risk Factors\n([\s\S]*?)(?=\n### |\n## |$)/);
+    if (!riskSection) return [];
+    const risks: { name: string; level: string; description: string }[] = [];
+    const riskMatches = riskSection[1].matchAll(/\*\*(.+?)\*\*\s*·\s*(LOW|MEDIUM|HIGH)\n(.+?)(?=\n\*\*|\n$|$)/gs);
+    for (const match of riskMatches) risks.push({ name: match[1].trim(), level: match[2].trim(), description: match[3].trim() });
+    return risks;
+  }, [report_raw]);
 
   if (isLoading) return <div className="flex items-center justify-center h-64"><LoadingSpinner /></div>;
   if (!candidate) return <div className="p-6">Candidate not found.</div>;
