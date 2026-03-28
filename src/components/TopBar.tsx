@@ -31,7 +31,10 @@ export function TopBar() {
 
   if (!profile) return null;
 
-  const canGoBack = location.key !== "default";
+  // Main sections where no back button should appear
+  const mainSections = ["/dashboard", "/employees", "/reorg", "/succession", "/roles", "/my-profile", "/my-interview", "/my-analysis"];
+  const isMainSection = mainSections.some(path => location.pathname === path);
+  const canGoBack = location.key !== "default" && !isMainSection;
 
   const isManager = profile.role === "manager";
   const initials = profile.full_name
