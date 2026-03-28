@@ -381,6 +381,7 @@ export default function AnalysisPage() {
             color="hsl(142 76% 36%)"
             factors={momentumFactors.factors}
             standout={momentumFactors.standout}
+            isNull={momentumScore === null}
           />
         </div>
 
