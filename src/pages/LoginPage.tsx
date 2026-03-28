@@ -58,6 +58,26 @@ export default function LoginPage() {
     if (err) {
       setError("Invalid email or password. Please try again.");
       setLoading(false);
+      return;
+    }
+    // Check that the logged-in user's role matches the selected tab
+    const { data: { user: signedInUser } } = await supabase.auth.getUser();
+    if (signedInUser) {
+      const { data: prof } = await supabase
+        .from("user_profiles")
+        .select("role")
+        .eq("id", signedInUser.id)
+        .single();
+      if (prof && prof.role !== tab) {
+        await supabase.auth.signOut();
+        setError(
+          tab === "manager"
+            ? "This account is not a manager. Please switch to the Employee tab."
+            : "This account is not an employee. Please switch to the Manager tab."
+        );
+        setLoading(false);
+        return;
+      }
     }
   };
 
