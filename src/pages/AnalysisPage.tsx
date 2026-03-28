@@ -385,13 +385,6 @@ export default function AnalysisPage() {
           />
         </div>
 
-        {/* Metric Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard label="Profile Match" value={`${Math.round(cosine * 100)}%`} icon={<Target className="h-4 w-4" />} />
-          <MetricCard label="Skill Coverage" value={`${Math.round(jaccBin * 100)}%`} icon={<Shield className="h-4 w-4" />} />
-          <MetricCard label="Weighted Overlap" value={`${Math.round(jaccW * 100)}%`} icon={<BarChart3 className="h-4 w-4" />} />
-          <MetricCard label="Strategic Gap" value={`${Math.round(gapScore * 100)}%`} icon={<AlertTriangle className="h-4 w-4" />} />
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Skills Radar */}
