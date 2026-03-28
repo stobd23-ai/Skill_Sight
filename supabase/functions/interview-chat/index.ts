@@ -578,14 +578,12 @@ serve(async (req) => {
       return cleaned.trim();
     };
 
-    const chatMessages = [
-      { role: "system", content: systemPrompt },
-      { role: "system", content: runtimePrompt },
-      ...typedMessages.map((message) => ({
-        role: message.role === "ai" ? "assistant" : "user",
-        content: message.role === "ai" ? cleanAssistantHistoryMessage(message.content) : message.content,
-      })),
-    ];
+    const fullSystemPrompt = systemPrompt + "\n\n" + runtimePrompt;
+
+    const chatMessages = typedMessages.map((message) => ({
+      role: message.role === "ai" ? "assistant" : "user",
+      content: message.role === "ai" ? cleanAssistantHistoryMessage(message.content) : message.content,
+    }));
 
     if (typedMessages.length === 0) {
       chatMessages.push({ role: "user", content: "Hello, I'm ready to begin." });
@@ -593,16 +591,10 @@ serve(async (req) => {
 
     const cleanedMessages: any[] = [];
     for (const message of chatMessages) {
-      if (message.role === "system") {
-        cleanedMessages.push(message);
+      const lastMsg = cleanedMessages[cleanedMessages.length - 1];
+      if (message.role === "assistant" && lastMsg?.role === "assistant") {
         continue;
       }
-
-      const lastNonSystem = [...cleanedMessages].reverse().find((entry) => entry.role !== "system");
-      if (message.role === "assistant" && lastNonSystem?.role === "assistant") {
-        continue;
-      }
-
       cleanedMessages.push(message);
     }
 
@@ -626,6 +618,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
+        system: fullSystemPrompt,
         messages: cleanedMessages,
         temperature: 0.5,
         max_tokens: 900,
