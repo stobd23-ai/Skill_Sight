@@ -85,6 +85,18 @@ export default function ExternalCandidateProfile() {
     return risks;
   }, [report_raw]);
 
+  // Parse hybrid reasoning data — must be before conditional returns
+  const hybridInfo = useMemo(() => {
+    if (!candidate) return null;
+    try {
+      const data = JSON.parse(candidate.worthy_reasoning || '{}');
+      if (data.method) return data;
+      return null;
+    } catch {
+      return null;
+    }
+  }, [candidate?.worthy_reasoning]);
+
   if (isLoading) return <div className="flex items-center justify-center h-64"><LoadingSpinner /></div>;
   if (!candidate) return <div className="p-6">Candidate not found.</div>;
 
@@ -113,16 +125,17 @@ export default function ExternalCandidateProfile() {
   };
 
   const statusBadge = () => {
-    const map: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+    const map: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className?: string }> = {
       pending_manager_review: { label: "Pending Review", variant: "outline" },
       below_threshold: { label: "Below Threshold", variant: "destructive" },
       interviewing: { label: "Interview In Progress", variant: "outline" },
       completed: { label: "Assessment Complete", variant: "default" },
       invited: { label: "Invited", variant: "secondary" },
       rejected: { label: "Declined", variant: "secondary" },
+      flagged_review: { label: "⚠ Needs Review", variant: "outline", className: "border-amber-500 text-amber-700 bg-amber-50" },
     };
     const s = map[candidate.status || ""] || { label: candidate.status || "Unknown", variant: "secondary" as const };
-    return <Badge variant={s.variant} className="text-[10px]">{s.label}</Badge>;
+    return <Badge variant={s.variant} className={`text-[10px] ${s.className || ''}`}>{s.label}</Badge>;
   };
 
   const handleApprove = async () => {
@@ -208,13 +221,13 @@ export default function ExternalCandidateProfile() {
 
           {/* Action buttons */}
           <div className="flex flex-wrap gap-2 mt-4">
-            {(candidate.status === "pending_manager_review" || ((candidate as any).submission_source === "candidate_self_submit" && (candidate as any).manager_decision === "pending" && candidate.interview_worthy)) && (
+            {(candidate.status === "pending_manager_review" || candidate.status === "flagged_review" || ((candidate as any).submission_source === "candidate_self_submit" && (candidate as any).manager_decision === "pending" && candidate.interview_worthy)) && (
               <>
                 <Button size="sm" className="bg-green-600 hover:bg-green-700 text-xs" onClick={handleApprove}>
-                  <CheckCircle className="h-3 w-3 mr-1" />Send Interview Code
+                  <CheckCircle className="h-3 w-3 mr-1" />{candidate.status === "flagged_review" ? "Approve — Send Interview Code" : "Send Interview Code"}
                 </Button>
                 <Button variant="outline" size="sm" className="text-xs text-destructive border-destructive/30" onClick={() => setDeclineOpen(true)}>
-                  <XCircle className="h-3 w-3 mr-1" />Decline
+                  <XCircle className="h-3 w-3 mr-1" />{candidate.status === "flagged_review" ? "Reject" : "Decline"}
                 </Button>
               </>
             )}
@@ -234,6 +247,131 @@ export default function ExternalCandidateProfile() {
             )}
           </div>
         </div>
+
+        {/* Hybrid Verdict Banner */}
+        {hybridInfo && (
+          <Card className={
+            hybridInfo.confidence === 'flagged'
+              ? 'border-amber-400 border-2'
+              : hybridInfo.method === 'both_agree_worthy'
+                ? 'border-green-400 border-2'
+                : hybridInfo.method === 'both_agree_not_worthy'
+                  ? 'border-destructive border-2'
+                  : ''
+          }>
+            <CardContent className="p-5 space-y-4">
+              {/* BOTH AGREE WORTHY */}
+              {hybridInfo.method === 'both_agree_worthy' && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <div>
+                      <h3 className="text-base font-bold text-green-700">✓ Interview Recommended — High Confidence</h3>
+                      <p className="text-xs text-muted-foreground">Both algorithmic and AI assessment agree.</p>
+                    </div>
+                  </div>
+                  {hybridInfo.aiReasoning && (
+                    <p className="text-sm text-foreground/80">{hybridInfo.aiReasoning}</p>
+                  )}
+                  {hybridInfo.keyStrengths?.length > 0 && (
+                    <ul className="space-y-1">
+                      {hybridInfo.keyStrengths.map((s: string, i: number) => (
+                        <li key={i} className="text-xs text-green-700 flex items-start gap-1.5">
+                          <CheckCircle className="h-3 w-3 mt-0.5 shrink-0" />{s}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {hybridInfo.recommendedPreset && (
+                    <Badge variant="secondary" className="text-[10px]">Recommended: {hybridInfo.recommendedPreset.replace(/_/g, ' ')}</Badge>
+                  )}
+                </>
+              )}
+
+              {/* BOTH AGREE NOT WORTHY */}
+              {hybridInfo.method === 'both_agree_not_worthy' && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <XCircle className="h-5 w-5 text-destructive" />
+                    <div>
+                      <h3 className="text-base font-bold text-destructive">✗ Below Threshold — High Confidence</h3>
+                      <p className="text-xs text-muted-foreground">Both algorithmic and AI assessment agree.</p>
+                    </div>
+                  </div>
+                  {hybridInfo.aiReasoning && (
+                    <p className="text-sm text-foreground/80">{hybridInfo.aiReasoning}</p>
+                  )}
+                  {hybridInfo.concerns?.length > 0 && (
+                    <ul className="space-y-1">
+                      {hybridInfo.concerns.map((c: string, i: number) => (
+                        <li key={i} className="text-xs text-destructive flex items-start gap-1.5">
+                          <XCircle className="h-3 w-3 mt-0.5 shrink-0" />{c}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {hybridInfo.keyStrengths?.length > 0 && (
+                    <div>
+                      <p className="text-[11px] text-muted-foreground italic mb-1">Strengths noted but insufficient for this role:</p>
+                      <ul className="space-y-1">
+                        {hybridInfo.keyStrengths.map((s: string, i: number) => (
+                          <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                            <Star className="h-3 w-3 mt-0.5 shrink-0" />{s}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* FLAGGED — CONFLICTING */}
+              {hybridInfo.confidence === 'flagged' && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-amber-600" />
+                    <div>
+                      <h3 className="text-base font-bold text-amber-700">⚠ Conflicting Assessment — Manager Review Required</h3>
+                    </div>
+                  </div>
+                  <div className="text-sm text-foreground/80">
+                    {hybridInfo.method === 'flagged_ai_overrides' ? (
+                      <p><strong>Algorithm:</strong> Below threshold due to skill name mismatch. <strong>AI Assessment:</strong> Strong domain expertise detected. The AI recommends proceeding.</p>
+                    ) : (
+                      <p><strong>Algorithm:</strong> Sufficient skill coverage. <strong>AI Assessment:</strong> Has concerns about depth or fit.</p>
+                    )}
+                  </div>
+                  {hybridInfo.aiReasoning && (
+                    <div className="border-l-4 border-primary/40 pl-3 py-1 bg-primary/5 rounded-r-md">
+                      <p className="text-sm text-foreground/80 italic">{hybridInfo.aiReasoning}</p>
+                    </div>
+                  )}
+                  {hybridInfo.concerns?.length > 0 && (
+                    <ul className="space-y-1">
+                      {hybridInfo.concerns.map((c: string, i: number) => (
+                        <li key={i} className="text-xs text-amber-700 flex items-start gap-1.5">
+                          <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />{c}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {hybridInfo.keyStrengths?.length > 0 && (
+                    <ul className="space-y-1">
+                      {hybridInfo.keyStrengths.map((s: string, i: number) => (
+                        <li key={i} className="text-xs text-green-700 flex items-start gap-1.5">
+                          <CheckCircle className="h-3 w-3 mt-0.5 shrink-0" />{s}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {hybridInfo.recruiterNote && (
+                    <p className="text-xs italic text-muted-foreground mt-2">"{hybridInfo.recruiterNote}"</p>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Section 1 — Candidate Information */}
         <Card>

@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Shield, CheckCircle, FileText, Loader2 } from "lucide-react";
+import { Clock, Shield, CheckCircle, FileText, Loader2, AlertTriangle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { runFullAnalysis, detectRoleType } from "@/lib/algorithms";
 
@@ -25,60 +25,141 @@ function useOpenRoles() {
   });
 }
 
-function assessInterviewWorthiness(
+interface HybridResult {
+  worthy: boolean;
+  confidence: 'high' | 'medium' | 'flagged';
+  method: 'both_agree_worthy' | 'both_agree_not_worthy' | 'flagged_ai_overrides' | 'flagged_algo_overrides';
+  worthyScore: number;
+  reasoning: string;
+  aiReasoning: string;
+  concerns: string[];
+  keyStrengths: string[];
+  recommendedPreset: string;
+  recruiterNote: string;
+}
+
+function hybridWorthinessDecision(
   partialScore: number,
   extractedSkills: Record<string, any>,
   targetRole: any,
-  experienceProfile: any
-): { worthy: boolean; score: number; reasoning: string; notWorthyReasons: string[] } {
-  const reasons: string[] = [];
-  let worthyScore = partialScore;
-
+  experienceProfile: any,
+  aiJudgment: any
+): HybridResult {
   const requiredSkills = Object.keys(targetRole.required_skills || {});
   const coveredSkills = requiredSkills.filter(
     (s) => extractedSkills[s] && extractedSkills[s].proficiency >= 1
   );
   const coverageRatio = requiredSkills.length > 0 ? coveredSkills.length / requiredSkills.length : 0;
 
-  if (coverageRatio < 0.3) {
-    reasons.push(`Only ${Math.round(coverageRatio * 100)}% of required skills present — minimum threshold is 30%`);
-    worthyScore *= 0.6;
-  }
-
-  const criticalSkills = Object.entries(targetRole.strategic_weights || {})
-    .filter(([, w]) => (w as number) >= 0.85)
-    .map(([s]) => s);
-  const missingCritical = criticalSkills.filter(
-    (s) => !extractedSkills[s] || extractedSkills[s].proficiency === 0
+  const weightedCoverage = coveredSkills.reduce(
+    (sum, s) => sum + (targetRole.strategic_weights?.[s] || 0.5), 0
   );
-  if (criticalSkills.length > 0 && missingCritical.length > criticalSkills.length * 0.6) {
-    reasons.push(`Missing ${missingCritical.length} of ${criticalSkills.length} critical skills: ${missingCritical.slice(0, 3).join(", ")}`);
-    worthyScore *= 0.7;
+  const maxWeighted = requiredSkills.reduce(
+    (sum, s) => sum + (targetRole.strategic_weights?.[s] || 0.5), 0
+  );
+  const qualityCoverage = maxWeighted > 0 ? weightedCoverage / maxWeighted : 0;
+  const effectiveCoverage = Math.max(coverageRatio, qualityCoverage);
+
+  const expYears = experienceProfile?.total_years || 0;
+  const redFlags = experienceProfile?.red_flags?.length || 0;
+
+  let algoScore = partialScore;
+  const algoReasons: string[] = [];
+
+  if (effectiveCoverage < 0.20) {
+    algoReasons.push(`Low skill coverage: ${Math.round(effectiveCoverage * 100)}%`);
+    algoScore *= 0.6;
+  }
+  if (expYears < 1) {
+    algoReasons.push('Under 1 year experience');
+    algoScore *= 0.7;
+  }
+  if (redFlags >= 3) {
+    algoReasons.push(`${redFlags} profile concerns`);
+    algoScore *= 0.75;
   }
 
-  if ((experienceProfile?.total_years || 0) < 2) {
-    reasons.push("Less than 2 years total experience");
-    worthyScore *= 0.8;
+  const algoWorthy = algoScore >= 0.35 && algoReasons.length === 0;
+  const aiWorthy = aiJudgment?.ai_verdict === true;
+
+  // If no AI judgment available, fall back to algo-only
+  if (!aiJudgment) {
+    return {
+      worthy: algoWorthy,
+      confidence: 'medium',
+      method: algoWorthy ? 'both_agree_worthy' : 'both_agree_not_worthy',
+      worthyScore: algoScore,
+      reasoning: algoWorthy
+        ? `Algorithmic analysis indicates interview-worthy (AI judgment unavailable).`
+        : `Below algorithmic threshold (AI judgment unavailable).`,
+      aiReasoning: '',
+      concerns: algoReasons,
+      keyStrengths: [],
+      recommendedPreset: 'technical_depth',
+      recruiterNote: '',
+    };
   }
 
-  if ((experienceProfile?.red_flags?.length || 0) >= 3) {
-    reasons.push(`${experienceProfile.red_flags.length} profile concerns flagged`);
-    worthyScore *= 0.75;
+  if (algoWorthy && aiWorthy) {
+    return {
+      worthy: true,
+      confidence: 'high',
+      method: 'both_agree_worthy',
+      worthyScore: Math.max(algoScore, 0.75),
+      reasoning: 'Both algorithmic analysis and AI assessment agree this candidate is interview-worthy.',
+      aiReasoning: aiJudgment?.ai_reasoning || '',
+      concerns: aiJudgment?.ai_concerns || [],
+      keyStrengths: aiJudgment?.ai_key_strengths || [],
+      recommendedPreset: aiJudgment?.ai_recommended_preset || 'technical_depth',
+      recruiterNote: aiJudgment?.ai_recruiter_note || '',
+    };
   }
 
-  const worthy = worthyScore >= 0.4 && reasons.length <= 1;
+  if (!algoWorthy && !aiWorthy) {
+    return {
+      worthy: false,
+      confidence: 'high',
+      method: 'both_agree_not_worthy',
+      worthyScore: Math.min(algoScore, 0.35),
+      reasoning: 'Both algorithmic analysis and AI assessment agree this candidate does not meet the threshold for this role.',
+      aiReasoning: aiJudgment?.ai_reasoning || '',
+      concerns: [...algoReasons, ...(aiJudgment?.ai_concerns || [])],
+      keyStrengths: aiJudgment?.ai_key_strengths || [],
+      recommendedPreset: aiJudgment?.ai_recommended_preset || 'technical_depth',
+      recruiterNote: aiJudgment?.ai_recruiter_note || '',
+    };
+  }
+
+  if (!algoWorthy && aiWorthy) {
+    return {
+      worthy: false,
+      confidence: 'flagged',
+      method: 'flagged_ai_overrides',
+      worthyScore: algoScore,
+      reasoning: 'Algorithm flagged weak skill keyword coverage, but AI assessment sees strong domain expertise. Manager review recommended.',
+      aiReasoning: aiJudgment?.ai_reasoning || '',
+      concerns: algoReasons,
+      keyStrengths: aiJudgment?.ai_key_strengths || [],
+      recommendedPreset: aiJudgment?.ai_recommended_preset || 'technical_depth',
+      recruiterNote: aiJudgment?.ai_recruiter_note || '',
+    };
+  }
 
   return {
-    worthy,
-    score: worthyScore,
-    reasoning: worthy
-      ? `Candidate meets baseline requirements. Technical coverage ${Math.round(coverageRatio * 100)}%, partial score ${Math.round(worthyScore * 100)}%. Interview recommended.`
-      : `Candidate does not meet the minimum threshold for this role.`,
-    notWorthyReasons: reasons,
+    worthy: false,
+    confidence: 'flagged',
+    method: 'flagged_algo_overrides',
+    worthyScore: algoScore,
+    reasoning: 'Algorithmic skill coverage is sufficient, but AI assessment has concerns about depth or fit. Manager review recommended.',
+    aiReasoning: aiJudgment?.ai_reasoning || '',
+    concerns: aiJudgment?.ai_concerns || [],
+    keyStrengths: aiJudgment?.ai_key_strengths || [],
+    recommendedPreset: aiJudgment?.ai_recommended_preset || 'technical_depth',
+    recruiterNote: aiJudgment?.ai_recruiter_note || '',
   };
 }
 
-type SubmitPhase = "idle" | "parsing" | "scoring" | "saving" | "done_worthy" | "done_not_worthy";
+type SubmitPhase = "idle" | "parsing" | "scoring" | "saving" | "done_worthy" | "done_not_worthy" | "done_flagged";
 
 export default function ApplyPage() {
   const [searchParams] = useSearchParams();
@@ -94,7 +175,6 @@ export default function ApplyPage() {
   const [phase, setPhase] = useState<SubmitPhase>("idle");
   const [roleName, setRoleName] = useState("");
 
-  // Pre-select role from URL
   useEffect(() => {
     const roleParam = searchParams.get("role");
     if (roleParam && !selectedRoleId) {
@@ -129,10 +209,12 @@ export default function ApplyPage() {
           cvText: cvText,
           targetRole: selectedRole.title,
           targetRoleType: roleType,
+          roleRequirements: selectedRole.required_skills || {},
         },
       });
 
       const parsed = parseResponse.data?.parsed;
+      const aiJudgment = parseResponse.data?.aiJudgment || null;
       if (!parsed) throw new Error("CV parsing failed");
 
       // Phase 2: Score
@@ -162,12 +244,23 @@ export default function ApplyPage() {
 
       const results = runFullAnalysis(algorithmInput);
 
-      const worthiness = assessInterviewWorthiness(
+      const hybrid = hybridWorthinessDecision(
         results.overallReadiness,
         parsed.extracted_skills,
         selectedRole,
-        parsed.experience_profile
+        parsed.experience_profile,
+        aiJudgment
       );
+
+      // Determine status
+      let candidateStatus: string;
+      if (hybrid.confidence === 'flagged') {
+        candidateStatus = 'flagged_review';
+      } else if (hybrid.worthy) {
+        candidateStatus = 'pending_manager_review';
+      } else {
+        candidateStatus = 'below_threshold';
+      }
 
       // Phase 3: Save
       setPhase("saving");
@@ -176,11 +269,20 @@ export default function ApplyPage() {
         email: email.trim() || null,
         candidate_email: email.trim(),
         role_id: selectedRoleId,
-        status: worthiness.worthy ? "pending_manager_review" : "below_threshold",
-        interview_worthy: worthiness.worthy,
-        worthy_score: worthiness.score,
-        worthy_reasoning: worthiness.reasoning,
-        not_worthy_reasons: worthiness.notWorthyReasons as any,
+        status: candidateStatus,
+        interview_worthy: hybrid.worthy,
+        worthy_score: hybrid.worthyScore,
+        worthy_reasoning: JSON.stringify({
+          method: hybrid.method,
+          confidence: hybrid.confidence,
+          reasoning: hybrid.reasoning,
+          aiReasoning: hybrid.aiReasoning,
+          concerns: hybrid.concerns,
+          keyStrengths: hybrid.keyStrengths,
+          recommendedPreset: hybrid.recommendedPreset,
+          recruiterNote: hybrid.recruiterNote,
+        }),
+        not_worthy_reasons: hybrid.concerns as any,
         submission_source: "candidate_self_submit",
         candidate_message: message.trim() || null,
         submitted_at: new Date().toISOString(),
@@ -190,7 +292,13 @@ export default function ApplyPage() {
         full_algorithm_results: results as any,
       } as any);
 
-      setPhase(worthiness.worthy ? "done_worthy" : "done_not_worthy");
+      if (hybrid.confidence === 'flagged') {
+        setPhase("done_flagged");
+      } else if (hybrid.worthy) {
+        setPhase("done_worthy");
+      } else {
+        setPhase("done_not_worthy");
+      }
     } catch (err) {
       console.error("Submission error:", err);
       setPhase("idle");
@@ -225,6 +333,33 @@ export default function ApplyPage() {
     );
   }
 
+  if (phase === "done_flagged") {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <div className="max-w-md text-center space-y-5">
+          <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto">
+            <AlertTriangle className="w-8 h-8 text-amber-600" />
+          </div>
+          <h1 className="text-2xl font-bold">Your application has been received</h1>
+          <p className="text-sm text-muted-foreground">
+            Your profile for the <strong>{roleName}</strong> position has been flagged for priority review by the hiring team. They will evaluate your application and respond within 48 hours at <strong>{email}</strong>.
+          </p>
+          <Card>
+            <CardContent className="p-4 text-left space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground">What happens next:</p>
+              <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+                <li>A hiring manager personally reviews your profile</li>
+                <li>You may receive an access code by email</li>
+                <li>Complete a 15-minute skills interview if approved</li>
+              </ol>
+            </CardContent>
+          </Card>
+          <Button variant="outline" onClick={() => window.location.reload()}>Return to Portal</Button>
+        </div>
+      </div>
+    );
+  }
+
   if (phase === "done_not_worthy") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
@@ -242,12 +377,10 @@ export default function ApplyPage() {
     );
   }
 
-  // Progress overlay
   const isProcessing = ["parsing", "scoring", "saving"].includes(phase);
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b px-6 py-3 flex items-center justify-center gap-2">
         <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
           <span className="text-[9px] font-bold text-primary-foreground">BMW</span>
@@ -258,7 +391,6 @@ export default function ApplyPage() {
         </div>
       </header>
 
-      {/* Hero */}
       <div className="text-center py-10 px-6">
         <h1 className="text-3xl font-bold mb-3">Apply for a Role at BMW Group</h1>
         <p className="text-base text-muted-foreground max-w-xl mx-auto">
@@ -271,7 +403,6 @@ export default function ApplyPage() {
         </div>
       </div>
 
-      {/* Form */}
       <div className="max-w-[640px] mx-auto px-6 pb-16 relative">
         {isProcessing && (
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
@@ -279,7 +410,7 @@ export default function ApplyPage() {
               <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
               <div className="space-y-2 text-sm font-mono">
                 <p className={phase === "parsing" ? "text-primary font-medium" : "text-muted-foreground"}>
-                  {phase === "parsing" ? "Analysing CV..." : "✓ CV parsed"}
+                  {phase === "parsing" ? "Analysing CV + AI assessment..." : "✓ CV parsed & AI assessed"}
                 </p>
                 <p className={phase === "scoring" ? "text-primary font-medium" : phase === "parsing" ? "text-muted-foreground/50" : "text-muted-foreground"}>
                   {phase === "scoring" ? "Scoring skill match..." : phase === "parsing" ? "Scoring skill match..." : "✓ Skills scored"}
@@ -294,7 +425,6 @@ export default function ApplyPage() {
 
         <Card>
           <CardContent className="p-8 space-y-8">
-            {/* Section 1: About You */}
             <div className="space-y-4">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">About You</h2>
               <div>
@@ -312,7 +442,6 @@ export default function ApplyPage() {
               </div>
             </div>
 
-            {/* Section 2: Role Selection */}
             <div className="space-y-3">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Which role are you applying for? *</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -343,7 +472,6 @@ export default function ApplyPage() {
               </div>
             </div>
 
-            {/* Section 3: CV */}
             <div className="space-y-2">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Your CV *</h2>
               <p className="text-[11px] text-muted-foreground">Paste your CV or resume below. Include your work experience, skills, projects, and any relevant achievements. Plain text works best.</p>
@@ -356,7 +484,6 @@ export default function ApplyPage() {
               <p className="text-[11px] text-muted-foreground text-right">{cvText.length} / 5000 characters</p>
             </div>
 
-            {/* Section 4: Optional Message */}
             <div className="space-y-2">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Optional Message</h2>
               <p className="text-[11px] text-muted-foreground">Anything else you'd like the hiring team to know?</p>
@@ -369,7 +496,6 @@ export default function ApplyPage() {
               <p className="text-[11px] text-muted-foreground text-right">{message.length} / 200 characters</p>
             </div>
 
-            {/* Consent */}
             <div className="flex items-start gap-3">
               <Checkbox
                 checked={consent}
@@ -381,7 +507,6 @@ export default function ApplyPage() {
               </p>
             </div>
 
-            {/* Submit */}
             <Button
               onClick={handleSubmit}
               disabled={!canSubmit}

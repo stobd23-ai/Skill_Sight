@@ -35,13 +35,14 @@ export default function ExecutiveDashboard() {
   const { data: externalCandidates } = useQuery({
     queryKey: ["external_candidates_dashboard"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("external_candidates").select("id, interview_worthy, status, submission_source, manager_decision, name, role_id, submitted_at, worthy_score");
+      const { data, error } = await supabase.from("external_candidates").select("id, interview_worthy, status, submission_source, manager_decision, name, role_id, submitted_at, worthy_score, worthy_reasoning");
       if (error) throw error;
       return data;
     },
   });
   const externalWorthyCount = externalCandidates?.filter((c: any) => c.interview_worthy).length || 0;
   const pendingReviewCount = externalCandidates?.filter((c: any) => c.submission_source === "candidate_self_submit" && c.manager_decision === "pending" && c.interview_worthy).length || 0;
+  const flaggedReviewCount = externalCandidates?.filter((c: any) => c.status === "flagged_review").length || 0;
 
   // Critical Hiring Priorities
   const hiringPriorities = useMemo(() => {
@@ -132,12 +133,13 @@ export default function ExecutiveDashboard() {
       <PageHeader title="Executive Dashboard" subtitle="Workforce intelligence overview" />
       <div className="p-6 space-y-6">
         {/* Stat cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           <StatCard icon={Users} label="Employees Profiled" value={employees?.length || 0} subtitle="Full HR + interview data" color="blue" />
           <StatCard icon={AlertTriangle} label="Critical Skill Gaps" value={criticalGaps} subtitle="Require immediate action" color="red" />
           <StatCard icon={MessageSquare} label="Interviews Completed" value={completedInterviews} subtitle="Employee + manager combined" color="blue" />
           <StatCard icon={UserPlus} label="External Pipeline" value={externalWorthyCount} subtitle="Interview-worthy candidates" color="purple" />
           <StatCard icon={Inbox} label="Pending Review" value={pendingReviewCount} subtitle="Self-submitted, AI-cleared" color="amber" />
+          <StatCard icon={AlertTriangle} label="Flagged for Review" value={flaggedReviewCount} subtitle="Conflicting AI and algorithm signals" color="amber" />
         </div>
 
         {/* Main content row — stretch aligned */}

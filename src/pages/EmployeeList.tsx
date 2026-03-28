@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useEmployees, useAllEmployeeSkills, useAlgorithmResults, useRoles } from "@/hooks/useData";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Clock, Star, Zap, Plus, UserPlus, Users, CheckCircle, XCircle } from "lucide-react";
+import { Search, Clock, Star, Zap, Plus, UserPlus, Users, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { AddExternalCandidateModal } from "@/components/AddExternalCandidateModal";
 import { ReadinessRing } from "@/components/ReadinessRing";
@@ -45,7 +45,9 @@ export default function EmployeeList() {
   const initialView = searchParams.get("tab") === "external" ? "external" : "internal";
   const [viewMode, setViewMode] = useState<"internal" | "external">(initialView);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [extFilter, setExtFilter] = useState<"all" | "pending" | "self">(searchParams.get("filter") === "pending" ? "pending" : "all");
+  const [extFilter, setExtFilter] = useState<"all" | "pending" | "self" | "flagged">(
+    searchParams.get("filter") === "pending" ? "pending" : searchParams.get("filter") === "flagged" ? "flagged" : "all"
+  );
   const [declineOpen, setDeclineOpen] = useState(false);
   const [declineTarget, setDeclineTarget] = useState<any>(null);
   const [declineNote, setDeclineNote] = useState("");
@@ -79,6 +81,8 @@ export default function EmployeeList() {
       list = list.filter((c: any) => c.submission_source === "candidate_self_submit" && c.manager_decision === "pending" && c.interview_worthy);
     } else if (extFilter === "self") {
       list = list.filter((c: any) => c.submission_source === "candidate_self_submit");
+    } else if (extFilter === "flagged") {
+      list = list.filter((c: any) => c.status === "flagged_review");
     }
     return list.filter(c => {
       if (!search) return true;
@@ -89,6 +93,11 @@ export default function EmployeeList() {
   const pendingCount = useMemo(() => {
     if (!externalCandidates) return 0;
     return externalCandidates.filter((c: any) => c.submission_source === "candidate_self_submit" && c.manager_decision === "pending" && c.interview_worthy).length;
+  }, [externalCandidates]);
+
+  const flaggedCount = useMemo(() => {
+    if (!externalCandidates) return 0;
+    return externalCandidates.filter((c: any) => c.status === "flagged_review").length;
   }, [externalCandidates]);
 
   const handleApprove = async (candidate: any) => {
@@ -124,7 +133,7 @@ export default function EmployeeList() {
   if (isLoading) return <div className="flex items-center justify-center h-64"><LoadingSpinner /></div>;
 
   const statusBadge = (status: string) => {
-    const map: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+    const map: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className?: string }> = {
       cv_assessed: { label: "CV Assessed", variant: "secondary" },
       invited: { label: "Invited — Code Sent", variant: "default" },
       interviewing: { label: "Interview In Progress", variant: "outline" },
@@ -133,9 +142,20 @@ export default function EmployeeList() {
       pending_manager_review: { label: "Pending Review", variant: "outline" },
       below_threshold: { label: "Below Threshold", variant: "destructive" },
       rejected: { label: "Declined", variant: "secondary" },
+      flagged_review: { label: "⚠ Needs Review", variant: "outline", className: "border-amber-500 text-amber-700 bg-amber-50" },
     };
     const s = map[status] || { label: status, variant: "secondary" as const };
-    return <Badge variant={s.variant} className="text-[10px]">{s.label}</Badge>;
+    return <Badge variant={s.variant} className={`text-[10px] ${s.className || ''}`}>{s.label}</Badge>;
+  };
+
+  // Helper to parse hybrid reasoning
+  const parseHybridInfo = (candidate: any) => {
+    try {
+      const data = JSON.parse(candidate.worthy_reasoning || '{}');
+      return data;
+    } catch {
+      return null;
+    }
   };
 
   return (
@@ -155,7 +175,6 @@ export default function EmployeeList() {
       <div className="p-6 space-y-5">
         {/* Filter bar */}
         <div className="card-skillsight p-4 flex flex-wrap items-center gap-3">
-          {/* View toggle */}
           <div className="flex rounded-lg border border-input overflow-hidden">
             <button
               onClick={() => setViewMode("internal")}
@@ -279,12 +298,17 @@ export default function EmployeeList() {
               {[
                 { value: "all" as const, label: "All" },
                 { value: "pending" as const, label: `Pending Review${pendingCount > 0 ? ` (${pendingCount})` : ""}` },
+                { value: "flagged" as const, label: `Flagged${flaggedCount > 0 ? ` (${flaggedCount})` : ""}`, amber: true },
                 { value: "self" as const, label: "Self-Submitted" },
               ].map(f => (
                 <button
                   key={f.value}
                   onClick={() => setExtFilter(f.value)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${extFilter === f.value ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-accent"}`}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                    extFilter === f.value
+                      ? (f as any).amber ? "bg-amber-500 text-white" : "bg-primary text-primary-foreground"
+                      : "bg-secondary text-muted-foreground hover:bg-accent"
+                  }`}
                 >
                   {f.label}
                 </button>
@@ -306,9 +330,15 @@ export default function EmployeeList() {
                   const isExpiringSoon = c.code_expires_at ? (new Date(c.code_expires_at).getTime() - Date.now()) < 2 * 24 * 60 * 60 * 1000 : false;
                   const isSelfSubmit = (c as any).submission_source === "candidate_self_submit";
                   const isPendingReview = isSelfSubmit && (c as any).manager_decision === "pending" && c.interview_worthy;
+                  const isFlagged = c.status === "flagged_review";
+                  const hybridInfo = isFlagged ? parseHybridInfo(c) : null;
 
                   return (
-                    <div key={c.id} className="card-skillsight p-5 cursor-pointer hover:shadow-skillsight-md hover:-translate-y-0.5 transition-all duration-150" onClick={() => navigate(`/external-candidate/${c.id}`)}>
+                    <div
+                      key={c.id}
+                      className={`card-skillsight p-5 cursor-pointer hover:shadow-skillsight-md hover:-translate-y-0.5 transition-all duration-150 ${isFlagged ? 'border-l-4 border-l-amber-500' : ''}`}
+                      onClick={() => navigate(`/external-candidate/${c.id}`)}
+                    >
                       <div className="flex items-start gap-3">
                         <div className="w-11 h-11 rounded-full bg-purple-500 flex items-center justify-center text-sm font-bold text-primary-foreground shrink-0">
                           {initials}
@@ -323,23 +353,39 @@ export default function EmployeeList() {
                         </div>
                       </div>
 
+                      {/* Flagged: show algo vs AI side by side */}
+                      {isFlagged && hybridInfo && (
+                        <div className="mt-3 p-2 rounded-md bg-amber-50 border border-amber-200 text-xs space-y-1">
+                          <div className="flex items-center gap-1.5 text-amber-700 font-medium">
+                            <AlertTriangle className="w-3 h-3" />
+                            Conflicting Assessment
+                          </div>
+                          <div className="flex gap-3 text-[11px]">
+                            <span>Algo: <span className="font-mono font-medium">{Math.round((c.worthy_score || 0) * 100)}%</span></span>
+                            <span>AI: <span className="font-medium">{hybridInfo.method === 'flagged_ai_overrides' ? '✓ Worthy' : '✗ Concerns'}</span></span>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Score */}
-                      <div className="mt-3">
-                        {score !== null ? (
-                          <div className="flex items-center gap-2">
-                            <ReadinessRing value={score} size="sm" />
-                            <div>
-                              <p className="text-xs font-medium">Full Score: {score}%</p>
-                              <Badge variant="outline" className="text-[9px] mt-0.5">CV + Interview ✓</Badge>
+                      {!isFlagged && (
+                        <div className="mt-3">
+                          {score !== null ? (
+                            <div className="flex items-center gap-2">
+                              <ReadinessRing value={score} size="sm" />
+                              <div>
+                                <p className="text-xs font-medium">Full Score: {score}%</p>
+                                <Badge variant="outline" className="text-[9px] mt-0.5">CV + Interview ✓</Badge>
+                              </div>
                             </div>
-                          </div>
-                        ) : c.worthy_score != null ? (
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span className="font-mono">Partial Score (CV Only): {Math.round(c.worthy_score * 100)}%</span>
-                            <Badge variant="secondary" className="text-[9px]">CV Only ⚠</Badge>
-                          </div>
-                        ) : null}
-                      </div>
+                          ) : c.worthy_score != null ? (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span className="font-mono">Partial Score (CV Only): {Math.round(c.worthy_score * 100)}%</span>
+                              <Badge variant="secondary" className="text-[9px]">CV Only ⚠</Badge>
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
 
                       {/* Code section */}
                       {c.status === "invited" && c.access_code && (
@@ -357,7 +403,17 @@ export default function EmployeeList() {
 
                       {/* Actions */}
                       <div className="flex gap-2 mt-4" onClick={e => e.stopPropagation()}>
-                        {isPendingReview && (
+                        {isFlagged && (
+                          <>
+                            <Button size="sm" className="flex-1 text-xs bg-green-600 hover:bg-green-700" onClick={() => handleApprove(c)}>
+                              <CheckCircle className="w-3 h-3 mr-1" />Approve — Send Code
+                            </Button>
+                            <Button variant="outline" size="sm" className="text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => { setDeclineTarget(c); setDeclineOpen(true); }}>
+                              <XCircle className="w-3 h-3 mr-1" />Reject
+                            </Button>
+                          </>
+                        )}
+                        {isPendingReview && !isFlagged && (
                           <>
                             <Button size="sm" className="flex-1 text-xs bg-green-600 hover:bg-green-700" onClick={() => handleApprove(c)}>
                               <CheckCircle className="w-3 h-3 mr-1" />Send Interview Code
@@ -393,7 +449,6 @@ export default function EmployeeList() {
         onCreated={() => refetchExternal()}
       />
 
-      {/* Code modal after approve */}
       {codeModalCandidate && (
         <AddExternalCandidateModal
           open={!!codeModalCandidate}
@@ -402,7 +457,6 @@ export default function EmployeeList() {
         />
       )}
 
-      {/* Decline dialog */}
       <Dialog open={declineOpen} onOpenChange={setDeclineOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
