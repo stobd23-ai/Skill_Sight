@@ -645,7 +645,7 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const rawAssistantMessage = data.choices?.[0]?.message?.content || "";
+    const rawAssistantMessage = data.content?.[0]?.text || "";
     const parsedQuestionDelta = parseQuestionDelta(rawAssistantMessage);
     const questionDelta = parsedQuestionDelta ?? (typedMessages.length === 0 ? 1 : 0);
     const effectiveQuestionDelta =
