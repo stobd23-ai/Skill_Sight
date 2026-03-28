@@ -78,7 +78,7 @@ export default function RolesPage() {
     const required_skills: Record<string, number> = {};
     const strategic_weights: Record<string, number> = {};
     skillReqs.forEach(s => {
-      if (s.name.trim()) { required_skills[s.name.trim()] = s.required; strategic_weights[s.name.trim()] = s.weight; }
+      if (s.name.trim()) { required_skills[s.name.trim()] = s.required; strategic_weights[s.name.trim()] = Number(s.weight) || 0.6; }
     });
 
     const payload = {
