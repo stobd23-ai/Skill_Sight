@@ -886,7 +886,16 @@ function ScoreWithFactors({
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <ReadinessRing value={Math.round(score * 100)} size="sm" />
+            {isNull ? (
+              <div className="relative" style={{ width: 48, height: 48 }}>
+                <svg width={48} height={48} className="-rotate-90">
+                  <circle cx={24} cy={24} r={18} fill="none" stroke="hsl(var(--border))" strokeWidth={4} />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center font-mono font-semibold text-muted-foreground text-[10px]">N/A</span>
+              </div>
+            ) : (
+              <ReadinessRing value={Math.round((score || 0) * 100)} size="sm" />
+            )}
             <div>
               <p className="text-sm font-semibold">{title}</p>
               <p className="text-[11px] text-muted-foreground">Click to see what drives this</p>
