@@ -276,7 +276,7 @@ export default function EmployeeList() {
               const readiness = result ? Math.round((result.final_readiness || 0) * 100) : null;
 
               return (
-                <div key={emp.id} className="card-skillsight p-5 cursor-pointer hover:shadow-skillsight-md hover:-translate-y-0.5 transition-all duration-150">
+                <div key={emp.id} className="card-skillsight p-5 cursor-pointer hover:shadow-skillsight-md hover:-translate-y-0.5 transition-all duration-150 flex flex-col h-full">
                   <div className="flex items-start gap-3">
                     <div className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold text-primary-foreground shrink-0" style={{ backgroundColor: emp.avatar_color || 'hsl(213, 77%, 47%)' }}>
                       {emp.avatar_initials}
@@ -314,8 +314,8 @@ export default function EmployeeList() {
                     ))}
                   </div>
 
-                  <div className="flex gap-2 mt-4">
-                    <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => navigate(`/employees/${emp.id}`)}>View Profile</Button>
+                  <div className="mt-auto pt-4">
+                    <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => navigate(`/employees/${emp.id}`)}>View Profile</Button>
                   </div>
                 </div>
               );
