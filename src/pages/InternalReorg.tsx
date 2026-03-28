@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useEmployees, useAllEmployeeSkills, useRoles } from "@/hooks/useData";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { ReadinessRing } from "@/components/ReadinessRing";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Clock, Sparkles, Scan } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 interface ReorgMatch {
   employee: { id: string; name: string; job_title: string | null; department: string | null; avatar_initials: string | null; avatar_color: string | null };
