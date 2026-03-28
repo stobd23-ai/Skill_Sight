@@ -51,7 +51,7 @@ export default function RolesPage() {
   const [hiringStatus, setHiringStatus] = useState("actively_hiring");
   const [skillReqs, setSkillReqs] = useState<SkillReq[]>([]);
   const [detailRole, setDetailRole] = useState<any>(null);
-  const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  
 
   const openNew = () => {
     setEditId(null); setTitle(""); setDepartment(""); setDescription(""); setHeadcount(1); setHiringStatus("actively_hiring"); setSkillReqs([]);
