@@ -130,6 +130,50 @@ export default function RolesPage() {
                     <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => openEdit(role)}>
                       <Pencil className="h-3 w-3" /> Edit
                     </Button>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-xs h-7">
+                          <Share2 className="h-3 w-3" /> Share
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-72 p-3 space-y-3">
+                        <p className="text-xs font-medium">Public application link for {role.title}:</p>
+                        <div className="flex gap-1.5">
+                          <Input
+                            readOnly
+                            value={`${window.location.origin}/apply?role=${role.id}`}
+                            className="text-[11px] h-8 font-mono"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 shrink-0"
+                            onClick={() => {
+                              navigator.clipboard.writeText(`${window.location.origin}/apply?role=${role.id}`);
+                              setCopiedLink(role.id);
+                              setTimeout(() => setCopiedLink(null), 2000);
+                            }}
+                          >
+                            {copiedLink === role.id ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={openApps?.find((a: any) => a.role_id === role.id)?.is_accepting ?? true}
+                            onCheckedChange={async (v) => {
+                              const existing = openApps?.find((a: any) => a.role_id === role.id);
+                              if (existing) {
+                                await supabase.from("open_applications").update({ is_accepting: v } as any).eq("id", existing.id);
+                              } else {
+                                await supabase.from("open_applications").insert({ role_id: role.id, is_accepting: v } as any);
+                              }
+                              refetchApps();
+                            }}
+                          />
+                          <Label className="text-xs">Accepting Applications</Label>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </CardContent>
               </Card>
