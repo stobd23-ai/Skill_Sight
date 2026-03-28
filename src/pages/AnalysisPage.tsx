@@ -19,7 +19,7 @@ import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Responsi
 import {
   ArrowLeft, Download, RefreshCw, ArrowRight, Sparkles, Target,
   BarChart3, Route, Star, AlertTriangle, Shield, ChevronDown, ChevronUp,
-  Zap, TrendingUp, Brain, Heart,
+  Zap, TrendingUp, Brain, Heart, Search, ShieldAlert,
 } from "lucide-react";
 
 export default function AnalysisPage() {
@@ -38,6 +38,7 @@ export default function AnalysisPage() {
 
   const latestResult = results?.[0];
   const managerInterview = interviews?.find(i => i.interview_type === 'manager' && i.status === 'completed');
+  const employeeInterview = interviews?.find(i => i.interview_type === 'employee' && i.status === 'completed');
   const targetRole = roles?.find(r => r.id === latestResult?.role_id);
 
   const algorithmInput = useMemo<AlgorithmInput | null>(() => {
@@ -91,7 +92,7 @@ export default function AnalysisPage() {
       : localResults ? Math.round(localResults.overallReadiness * 100) : 0;
 
   const gapAnalysis = latestResult?.gap_analysis
-    ? latestResult.gap_analysis as unknown as { criticalGaps: Array<{ skill: string; currentProficiency: number; requiredProficiency: number; deficit: number; strategicWeight: number; weightedGap: number; priority: string }>; surplusSkills: Array<{ skill: string; current: number; required: number; surplus: number }>; normalizedGapScore: number; readinessPercent: number }
+    ? latestResult.gap_analysis as unknown as { criticalGaps: Array<{ skill: string; currentProficiency: number; requiredProficiency: number; deficit: number; strategicWeight: number; weightedGap: number; priority: string }>; surplusSkills: Array<{ skill: string; current: number; required: number; surplus: number }>; interviewSurplus?: Array<{ skill: string; type: string; rating: string; evidence: string; relevance: string }>; normalizedGapScore: number; readinessPercent: number }
     : localResults?.gapAnalysis || null;
 
   const tfidfRarity = (latestResult?.tfidf_rarity || localResults?.tfidfRarity || {}) as Record<string, number>;
@@ -111,6 +112,86 @@ export default function AnalysisPage() {
       return { skill: skill.replace(/([A-Z])/g, ' $1').trim(), employee: empSkill?.proficiency || 0, required };
     });
   }, [targetRole, skills]);
+
+  // Extract interview-discovered capabilities from completed interview
+  const interviewSurplus = useMemo(() => {
+    // From gap analysis (if computed with interview data)
+    if (gapAnalysis?.interviewSurplus?.length) return gapAnalysis.interviewSurplus;
+    // From interview extracted_skills capabilities
+    if (employeeInterview?.extracted_skills) {
+      const extracted = employeeInterview.extracted_skills as any;
+      const capabilities = extracted?.capabilities || extracted?.capability_assessment;
+      if (capabilities && typeof capabilities === 'object') {
+        return Object.entries(capabilities)
+          .filter(([, v]: [string, any]) => v && ['DEMONSTRATED', 'EXCEPTIONAL'].includes(v.rating))
+          .map(([k, v]: [string, any]) => ({
+            skill: k, type: 'capability' as const, rating: v.rating,
+            evidence: v.evidence || v.justification || '', relevance: v.relevance_to_role || v.relevance || 'MEDIUM'
+          }));
+      }
+    }
+    return [];
+  }, [gapAnalysis, employeeInterview]);
+
+  // Build score factor data
+  const technicalFactors = useMemo(() => {
+    const factors = [
+      { label: 'Profile shape alignment (Cosine)', value: `${Math.round(cosine * 100)}%`, note: 'skill emphasis matches role direction' },
+      { label: 'Skill set coverage (Jaccard)', value: `${Math.round(jaccBin * 100)}%`, note: 'covers required skills' },
+      { label: 'Proficiency-weighted overlap', value: `${Math.round(jaccW * 100)}%`, note: 'depth of matched skills' },
+      { label: 'Strategic gap remaining', value: `${Math.round(gapScore * 100)}%`, note: 'weighted by BMW priority' },
+    ];
+    const bestSurplus = gapAnalysis?.surplusSkills?.[0];
+    const worstGap = gapAnalysis?.criticalGaps?.[0];
+    let standout = '';
+    if (bestSurplus) standout += `Strongest contributor: ${bestSurplus.skill.replace(/([A-Z])/g, ' $1').trim()} (${bestSurplus.current}/3, surplus +${bestSurplus.surplus})`;
+    if (worstGap) standout += `${standout ? ' · ' : ''}Biggest drag: ${worstGap.skill.replace(/([A-Z])/g, ' $1').trim()} (${worstGap.currentProficiency}/3 → ${worstGap.requiredProficiency}/3, weight ${(worstGap.strategicWeight * 100).toFixed(0)}%)`;
+    return { factors, standout };
+  }, [cosine, jaccBin, jaccW, gapScore, gapAnalysis]);
+
+  const capabilityFactors = useMemo(() => {
+    const exceptional = interviewSurplus.filter(s => s.rating === 'EXCEPTIONAL').map(s => s.skill);
+    const demonstrated = interviewSurplus.filter(s => s.rating === 'DEMONSTRATED').map(s => s.skill);
+    const highRelevance = interviewSurplus.filter(s => s.relevance === 'HIGH' || s.relevance === 'CRITICAL');
+    const strongHighRelevance = highRelevance.filter(s => ['DEMONSTRATED', 'EXCEPTIONAL'].includes(s.rating));
+    const factors = [
+      { label: 'EXCEPTIONAL capabilities', value: exceptional.length > 0 ? exceptional.join(', ') : 'None assessed', note: 'top-tier demonstrated skills' },
+      { label: 'DEMONSTRATED capabilities', value: demonstrated.length > 0 ? demonstrated.join(', ') : 'None assessed', note: 'solidly proven in interview' },
+      { label: 'High-relevance capabilities assessed', value: `${highRelevance.length}`, note: 'directly relevant to target role' },
+      { label: 'Strong high-relevance', value: `${strongHighRelevance.length} of ${highRelevance.length}`, note: highRelevance.length > 0 ? `${Math.round(strongHighRelevance.length / highRelevance.length * 100)}%` : 'N/A' },
+    ];
+    const standoutItem = interviewSurplus.find(s => s.rating === 'EXCEPTIONAL');
+    const standout = standoutItem ? `"${standoutItem.skill}" rated EXCEPTIONAL${standoutItem.relevance ? ` with ${standoutItem.relevance} role relevance` : ''}` : '';
+    return { factors, standout };
+  }, [interviewSurplus]);
+
+  const momentumFactors = useMemo(() => {
+    if (!momentumBreakdown) return { factors: [], standout: '' };
+    const factors = [
+      { label: 'Learning Velocity', value: `${Math.round((momentumBreakdown.learning_velocity || 0) * 100)}%`, note: momentumBreakdown.learning_velocity_evidence || 'self-directed learning signals' },
+      { label: 'Scope Trajectory', value: `${Math.round((momentumBreakdown.scope_trajectory || 0) * 100)}%`, note: momentumBreakdown.scope_trajectory_evidence || 'responsibility growth pattern' },
+      { label: 'Motivation Alignment', value: `${Math.round((momentumBreakdown.motivation_alignment || 0) * 100)}%`, note: momentumBreakdown.motivation_alignment_evidence || 'domain interest alignment' },
+    ];
+    const scores = [momentumBreakdown.learning_velocity || 0, momentumBreakdown.scope_trajectory || 0, momentumBreakdown.motivation_alignment || 0];
+    const labels = ['Learning velocity', 'Scope trajectory', 'Motivation alignment'];
+    const maxIdx = scores.indexOf(Math.max(...scores));
+    const standout = `Strongest signal: ${labels[maxIdx]} at ${Math.round(scores[maxIdx] * 100)}%`;
+    return { factors, standout };
+  }, [momentumBreakdown]);
+
+  // Extract risk factors from report
+  const riskFactors = useMemo(() => {
+    if (!report) return [];
+    const riskSection = report.match(/### Risk Factors\n([\s\S]*?)(?=\n### |\n## |$)/);
+    if (!riskSection) return [];
+    const riskText = riskSection[1];
+    const risks: { name: string; level: string; description: string }[] = [];
+    const riskMatches = riskText.matchAll(/\*\*(.+?)\*\*\s*·\s*(LOW|MEDIUM|HIGH)\n(.+?)(?=\n\*\*|\n$|$)/gs);
+    for (const match of riskMatches) {
+      risks.push({ name: match[1].trim(), level: match[2].trim(), description: match[3].trim() });
+    }
+    return risks;
+  }, [report]);
 
   const generateReport = useCallback(async () => {
     if (!employee || !targetRole) return;
@@ -208,17 +289,20 @@ export default function AnalysisPage() {
                 <div className="flex flex-col items-center">
                   <ReadinessRing value={Math.round(technicalMatch * 100)} size="md" />
                   <span className="text-xs font-semibold mt-1">Technical Match</span>
-                  <span className="text-[10px] text-muted-foreground">"Where now"</span>
+                  <span className="text-[11px] text-muted-foreground">Current skills vs</span>
+                  <span className="text-[11px] text-muted-foreground">role requirements</span>
                 </div>
                 <div className="flex flex-col items-center">
                   <ReadinessRing value={Math.round(capabilityMatch * 100)} size="md" />
                   <span className="text-xs font-semibold mt-1">Capability Match</span>
-                  <span className="text-[10px] text-muted-foreground">"How they think"</span>
+                  <span className="text-[11px] text-muted-foreground">Problem-solving depth</span>
+                  <span className="text-[11px] text-muted-foreground">& thinking patterns</span>
                 </div>
                 <div className="flex flex-col items-center">
                   <ReadinessRing value={Math.round(momentumScore * 100)} size="md" />
                   <span className="text-xs font-semibold mt-1">Momentum Score</span>
-                  <span className="text-[10px] text-muted-foreground">"Where going"</span>
+                  <span className="text-[11px] text-muted-foreground">Growth trajectory</span>
+                  <span className="text-[11px] text-muted-foreground">& role motivation</span>
                 </div>
               </div>
 
@@ -243,6 +327,31 @@ export default function AnalysisPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Score Transparency - Expandable Factors */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <ScoreWithFactors
+            title="Technical Match"
+            score={technicalMatch}
+            color="hsl(var(--primary))"
+            factors={technicalFactors.factors}
+            standout={technicalFactors.standout}
+          />
+          <ScoreWithFactors
+            title="Capability Match"
+            score={capabilityMatch}
+            color="hsl(270 60% 55%)"
+            factors={capabilityFactors.factors}
+            standout={capabilityFactors.standout}
+          />
+          <ScoreWithFactors
+            title="Momentum Score"
+            score={momentumScore}
+            color="hsl(142 76% 36%)"
+            factors={momentumFactors.factors}
+            standout={momentumFactors.standout}
+          />
+        </div>
 
         {/* Metric Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -367,14 +476,51 @@ export default function AnalysisPage() {
                 <Star className="h-4 w-4 text-status-amber" /> Strengths Beyond Requirements
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {gapAnalysis?.surplusSkills?.length ? gapAnalysis.surplusSkills.map((s, i) => (
-                  <Badge key={i} className="bg-status-green-light text-status-green border-status-green/20 hover:bg-status-green-light">
-                    {s.skill.replace(/([A-Z])/g, ' $1').trim()} +{s.surplus}
-                  </Badge>
-                )) : <p className="text-sm text-muted-foreground">No surplus skills detected</p>}
-              </div>
+            <CardContent className="space-y-4">
+              {/* Section A — Verified Skills Above Requirement */}
+              {gapAnalysis?.surplusSkills?.length ? (
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Verified Skills Above Requirement</p>
+                  <div className="flex flex-wrap gap-2">
+                    {gapAnalysis.surplusSkills.map((s, i) => (
+                      <Badge key={i} className="bg-status-green-light text-status-green border-status-green/20 hover:bg-status-green-light">
+                        {s.skill.replace(/([A-Z])/g, ' $1').trim()} +{s.surplus}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Section B — Interview-Discovered Strengths */}
+              {interviewSurplus.length > 0 ? (
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <Search className="h-3 w-3" /> Interview-Discovered Strengths
+                    <span className="text-[10px] font-normal ml-1 text-purple-500">Found in Interview — Not in HR Records</span>
+                  </p>
+                  <div className="grid gap-2">
+                    {interviewSurplus.map((s, i) => (
+                      <div key={i} className="rounded-lg border border-purple-200 bg-purple-50 dark:bg-purple-950/20 dark:border-purple-800 p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-semibold">{s.skill.replace(/([A-Z])/g, ' $1').trim()}</span>
+                          <Badge className={`text-[10px] ${s.rating === 'EXCEPTIONAL' ? 'bg-status-green-light text-status-green border-status-green/20' : 'bg-primary/10 text-primary border-primary/20'}`}>
+                            {s.rating}
+                          </Badge>
+                          {s.relevance && (
+                            <Badge variant="outline" className="text-[10px]">{s.relevance}</Badge>
+                          )}
+                        </div>
+                        {s.evidence && <p className="text-xs text-muted-foreground italic">{s.evidence}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {/* If neither section has data */}
+              {(!gapAnalysis?.surplusSkills?.length && interviewSurplus.length === 0) && (
+                <p className="text-sm text-muted-foreground">Complete an interview to discover hidden strengths beyond the HR profile.</p>
+              )}
             </CardContent>
           </Card>
 
@@ -477,6 +623,28 @@ export default function AnalysisPage() {
           <TabsContent value="raw">
             <Card>
               <CardContent className="p-6 font-mono text-xs space-y-6">
+                {/* Metric Hierarchy Explanation */}
+                <div className="bg-muted/50 rounded-lg p-4 font-sans text-xs space-y-3 border border-border">
+                  <h3 className="font-semibold text-muted-foreground uppercase tracking-wider text-[11px]">How To Read These Scores</h3>
+                  <div className="grid gap-3">
+                    <div>
+                      <span className="font-semibold text-foreground">Jaccard (Binary)</span>
+                      <span className="text-muted-foreground"> → Most important for initial screening</span>
+                      <p className="text-muted-foreground mt-0.5">Does this person have the required skills at all? {Math.round(jaccBin * 100)}% means they possess {Math.round(jaccBin * 100)}% of required skill areas.</p>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-foreground">Cosine Similarity</span>
+                      <span className="text-muted-foreground"> → Most important for potential assessment</span>
+                      <p className="text-muted-foreground mt-0.5">Is their skill emphasis shaped like the role? {Math.round(cosine * 100)}% means high directional alignment even where coverage is low.</p>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-foreground">Weighted Gap Score</span>
+                      <span className="text-muted-foreground"> → Most important for development planning</span>
+                      <p className="text-muted-foreground mt-0.5">What is missing, weighted by BMW strategic priority? {Math.round(gapScore * 100)}% of requirements unmet. Lower is better.</p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Three-Layer Breakdown */}
                 {threeLayerScore != null && (
                   <div>
@@ -557,6 +725,37 @@ export default function AnalysisPage() {
           </TabsContent>
         </Tabs>
 
+        {/* Risk Factors Card */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4 text-status-amber" /> Risk Factors
+            </CardTitle>
+            <p className="text-[11px] text-muted-foreground">Honest assessment — every strong candidate has risks worth planning for</p>
+          </CardHeader>
+          <CardContent>
+            {riskFactors.length > 0 ? (
+              <div className="space-y-3">
+                {riskFactors.map((risk, i) => {
+                  const borderColor = risk.level === 'HIGH' ? 'border-l-destructive' : risk.level === 'MEDIUM' ? 'border-l-status-amber' : 'border-l-primary';
+                  const badgeBg = risk.level === 'HIGH' ? 'bg-destructive/10 text-destructive' : risk.level === 'MEDIUM' ? 'bg-status-amber-light text-status-amber' : 'bg-primary/10 text-primary';
+                  return (
+                    <div key={i} className={`border-l-4 ${borderColor} pl-3 py-2`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-semibold">{risk.name}</span>
+                        <Badge className={`text-[10px] ${badgeBg}`}>{risk.level}</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{risk.description}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground py-4 text-center">Risk analysis generates after AI report is complete</p>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Manager Insights (collapsible) */}
         {managerInterview && (
           <Card>
@@ -611,6 +810,57 @@ export default function AnalysisPage() {
     </div>
   );
 }
+
+// ─── Score With Factors Component ───────────────────────────────────
+
+function ScoreWithFactors({
+  title, score, color, factors, standout,
+}: {
+  title: string; score: number; color: string;
+  factors: { label: string; value: string; note: string }[];
+  standout?: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <Card className="cursor-pointer" onClick={() => setExpanded(!expanded)}>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <ReadinessRing value={Math.round(score * 100)} size="sm" />
+            <div>
+              <p className="text-sm font-semibold">{title}</p>
+              <p className="text-[11px] text-muted-foreground">Click to see what drives this</p>
+            </div>
+          </div>
+          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${expanded ? 'rotate-180' : ''}`} />
+        </div>
+
+        {expanded && (
+          <div className="mt-3 pt-3 border-t border-border space-y-2" onClick={e => e.stopPropagation()}>
+            {factors.map((f, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: color }} />
+                <div className="text-xs">
+                  <span className="font-medium">{f.label}: </span>
+                  <span className="font-mono text-muted-foreground">{f.value}</span>
+                  <span className="text-muted-foreground"> — {f.note}</span>
+                </div>
+              </div>
+            ))}
+            {standout && (
+              <div className="mt-2 p-2 bg-muted/50 rounded-md">
+                <p className="text-xs text-muted-foreground italic">{standout}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Helper Components ──────────────────────────────────────────────
 
 function MomentumRow({ label, icon, value, evidence, signals, color }: {
   label: string; icon: React.ReactNode; value: number;

@@ -18,12 +18,30 @@ If trajectory_risk is medium or high, mention it honestly in the Summary.
 Always reference the three-layer score breakdown when discussing readiness.
 The final score is a three-layer blend — explain this briefly so the HR manager understands it is not just a keyword match.
 
+=== PREDICTION REQUIREMENT ===
+You MUST include a prediction statement in the Summary section.
+Format it as a clearly labelled line after the main summary paragraph:
+
+"Trajectory Projection: Based on this momentum profile and identified learning path, 
+candidates with this pattern typically reach [X]% readiness in [Y-Z months] 
+with [specific condition]. [One sentence on what accelerates or limits this.]"
+
+Rules for the projection:
+- Base the timeframe on the upskilling paths data (sum of weeks in critical path)
+- Adjust for learning velocity score (high velocity = shorter timeframe, low = longer)
+- State a condition (e.g. "with access to a technical mentor in EV battery systems")
+- Add one honest limiting factor (e.g. "ML depth gap may extend this if not addressed early")
+- Express as a range not a single number (e.g. "8-12 months" not "10 months")
+- Never say "guaranteed" or "will definitely" — use "typically" or "profiles like this tend to"
+
 OUTPUT FORMAT — strict markdown:
 ## SkillSight Assessment: [name]
 **Role:** [role] | **Readiness:** [X]% | **Date:** [today]
 ---
 ### Summary
 One honest paragraph. Translate cosine+readiness into plain language. Include momentum narrative. Be direct.
+
+Trajectory Projection: [as described above]
 ---
 ### Distinctive Strengths
 2-4 bullets. Surplus skills + high TF-IDF rarity scores. Connect to BMW strategy.
@@ -35,6 +53,19 @@ Why it matters: [1-2 sentences — BMW-specific]
 ---
 ### 90-Day Action Plan
 3 phases (Weeks 1-4, 5-8, 9-12). Use upskillingPaths for sequence. BMW-specific resources: Digital Boost modules, internal secondments, BMW Academy.
+---
+### Risk Factors
+Exactly 3 risks. For each:
+**[Risk Name]** · [LOW/MEDIUM/HIGH]
+[What the risk is in one sentence]. [How to mitigate in one sentence].
+
+Pick the 3 most relevant from these categories based on the data:
+- SKILL PLATEAU RISK: Domain where person went deep but shows no expansion signal
+- MENTORSHIP DEPENDENCY RISK: High learning velocity only in structured settings, low self-directed evidence
+- TECHNICAL DEPTH GAP RISK: High-weight skill with zero proficiency and no adjacent foundation
+- MOTIVATION MISALIGNMENT RISK: Motivation alignment below 0.65
+- SCOPE JUMP RISK: Target role is significant scope jump from current role
+- KNOWLEDGE TRANSFER RISK: Person is key knowledge holder in current role, moving them creates gap
 ---
 ### 6-Month Roadmap
 Month-by-month bullets. Reference Digital Boost, iFACTORY, Neue Klasse.
@@ -116,7 +147,7 @@ ${managerInsights ? `MANAGER INSIGHTS:\n${JSON.stringify(managerInsights, null, 
           { role: "user", content: userContent },
         ],
         temperature: 0.4,
-        max_tokens: 2000,
+        max_tokens: 2500,
       }),
     });
 
@@ -128,12 +159,10 @@ ${managerInsights ? `MANAGER INSIGHTS:\n${JSON.stringify(managerInsights, null, 
 
     const rawText = await response.text();
     
-    // Robust JSON parsing - handle markdown fences or malformed responses
     let data;
     try {
       data = JSON.parse(rawText);
     } catch {
-      // Try to extract JSON from markdown-wrapped response
       let cleaned = rawText
         .replace(/```json\s*/gi, "")
         .replace(/```\s*/g, "")
@@ -146,7 +175,6 @@ ${managerInsights ? `MANAGER INSIGHTS:\n${JSON.stringify(managerInsights, null, 
       try {
         data = JSON.parse(cleaned);
       } catch {
-        // If still can't parse, return the raw text as the report
         return new Response(JSON.stringify({ report: rawText }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });

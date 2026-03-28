@@ -170,9 +170,9 @@ export default function InternalReorg() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Lane title="Immediate (≥80%)" color="green" matches={immediate} navigate={navigate} />
-              <Lane title="Near-Ready (60–79%)" color="amber" matches={nearReady} navigate={navigate} />
-              <Lane title="Developing (<60%)" color="muted" matches={developing} navigate={navigate} />
+              <Lane title="Immediate Transfer (≥80%)" subtitle="Ready to move with minimal ramp-up" color="green" matches={immediate} navigate={navigate} />
+              <Lane title="Near-Ready (60–79%)" subtitle="Gap closable in under 3 months with targeted focus" color="amber" matches={nearReady} navigate={navigate} />
+              <Lane title="Developing (<60%)" subtitle="Strong trajectory, longer investment horizon" color="muted" matches={developing} navigate={navigate} />
             </div>
           </>
         )}
@@ -181,12 +181,13 @@ export default function InternalReorg() {
   );
 }
 
-function Lane({ title, color, matches, navigate }: { title: string; color: string; matches: ReorgMatch[]; navigate: any }) {
+function Lane({ title, subtitle, color, matches, navigate }: { title: string; subtitle?: string; color: string; matches: ReorgMatch[]; navigate: any }) {
   const borderColor = color === 'green' ? 'border-status-green/30' : color === 'amber' ? 'border-status-amber/30' : 'border-border';
 
   return (
     <div>
-      <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-3">{title} ({matches.length})</h3>
+      <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-1">{title} ({matches.length})</h3>
+      {subtitle && <p className="text-[10px] text-muted-foreground mb-3">{subtitle}</p>}
       <div className="space-y-3">
         {matches.map(m => (
           <Card key={m.employee.id} className={`cursor-pointer hover:shadow-md transition-shadow ${borderColor}`}

@@ -9,6 +9,7 @@ import { ReadinessRing } from "@/components/ReadinessRing";
 import { Button } from "@/components/ui/button";
 import { Info, ArrowRight } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function SuccessionBoard() {
   const { data: employees } = useEmployees();
@@ -142,14 +143,33 @@ export default function SuccessionBoard() {
                           <p className="text-[10px] text-muted-foreground truncate">{c.employee.job_title}</p>
                         </div>
                       </div>
-                      {/* Mini stacked bar */}
-                      <div className="flex gap-0.5 h-2 rounded-full overflow-hidden mb-1.5">
-                        <div className="bg-primary rounded-l-full" style={{ width: `${techPct}%` }} title={`Technical: ${techPct}%`} />
-                        <div className="bg-purple-500" style={{ width: `${Math.round((c.readiness / 3) || 0)}%` }} title="Capability" />
-                        <div className="bg-status-green rounded-r-full" style={{ width: `${momPct}%` }} title={`Momentum: ${momPct}%`} />
-                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex gap-0.5 h-2 rounded-full overflow-hidden mb-1.5">
+                              <div className="bg-primary rounded-l-full" style={{ width: `${techPct}%` }} />
+                              <div className="bg-purple-500" style={{ width: `${Math.round((c.readiness / 3) || 0)}%` }} />
+                              <div className="bg-status-green rounded-r-full" style={{ width: `${momPct}%` }} />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs space-y-1">
+                            <p><span className="inline-block w-2 h-2 rounded-full bg-primary mr-1" />Technical — current skill match: {techPct}%</p>
+                            <p><span className="inline-block w-2 h-2 rounded-full bg-purple-500 mr-1" />Capability — thinking patterns</p>
+                            <p><span className="inline-block w-2 h-2 rounded-full bg-status-green mr-1" />Momentum — growth trajectory: {momPct}%</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-mono">{displayScore}% ready</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-xs font-mono cursor-help">{displayScore}% ready</span>
+                            </TooltipTrigger>
+                            <TooltipContent className="text-xs max-w-[220px]">
+                              Score combines: Technical skill match + Thinking capability + Growth momentum. Weights adjusted for role type.
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                         <span className="text-[10px] font-mono text-muted-foreground">Score: {c.finalScore.toFixed(3)}</span>
                       </div>
                       <div className="space-y-1">

@@ -19,10 +19,15 @@ export interface GapItem {
   priority: 'critical' | 'high' | 'medium' | 'low';
 }
 
+export interface InterviewSurplusItem {
+  skill: string; type: 'capability'; rating: string; evidence: string; relevance: string;
+}
+
 export interface GapAnalysis {
   normalizedGapScore: number; readinessPercent: number;
   criticalGaps: GapItem[];
   surplusSkills: { skill: string; current: number; required: number; surplus: number }[];
+  interviewSurplus: InterviewSurplusItem[];
 }
 
 export interface PathResult {
@@ -203,7 +208,10 @@ export function jaccardSimilarity(input: AlgorithmInput): { binary: number; weig
 
 // ─── Algorithm 3: Weighted Gap Score ────────────────────────────────
 
-export function weightedGapScore(input: AlgorithmInput): GapAnalysis {
+export function weightedGapScore(
+  input: AlgorithmInput,
+  interviewCapabilities?: Record<string, { rating: string; evidence: string; relevance_to_role: string }>
+): GapAnalysis {
   const gaps: GapItem[] = []
   const surplus: GapAnalysis['surplusSkills'] = []
   let totalWGap = 0, maxPossible = 0
@@ -226,9 +234,28 @@ export function weightedGapScore(input: AlgorithmInput): GapAnalysis {
     if (surplusAmt > 0) surplus.push({ skill, current, required, surplus: surplusAmt })
   })
 
+  // Add interview-discovered capabilities as surplus strengths
+  const interviewSurplus: InterviewSurplusItem[] = []
+  if (interviewCapabilities) {
+    Object.entries(interviewCapabilities).forEach(([capName, capData]) => {
+      if (['DEMONSTRATED', 'EXCEPTIONAL'].includes(capData.rating)) {
+        const alreadyCaptured = surplus.some(s => s.skill.toLowerCase().includes(capName.toLowerCase()))
+        if (!alreadyCaptured) {
+          interviewSurplus.push({
+            skill: capName,
+            type: 'capability',
+            rating: capData.rating,
+            evidence: capData.evidence,
+            relevance: capData.relevance_to_role
+          })
+        }
+      }
+    })
+  }
+
   gaps.sort((a, b) => b.weightedGap - a.weightedGap)
   const normalizedGapScore = maxPossible === 0 ? 0 : totalWGap / maxPossible
-  return { normalizedGapScore, readinessPercent: Math.round((1 - normalizedGapScore) * 100), criticalGaps: gaps, surplusSkills: surplus }
+  return { normalizedGapScore, readinessPercent: Math.round((1 - normalizedGapScore) * 100), criticalGaps: gaps, surplusSkills: surplus, interviewSurplus }
 }
 
 // ─── Algorithm 4: TF-IDF Rarity ─────────────────────────────────────

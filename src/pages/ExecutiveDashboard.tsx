@@ -203,6 +203,10 @@ export default function ExecutiveDashboard() {
                   </tbody>
                 </table>
               </div>
+              <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed">
+                Reading this heatmap: <span className="text-status-red font-medium">Red = not yet present</span> · <span className="text-status-amber font-medium">Orange = beginner</span> · <span className="text-bmw-blue font-medium">Yellow = intermediate</span> · <span className="text-status-green font-medium">Green = expert</span>
+                <br />Skills ordered by BMW strategic priority (left = highest priority)
+              </p>
             </div>
 
             {/* Internal Reorg Opportunity */}
