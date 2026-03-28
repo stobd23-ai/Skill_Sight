@@ -446,7 +446,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages = [], interviewType, employeeName, employeeTitle, roleName, targetSkills, managerName, presetPack } = await req.json();
+    const { messages = [], interviewType, employeeName, employeeTitle, roleName, targetSkills, managerName, presetPack, forceComplete, questionNumber, maxQuestions } = await req.json();
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) {
