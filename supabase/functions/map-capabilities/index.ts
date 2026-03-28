@@ -125,7 +125,8 @@ serve(async (req) => {
   }
 
   try {
-    const { conversationHistory, employeeName, employeeRole, targetRole, requiredSkills, existingSkills } = await req.json();
+    const { conversationHistory, employeeName, employeeRole, targetRole, requiredSkills, existingSkills } =
+      await req.json();
 
     const transcript = (conversationHistory || [])
       .filter((m: any) => m.role !== "system")
@@ -138,7 +139,8 @@ serve(async (req) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": "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,
+        "x-api-key":
+          "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",
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
