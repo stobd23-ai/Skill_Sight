@@ -1,11 +1,6 @@
 import {
   LayoutDashboard,
   Users,
-  MessageSquare,
-  UserCheck,
-  BarChart3,
-  
-  Target,
   Shuffle,
   Network,
   Briefcase,
