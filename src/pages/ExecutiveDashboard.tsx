@@ -49,8 +49,14 @@ export default function ExecutiveDashboard() {
     const now = Date.now();
     const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
 
-    return roles.map(role => {
-      // Best internal readiness for this role
+    // Only include actively_hiring and internal_development roles
+    const eligibleRoles = roles.filter(r => {
+      const status = (r as any).hiring_status || 'actively_hiring';
+      return status === 'actively_hiring' || status === 'internal_development';
+    });
+
+    return eligibleRoles.map(role => {
+      const roleStatus = (role as any).hiring_status || 'actively_hiring';
       const roleResults = results?.filter(r => r.role_id === role.id) || [];
       const bestReadiness = roleResults.length
         ? Math.max(...roleResults.map(r => {
@@ -67,33 +73,26 @@ export default function ExecutiveDashboard() {
           })
         : null;
       const bestEmployee = bestResult ? employees?.find(e => e.id === bestResult.employee_id) : null;
-
-      // External worthy count for this role
       const worthyExternals = externalCandidates?.filter((c: any) => c.role_id === role.id && c.interview_worthy).length || 0;
-
-      // Recent interview activity
       const recentInterview = interviews?.some(i => i.target_role_id === role.id && i.completed_at && new Date(i.completed_at).getTime() > thirtyDaysAgo);
 
-      // Urgency
+      // Urgency logic: actively_hiring with low readiness = HIGH, internal_development = MEDIUM unless <50%
       let urgency: 'HIGH' | 'MEDIUM' | 'LOW';
-      if (bestReadiness < 60) urgency = 'HIGH';
-      else if (bestReadiness <= 75) urgency = 'MEDIUM';
-      else urgency = 'LOW';
+      if (roleStatus === 'actively_hiring') {
+        if (bestReadiness < 60) urgency = 'HIGH';
+        else if (bestReadiness <= 75) urgency = 'MEDIUM';
+        else urgency = 'LOW';
+      } else {
+        // internal_development
+        if (bestReadiness < 50) urgency = 'HIGH';
+        else urgency = 'MEDIUM';
+      }
 
-      // Urgency score for sorting (lower = more urgent)
       let urgencyScore = bestReadiness;
       if (worthyExternals === 0) urgencyScore -= 10;
       if (!recentInterview) urgencyScore -= 5;
 
-      return {
-        role,
-        bestReadiness,
-        bestEmployee,
-        worthyExternals,
-        recentInterview,
-        urgency,
-        urgencyScore,
-      };
+      return { role, bestReadiness, bestEmployee, worthyExternals, recentInterview, urgency, urgencyScore };
     }).sort((a, b) => a.urgencyScore - b.urgencyScore).slice(0, 4);
   }, [roles, results, employees, externalCandidates, interviews]);
 

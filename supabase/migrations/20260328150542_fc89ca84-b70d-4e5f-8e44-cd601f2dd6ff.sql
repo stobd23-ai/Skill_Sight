@@ -1,0 +1,1 @@
+ALTER TABLE roles ADD COLUMN IF NOT EXISTS hiring_status text DEFAULT 'actively_hiring';

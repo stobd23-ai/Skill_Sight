@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Plus, Pencil, Eye, X, Share2, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -18,6 +19,12 @@ import { useQuery } from "@tanstack/react-query";
 import type { SkillVector } from "@/lib/algorithms";
 
 interface SkillReq { name: string; required: number; weight: number }
+
+const hiringStatusConfig: Record<string, { dot: string; label: string; labelColor: string }> = {
+  actively_hiring: { dot: '#dc3545', label: 'Actively Hiring', labelColor: '#dc3545' },
+  internal_development: { dot: '#1c69d3', label: 'Internal Development', labelColor: '#1c69d3' },
+  stable: { dot: '#22c55e', label: 'Stable — Filled', labelColor: '#6e6e73' },
+};
 
 export default function RolesPage() {
   const { data: roles, refetch } = useRoles();
@@ -40,19 +47,19 @@ export default function RolesPage() {
   const [department, setDepartment] = useState("");
   const [description, setDescription] = useState("");
   const [headcount, setHeadcount] = useState(1);
-  const [isOpen, setIsOpen] = useState(true);
+  const [hiringStatus, setHiringStatus] = useState("actively_hiring");
   const [skillReqs, setSkillReqs] = useState<SkillReq[]>([]);
   const [detailRole, setDetailRole] = useState<any>(null);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
 
   const openNew = () => {
-    setEditId(null); setTitle(""); setDepartment(""); setDescription(""); setHeadcount(1); setIsOpen(true); setSkillReqs([]);
+    setEditId(null); setTitle(""); setDepartment(""); setDescription(""); setHeadcount(1); setHiringStatus("actively_hiring"); setSkillReqs([]);
     setEditOpen(true);
   };
 
   const openEdit = (role: any) => {
     setEditId(role.id); setTitle(role.title); setDepartment(role.department || ""); setDescription(role.description || "");
-    setHeadcount(role.headcount_needed || 1); setIsOpen(role.is_open ?? true);
+    setHeadcount(role.headcount_needed || 1); setHiringStatus((role as any).hiring_status || 'actively_hiring');
     const req = (role.required_skills || {}) as Record<string, number>;
     const w = (role.strategic_weights || {}) as Record<string, number>;
     setSkillReqs(Object.entries(req).map(([name, required]) => ({ name, required, weight: w[name] || 0.5 })));
@@ -73,11 +80,17 @@ export default function RolesPage() {
       if (s.name.trim()) { required_skills[s.name.trim()] = s.required; strategic_weights[s.name.trim()] = s.weight; }
     });
 
-    const payload = { title, department, description, headcount_needed: headcount, is_open: isOpen, required_skills: required_skills as any, strategic_weights: strategic_weights as any };
+    const payload = {
+      title, department, description, headcount_needed: headcount,
+      is_open: hiringStatus !== 'stable',
+      hiring_status: hiringStatus,
+      required_skills: required_skills as any,
+      strategic_weights: strategic_weights as any,
+    };
     if (editId) {
-      await supabase.from("roles").update(payload).eq("id", editId);
+      await supabase.from("roles").update(payload as any).eq("id", editId);
     } else {
-      await supabase.from("roles").insert(payload);
+      await supabase.from("roles").insert(payload as any);
     }
     toast.success(editId ? "Role updated" : "Role created");
     setEditOpen(false); refetch();
@@ -95,17 +108,18 @@ export default function RolesPage() {
           {roles?.map(role => {
             const reqSkills = Object.keys((role.required_skills || {}) as Record<string, number>);
             const assessedCount = allResults?.filter(r => r.role_id === role.id).length || 0;
+            const status = (role as any).hiring_status || 'actively_hiring';
+            const statusCfg = hiringStatusConfig[status] || hiringStatusConfig.actively_hiring;
             return (
               <Card key={role.id}>
                 <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-sm font-bold">{role.title}</CardTitle>
-                      <span className="text-xs text-muted-foreground">{role.department}</span>
+                  <div>
+                    <CardTitle className="text-sm font-bold">{role.title}</CardTitle>
+                    <span className="text-xs text-muted-foreground">{role.department}</span>
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusCfg.dot }} />
+                      <span className="text-[12px] font-medium" style={{ color: statusCfg.labelColor }}>{statusCfg.label}</span>
                     </div>
-                    <Badge variant={role.is_open ? "default" : "secondary"} className="text-[10px]">
-                      {role.is_open ? 'Open' : 'Closed'}
-                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -194,7 +208,17 @@ export default function RolesPage() {
             <div><Label>Description</Label><Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} /></div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Headcount Needed</Label><Input type="number" value={headcount} onChange={e => setHeadcount(Number(e.target.value))} min={1} /></div>
-              <div className="flex items-center gap-2 pt-6"><Switch checked={isOpen} onCheckedChange={setIsOpen} /><Label>Is Open</Label></div>
+              <div>
+                <Label>Hiring Status</Label>
+                <Select value={hiringStatus} onValueChange={setHiringStatus}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="actively_hiring">Actively Hiring — external and internal candidates sought</SelectItem>
+                    <SelectItem value="internal_development">Internal Development — filling through upskilling</SelectItem>
+                    <SelectItem value="stable">Stable — currently filled, succession monitoring only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div>
