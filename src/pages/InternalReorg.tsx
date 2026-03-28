@@ -224,7 +224,7 @@ export default function InternalReorg() {
           <Card>
             <CardContent className="py-10 text-center">
               <Progress value={65} className="h-1.5 max-w-sm mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">Scanning {employees?.length || 0} employees across all skill dimensions…</p>
+              <p className="text-sm text-muted-foreground">Scanning for potential…</p>
             </CardContent>
           </Card>
         )}
