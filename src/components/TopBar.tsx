@@ -31,7 +31,10 @@ export function TopBar() {
 
   if (!profile) return null;
 
-  const canGoBack = location.key !== "default";
+  // Main sections where no back button should appear
+  const mainSections = ["/dashboard", "/employees", "/reorg", "/succession", "/roles", "/my-profile", "/my-interview", "/my-analysis"];
+  const isMainSection = mainSections.some(path => location.pathname === path);
+  const canGoBack = location.key !== "default" && !isMainSection;
 
   const isManager = profile.role === "manager";
   const initials = profile.full_name
@@ -47,7 +50,7 @@ export function TopBar() {
   return (
     <div className="h-12 border-b border-border bg-background px-6 flex items-center justify-between shrink-0">
       <div className="flex items-center gap-2">
-        {canGoBack && location.pathname !== "/dashboard" && (
+        {canGoBack && (
           <button
             onClick={() => navigate(-1)}
             className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
