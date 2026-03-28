@@ -324,8 +324,20 @@ export default function LoginPage() {
             <div className="flex-1 h-px" style={{ backgroundColor: "#e5e5e5" }} />
           </div>
 
+          {/* Apply link */}
+          <p className="text-center text-[13px] text-muted-foreground">
+            Want to apply for a role?{" "}
+            <button
+              type="button"
+              onClick={() => navigate("/apply")}
+              className="underline font-medium text-primary hover:text-primary/80 transition-colors"
+            >
+              Click here to apply →
+            </button>
+          </p>
+
           {/* Interview code trigger */}
-          <p className="text-center text-[13px]" style={{ color: "#6e6e73" }}>
+          <p className="text-center text-[13px] mt-2" style={{ color: "#6e6e73" }}>
             Have an interview code?{" "}
             <button
               type="button"
