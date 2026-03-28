@@ -16,7 +16,8 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [seeding, setSeeding] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, signOut: authSignOut } = useAuth();
+  const roleCheckRef = useRef(false);
 
   // Interview code state
   const [codeOpen, setCodeOpen] = useState(false);
