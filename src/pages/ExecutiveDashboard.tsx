@@ -137,6 +137,7 @@ export default function ExecutiveDashboard() {
           <StatCard icon={GraduationCap} label="Active Bootcamps" value={activeBootcamps} subtitle="Personalized training plans" color="amber" />
           <StatCard icon={DollarSign} label="Hiring Cost Avoided" value={hiringCostAvoided > 0 ? `€${(hiringCostAvoided / 1000000).toFixed(1)}M` : '€0'} subtitle="Through internal mobility" color="green" />
           <StatCard icon={UserPlus} label="External Pipeline" value={externalWorthyCount} subtitle="Interview-worthy candidates" color="purple" />
+          <StatCard icon={Inbox} label="Pending Review" value={pendingReviewCount} subtitle="Self-submitted, AI-cleared" color="amber" />
         </div>
 
         {/* Main content 60/40 split */}
