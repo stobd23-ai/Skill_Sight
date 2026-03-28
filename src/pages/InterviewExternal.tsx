@@ -301,6 +301,21 @@ export default function InterviewExternal() {
         full_three_layer_score: threeLayer.threeLayerScore,
       }).eq("id", candidate.id);
 
+      // Step 8: Evaluate for talent pool
+      const meetsScoreThreshold = threeLayer.threeLayerScore >= 0.65;
+      const meetsMomentumThreshold = momentumScore >= 0.60;
+      const meetsCapabilityThreshold = capabilityMatch >= 0.50;
+      const shouldAddToPool = meetsScoreThreshold && meetsMomentumThreshold && meetsCapabilityThreshold;
+
+      if (shouldAddToPool) {
+        await supabase.from("external_candidates").update({
+          status: "talent_pool",
+          manager_decision: "approved_for_pool",
+          manager_decision_at: new Date().toISOString(),
+          manager_decision_note: `Automatically promoted to talent pool after interview. Three-layer score: ${Math.round(threeLayer.threeLayerScore * 100)}%, Momentum: ${Math.round(momentumScore * 100)}%, Capability: ${Math.round(capabilityMatch * 100)}%`,
+        } as any).eq("id", candidate.id);
+      }
+
       setPhase("complete");
     } catch (err) {
       console.error("Pipeline error:", err);

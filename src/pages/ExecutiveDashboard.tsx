@@ -3,7 +3,7 @@ import { StatCard } from "@/components/StatCard";
 import { ReadinessRing } from "@/components/ReadinessRing";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useEmployees, useAlgorithmResults, useInterviews, useAllEmployeeSkills, useRoles } from "@/hooks/useData";
-import { Users, AlertTriangle, MessageSquare, UserPlus, Inbox, UserCheck, Plus } from "lucide-react";
+import { Users, AlertTriangle, MessageSquare, UserPlus, Inbox, UserCheck, Plus, Award } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Legend } from "recharts";
@@ -74,26 +74,33 @@ export default function ExecutiveDashboard() {
           })
         : null;
       const bestEmployee = bestResult ? employees?.find(e => e.id === bestResult.employee_id) : null;
-      const worthyExternals = externalCandidates?.filter((c: any) => c.role_id === role.id && c.interview_worthy).length || 0;
+      const worthyExternals = externalCandidates?.filter((c: any) => c.role_id === role.id && c.interview_worthy && c.status !== 'talent_pool' && c.status !== 'proceeding').length || 0;
+      const talentPoolReady = externalCandidates?.filter((c: any) => c.role_id === role.id && (c.status === 'talent_pool' || c.status === 'proceeding')).length || 0;
       const recentInterview = interviews?.some(i => i.target_role_id === role.id && i.completed_at && new Date(i.completed_at).getTime() > thirtyDaysAgo);
 
-      // Urgency logic: actively_hiring with low readiness = HIGH, internal_development = MEDIUM unless <50%
+      // Urgency logic
       let urgency: 'HIGH' | 'MEDIUM' | 'LOW';
       if (roleStatus === 'actively_hiring') {
         if (bestReadiness < 60) urgency = 'HIGH';
         else if (bestReadiness <= 75) urgency = 'MEDIUM';
         else urgency = 'LOW';
       } else {
-        // internal_development
         if (bestReadiness < 50) urgency = 'HIGH';
         else urgency = 'MEDIUM';
       }
 
-      let urgencyScore = bestReadiness;
-      if (worthyExternals === 0) urgencyScore -= 10;
-      if (!recentInterview) urgencyScore -= 5;
+      // Talent pool reduces urgency by one step
+      if (talentPoolReady > 0) {
+        if (urgency === 'HIGH') urgency = 'MEDIUM';
+        else if (urgency === 'MEDIUM') urgency = 'LOW';
+      }
 
-      return { role, bestReadiness, bestEmployee, worthyExternals, recentInterview, urgency, urgencyScore };
+      let urgencyScore = bestReadiness;
+      if (worthyExternals === 0 && talentPoolReady === 0) urgencyScore -= 10;
+      if (!recentInterview) urgencyScore -= 5;
+      if (talentPoolReady > 0) urgencyScore += 15;
+
+      return { role, bestReadiness, bestEmployee, worthyExternals, talentPoolReady, recentInterview, urgency, urgencyScore };
     }).sort((a, b) => a.urgencyScore - b.urgencyScore).slice(0, 4);
   }, [roles, results, employees, externalCandidates, interviews]);
 
@@ -248,7 +255,7 @@ export default function ExecutiveDashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {hiringPriorities.map(({ role, bestReadiness, bestEmployee, worthyExternals, urgency }) => {
+            {hiringPriorities.map(({ role, bestReadiness, bestEmployee, worthyExternals, talentPoolReady, urgency }) => {
               const colors = urgencyColors[urgency];
               const gap = 100 - bestReadiness;
               return (
@@ -259,9 +266,16 @@ export default function ExecutiveDashboard() {
                 >
                   <div className="flex items-start justify-between mb-1">
                     <h3 className="text-[16px] font-bold leading-tight">{role.title}</h3>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ${colors.badgeBg}`}>
-                      {urgency}
-                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ${colors.badgeBg}`}>
+                        {urgency}
+                      </span>
+                      {talentPoolReady > 0 && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                          <Award className="h-3 w-3" /> {talentPoolReady} verified
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <p className="text-[13px] text-muted-foreground mb-4">{role.department || 'No department'}</p>
 
@@ -282,11 +296,17 @@ export default function ExecutiveDashboard() {
 
                   <div className="mb-4">
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">External Pipeline:</p>
-                    {worthyExternals > 0 ? (
-                      <span className="text-[13px] text-status-green font-medium flex items-center gap-1">
-                        <UserCheck className="h-3.5 w-3.5" /> {worthyExternals} qualified
+                    {worthyExternals > 0 && (
+                      <span className="text-[13px] text-primary font-medium flex items-center gap-1 mb-0.5">
+                        <UserCheck className="h-3.5 w-3.5" /> {worthyExternals} in pipeline
                       </span>
-                    ) : (
+                    )}
+                    {talentPoolReady > 0 && (
+                      <span className="text-[13px] font-medium flex items-center gap-1" style={{ color: '#d97706' }}>
+                        <Award className="h-3.5 w-3.5" /> {talentPoolReady} talent pool ready
+                      </span>
+                    )}
+                    {worthyExternals === 0 && talentPoolReady === 0 && (
                       <span className="text-[13px] text-destructive font-medium">0 qualified externals</span>
                     )}
                   </div>

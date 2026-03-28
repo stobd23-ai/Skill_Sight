@@ -10,11 +10,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useEmployees, useAllEmployeeSkills, useAlgorithmResults, useRoles } from "@/hooks/useData";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Clock, Star, Zap, Plus, UserPlus, Users, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { Search, Clock, Star, Zap, Plus, UserPlus, Users, CheckCircle, XCircle, AlertTriangle, Award } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { AddExternalCandidateModal } from "@/components/AddExternalCandidateModal";
 import { ReadinessRing } from "@/components/ReadinessRing";
 import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function useExternalCandidates() {
   return useQuery({
@@ -45,13 +46,21 @@ export default function EmployeeList() {
   const initialView = searchParams.get("tab") === "external" ? "external" : "internal";
   const [viewMode, setViewMode] = useState<"internal" | "external">(initialView);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [extFilter, setExtFilter] = useState<"all" | "pending" | "self" | "flagged">(
-    searchParams.get("filter") === "pending" ? "pending" : searchParams.get("filter") === "flagged" ? "flagged" : "all"
+  const [extFilter, setExtFilter] = useState<"all" | "pending" | "self" | "flagged" | "talent_pool">(
+    searchParams.get("filter") === "pending" ? "pending" : searchParams.get("filter") === "flagged" ? "flagged" : searchParams.get("filter") === "talent_pool" ? "talent_pool" : "all"
   );
   const [declineOpen, setDeclineOpen] = useState(false);
   const [declineTarget, setDeclineTarget] = useState<any>(null);
   const [declineNote, setDeclineNote] = useState("");
   const [codeModalCandidate, setCodeModalCandidate] = useState<any>(null);
+
+  // Talent pool modal state
+  const [proceedOpen, setProceedOpen] = useState(false);
+  const [proceedTarget, setProceedTarget] = useState<any>(null);
+  const [proceedNote, setProceedNote] = useState("");
+  const [successionOpen, setSuccessionOpen] = useState(false);
+  const [successionTarget, setSuccessionTarget] = useState<any>(null);
+  const [successionRoleId, setSuccessionRoleId] = useState("");
 
   const departments = useMemo(() => {
     if (!employees) return [];
@@ -83,6 +92,8 @@ export default function EmployeeList() {
       list = list.filter((c: any) => c.submission_source === "candidate_self_submit");
     } else if (extFilter === "flagged") {
       list = list.filter((c: any) => c.status === "flagged_review");
+    } else if (extFilter === "talent_pool") {
+      list = list.filter((c: any) => c.status === "talent_pool" || c.status === "proceeding");
     }
     return list.filter(c => {
       if (!search) return true;
@@ -98,6 +109,11 @@ export default function EmployeeList() {
   const flaggedCount = useMemo(() => {
     if (!externalCandidates) return 0;
     return externalCandidates.filter((c: any) => c.status === "flagged_review").length;
+  }, [externalCandidates]);
+
+  const talentPoolCount = useMemo(() => {
+    if (!externalCandidates) return 0;
+    return externalCandidates.filter((c: any) => c.status === "talent_pool" || c.status === "proceeding").length;
   }, [externalCandidates]);
 
   const handleApprove = async (candidate: any) => {
@@ -130,6 +146,21 @@ export default function EmployeeList() {
     refetchExternal();
   };
 
+  const handleProceed = async () => {
+    if (!proceedTarget) return;
+    await supabase.from("external_candidates").update({
+      status: "proceeding",
+      manager_decision: "proceeding",
+      manager_decision_at: new Date().toISOString(),
+      manager_decision_note: proceedNote || "Marked as proceeding by manager",
+    } as any).eq("id", proceedTarget.id);
+    toast.success("Candidate marked as proceeding — good luck with the next steps.");
+    setProceedOpen(false);
+    setProceedTarget(null);
+    setProceedNote("");
+    refetchExternal();
+  };
+
   if (isLoading) return <div className="flex items-center justify-center h-64"><LoadingSpinner /></div>;
 
   const statusBadge = (status: string) => {
@@ -143,12 +174,13 @@ export default function EmployeeList() {
       below_threshold: { label: "Below Threshold", variant: "destructive" },
       rejected: { label: "Declined", variant: "secondary" },
       flagged_review: { label: "⚠ Needs Review", variant: "outline", className: "border-amber-500 text-amber-700 bg-amber-50" },
+      talent_pool: { label: "⭐ Talent Pool", variant: "default", className: "bg-amber-500 text-white border-amber-500" },
+      proceeding: { label: "🚀 Proceeding", variant: "default", className: "bg-green-600 text-white border-green-600" },
     };
     const s = map[status] || { label: status, variant: "secondary" as const };
     return <Badge variant={s.variant} className={`text-[10px] ${s.className || ''}`}>{s.label}</Badge>;
   };
 
-  // Helper to parse hybrid reasoning
   const parseHybridInfo = (candidate: any) => {
     try {
       const data = JSON.parse(candidate.worthy_reasoning || '{}');
@@ -158,10 +190,12 @@ export default function EmployeeList() {
     }
   };
 
+  const isTalentPool = (c: any) => c.status === "talent_pool" || c.status === "proceeding";
+
   return (
     <div>
       <PageHeader
-        title="Employees"
+        title="People"
         subtitle="BMW Group Workforce"
         actions={
           <div className="flex gap-2">
@@ -300,13 +334,16 @@ export default function EmployeeList() {
                 { value: "pending" as const, label: `Pending Review${pendingCount > 0 ? ` (${pendingCount})` : ""}` },
                 { value: "flagged" as const, label: `Flagged${flaggedCount > 0 ? ` (${flaggedCount})` : ""}`, amber: true },
                 { value: "self" as const, label: "Self-Submitted" },
+                { value: "talent_pool" as const, label: `⭐ Talent Pool${talentPoolCount > 0 ? ` (${talentPoolCount})` : ""}`, gold: true },
               ].map(f => (
                 <button
                   key={f.value}
                   onClick={() => setExtFilter(f.value)}
                   className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                     extFilter === f.value
-                      ? (f as any).amber ? "bg-amber-500 text-white" : "bg-primary text-primary-foreground"
+                      ? (f as any).amber ? "bg-amber-500 text-white"
+                        : (f as any).gold ? "bg-amber-500 text-white"
+                        : "bg-primary text-primary-foreground"
                       : "bg-secondary text-muted-foreground hover:bg-accent"
                   }`}
                 >
@@ -332,13 +369,26 @@ export default function EmployeeList() {
                   const isPendingReview = isSelfSubmit && (c as any).manager_decision === "pending" && c.interview_worthy;
                   const isFlagged = c.status === "flagged_review";
                   const hybridInfo = isFlagged ? parseHybridInfo(c) : null;
+                  const isPool = isTalentPool(c);
+                  const algoResults = c.full_algorithm_results as any;
 
                   return (
                     <div
                       key={c.id}
-                      className={`card-skillsight p-5 cursor-pointer hover:shadow-skillsight-md hover:-translate-y-0.5 transition-all duration-150 ${isFlagged ? 'border-l-4 border-l-amber-500' : ''}`}
+                      className={`card-skillsight p-5 cursor-pointer hover:shadow-skillsight-md hover:-translate-y-0.5 transition-all duration-150 ${
+                        isPool ? 'border-l-4' : isFlagged ? 'border-l-4 border-l-amber-500' : ''
+                      }`}
+                      style={isPool ? { borderLeftColor: '#f59e0b' } : undefined}
                       onClick={() => navigate(`/external-candidate/${c.id}`)}
                     >
+                      {/* Talent pool banner */}
+                      {isPool && (
+                        <div className="flex items-center gap-1.5 text-xs font-semibold mb-3 px-2 py-1 rounded-md" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                          <Award className="h-3.5 w-3.5" />
+                          Talent Pool — Interview Verified
+                        </div>
+                      )}
+
                       <div className="flex items-start gap-3">
                         <div className="w-11 h-11 rounded-full bg-purple-500 flex items-center justify-center text-sm font-bold text-primary-foreground shrink-0">
                           {initials}
@@ -352,6 +402,24 @@ export default function EmployeeList() {
                           <div className="mt-1">{statusBadge(c.status || "invited")}</div>
                         </div>
                       </div>
+
+                      {/* Talent pool: show all three score rings */}
+                      {isPool && algoResults && (
+                        <div className="mt-3 flex items-center justify-around gap-2 p-2 rounded-md bg-secondary/50">
+                          <div className="text-center">
+                            <ReadinessRing value={Math.round((algoResults.technicalMatch || 0) * 100)} size="sm" />
+                            <p className="text-[9px] text-muted-foreground mt-1">Technical</p>
+                          </div>
+                          <div className="text-center">
+                            <ReadinessRing value={Math.round((algoResults.capabilityMatch || 0) * 100)} size="sm" />
+                            <p className="text-[9px] text-muted-foreground mt-1">Capability</p>
+                          </div>
+                          <div className="text-center">
+                            <ReadinessRing value={Math.round((algoResults.momentumScore || 0) * 100)} size="sm" />
+                            <p className="text-[9px] text-muted-foreground mt-1">Momentum</p>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Flagged: show algo vs AI side by side */}
                       {isFlagged && hybridInfo && (
@@ -368,7 +436,7 @@ export default function EmployeeList() {
                       )}
 
                       {/* Score */}
-                      {!isFlagged && (
+                      {!isFlagged && !isPool && (
                         <div className="mt-3">
                           {score !== null ? (
                             <div className="flex items-center gap-2">
@@ -403,6 +471,23 @@ export default function EmployeeList() {
 
                       {/* Actions */}
                       <div className="flex gap-2 mt-4" onClick={e => e.stopPropagation()}>
+                        {isPool && c.status === "talent_pool" && (
+                          <>
+                            <Button size="sm" className="flex-1 text-xs text-white" style={{ backgroundColor: '#f59e0b' }}
+                              onClick={() => { setProceedTarget(c); setProceedOpen(true); }}>
+                              Make Offer / Proceed
+                            </Button>
+                            <Button variant="outline" size="sm" className="text-xs text-primary border-primary/30"
+                              onClick={() => { setSuccessionTarget(c); setSuccessionOpen(true); }}>
+                              Add to Succession
+                            </Button>
+                          </>
+                        )}
+                        {isPool && c.status === "proceeding" && (
+                          <Button size="sm" className="flex-1 text-xs" onClick={() => navigate(`/external-candidate/${c.id}`)}>
+                            View Details
+                          </Button>
+                        )}
                         {isFlagged && (
                           <>
                             <Button size="sm" className="flex-1 text-xs bg-green-600 hover:bg-green-700" onClick={() => handleApprove(c)}>
@@ -457,6 +542,7 @@ export default function EmployeeList() {
         />
       )}
 
+      {/* Decline dialog */}
       <Dialog open={declineOpen} onOpenChange={setDeclineOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -471,6 +557,72 @@ export default function EmployeeList() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeclineOpen(false)}>Cancel</Button>
             <Button variant="destructive" onClick={handleDecline}>Confirm Decline</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Proceed / Make Offer dialog */}
+      <Dialog open={proceedOpen} onOpenChange={setProceedOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Proceed with {proceedTarget?.name}?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 rounded-md bg-secondary/50">
+              <div className="text-center">
+                <p className="text-lg font-bold font-mono">{proceedTarget?.full_three_layer_score != null ? Math.round(proceedTarget.full_three_layer_score * 100) : '—'}%</p>
+                <p className="text-[10px] text-muted-foreground">Three-Layer Score</p>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">{proceedTarget?.name}</p>
+                <p className="text-xs text-muted-foreground">{(proceedTarget?.roles as any)?.title || 'Unknown Role'}</p>
+              </div>
+            </div>
+            <Textarea
+              placeholder="Next steps / notes for this candidate (optional)"
+              value={proceedNote}
+              onChange={e => setProceedNote(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProceedOpen(false)}>Cancel</Button>
+            <Button className="text-white" style={{ backgroundColor: '#f59e0b' }} onClick={handleProceed}>Mark as Proceeding</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add to Succession dialog */}
+      <Dialog open={successionOpen} onOpenChange={setSuccessionOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add {successionTarget?.name} to Succession Plan</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Select a role to add this candidate to the succession plan:</p>
+            <Select value={successionRoleId} onValueChange={setSuccessionRoleId}>
+              <SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger>
+              <SelectContent>
+                {roles?.filter(r => r.is_open).map(r => (
+                  <SelectItem key={r.id} value={r.id}>{r.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSuccessionOpen(false)}>Cancel</Button>
+            <Button disabled={!successionRoleId} onClick={async () => {
+              if (!successionTarget || !successionRoleId) return;
+              // Update the candidate's role_id to add them to succession consideration
+              await supabase.from("external_candidates").update({
+                role_id: successionRoleId,
+              } as any).eq("id", successionTarget.id);
+              toast.success(`${successionTarget.name} added to succession plan for this role.`);
+              setSuccessionOpen(false);
+              setSuccessionTarget(null);
+              setSuccessionRoleId("");
+              refetchExternal();
+            }}>Add to Succession</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

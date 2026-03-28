@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Info, ArrowRight } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function SuccessionBoard() {
   const { data: employees } = useEmployees();
@@ -17,6 +19,18 @@ export default function SuccessionBoard() {
   const { data: roles } = useRoles();
   const { data: allResults } = useAlgorithmResults();
   const navigate = useNavigate();
+
+  const { data: talentPoolCandidates } = useQuery({
+    queryKey: ["talent_pool_succession"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("external_candidates")
+        .select("*, roles(title)")
+        .in("status", ["talent_pool", "proceeding"]);
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const roleRankings = useMemo(() => {
     if (!employees || !allSkills || !roles) return [];
@@ -26,7 +40,8 @@ export default function SuccessionBoard() {
       const stratWeights = (role.strategic_weights || {}) as SkillVector;
       const roleType: RoleType = detectRoleType(reqSkills as Record<string, number>, stratWeights as Record<string, number>);
 
-      const candidates = employees.map(emp => {
+      // Internal candidates
+      const internalCandidates = employees.map(emp => {
         const empSkills: SkillVector = {};
         allSkills.filter(s => s.employee_id === emp.id).forEach(s => { empSkills[s.skill_name] = s.proficiency || 0; });
 
@@ -45,23 +60,67 @@ export default function SuccessionBoard() {
         const gap = weightedGapScore(input);
         const readiness = gap.readinessPercent;
 
-        // Get three-layer score from DB if available
         const dbResult = allResults?.find(r => r.employee_id === emp.id && r.role_id === role.id);
         const threeLayerScore = (dbResult as any)?.three_layer_score;
         const momentumScore = (dbResult as any)?.momentum_score || 0;
         const technicalMatch = (dbResult as any)?.technical_match || cosine;
 
-        return { ...emp, empSkills, cosine, readiness, gap, threeLayerScore, momentumScore, technicalMatch };
+        return {
+          ...emp, empSkills, cosine, readiness, gap, threeLayerScore, momentumScore, technicalMatch,
+          isExternal: false,
+        };
       });
 
-      const ahpInput = candidates.map(c => ({
+      // External talent pool candidates for this role
+      const externalForRole = (talentPoolCandidates || [])
+        .filter(c => c.role_id === role.id)
+        .map(c => {
+          const algoResults = c.full_algorithm_results as any;
+          const interviewSkills = (c.interview_skills || {}) as Record<string, any>;
+          const empSkills: SkillVector = {};
+          Object.entries(interviewSkills).forEach(([k, v]: [string, any]) => {
+            empSkills[k] = typeof v === "number" ? v : v?.proficiency || 0;
+          });
+
+          const cosine = algoResults?.cosine || algoResults?.technicalMatch || 0;
+          const threeLayerScore = c.full_three_layer_score || 0;
+          const momentumScore = algoResults?.momentumScore || 0;
+          const technicalMatch = algoResults?.technicalMatch || cosine;
+          const readiness = Math.round(threeLayerScore * 100);
+
+          const initials = c.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+
+          return {
+            id: c.id,
+            name: c.name,
+            job_title: "External Candidate",
+            department: "External",
+            avatar_initials: initials,
+            avatar_color: "#8b5cf6",
+            performance_score: 0.5,
+            learning_agility: 0.5,
+            tenure_years: 0,
+            empSkills,
+            cosine,
+            readiness,
+            gap: { readinessPercent: readiness, criticalGaps: [], surplusSkills: [] },
+            threeLayerScore,
+            momentumScore,
+            technicalMatch,
+            isExternal: true,
+          };
+        });
+
+      const allCandidates = [...internalCandidates, ...externalForRole];
+
+      const ahpInput = allCandidates.map(c => ({
         id: c.id, name: c.name, skills: c.empSkills,
         performanceScore: c.performance_score || 0.5,
         learningAgility: c.learning_agility || 0.5,
         tenureYears: c.tenure_years || 0,
       }));
       const resultsMap: Record<string, { cosine: number; readiness: number }> = {};
-      candidates.forEach(c => { resultsMap[c.id] = { cosine: c.cosine, readiness: c.readiness / 100 }; });
+      allCandidates.forEach(c => { resultsMap[c.id] = { cosine: c.cosine, readiness: c.readiness / 100 }; });
 
       const ahp = runAHP(ahpInput, resultsMap, roleType);
       const assessedCount = allResults?.filter(r => r.role_id === role.id).length || 0;
@@ -71,8 +130,9 @@ export default function SuccessionBoard() {
         roleType,
         ahpWeights: ahp.weights,
         assessedCount,
+        externalCount: externalForRole.length,
         rankedCandidates: ahp.candidates.map(ac => {
-          const emp = candidates.find(c => c.id === ac.employeeId)!;
+          const emp = allCandidates.find(c => c.id === ac.employeeId)!;
           const topSurplus = emp.gap.surplusSkills[0];
           const topGap = emp.gap.criticalGaps[0];
           return {
@@ -81,15 +141,16 @@ export default function SuccessionBoard() {
             threeLayerScore: emp.threeLayerScore,
             momentumScore: emp.momentumScore,
             technicalMatch: emp.technicalMatch,
+            isExternal: emp.isExternal,
           };
         }),
       };
     });
-  }, [employees, allSkills, roles, allResults]);
+  }, [employees, allSkills, roles, allResults, talentPoolCandidates]);
 
   return (
     <div>
-      <PageHeader title="Succession Planning" subtitle="AHP-ranked internal candidates per strategic role" />
+      <PageHeader title="Succession Planning" subtitle="AHP-ranked candidates per strategic role — internal and external talent pool combined" />
       <div className="p-6 space-y-6">
         {/* AHP Explanation */}
         <Collapsible>
@@ -104,13 +165,14 @@ export default function SuccessionBoard() {
                 Rankings use the <strong>Analytic Hierarchy Process</strong> with role-type-aware weights.
                 AHP weights adapt based on role type (Emerging Tech, Leadership, Technical Specialist, Manufacturing, Cross-Functional).
                 Candidates are scored across three layers: Technical Match, Capability Match, and Momentum Score.
+                External talent pool candidates compete on equal footing with internal employees.
               </CardContent>
             </Card>
           </CollapsibleContent>
         </Collapsible>
 
         {/* Role cards */}
-        {roleRankings.map(({ role, roleType, ahpWeights, assessedCount, rankedCandidates }) => (
+        {roleRankings.map(({ role, roleType, ahpWeights, assessedCount, externalCount, rankedCandidates }) => (
           <Card key={role.id}>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -121,6 +183,9 @@ export default function SuccessionBoard() {
                     <Badge variant="outline" className="text-[10px]">{roleType.replace(/_/g, ' ')}</Badge>
                     <span className="text-xs text-muted-foreground">{assessedCount} assessed</span>
                     <span className="text-xs text-muted-foreground">{role.headcount_needed || 1} open</span>
+                    {externalCount > 0 && (
+                      <Badge className="text-[9px] bg-purple-100 text-purple-700 border-purple-200">{externalCount} external in pool</Badge>
+                    )}
                   </div>
                 </div>
               </div>
@@ -132,14 +197,20 @@ export default function SuccessionBoard() {
                   const techPct = Math.round((c.technicalMatch || 0) * 100);
                   const momPct = Math.round((c.momentumScore || 0) * 100);
                   return (
-                    <div key={c.employeeId} className="rounded-lg border border-border p-3 hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => navigate(`/analysis/${c.employeeId}`)}>
+                    <div key={c.employeeId} className={`rounded-lg border p-3 hover:shadow-md transition-shadow cursor-pointer ${
+                      c.isExternal ? 'border-l-4' : 'border-border'
+                    }`}
+                      style={c.isExternal ? { borderLeftColor: '#8b5cf6' } : undefined}
+                      onClick={() => navigate(c.isExternal ? `/external-candidate/${c.employeeId}` : `/analysis/${c.employeeId}`)}>
                       <div className="flex items-center gap-2 mb-2">
                         <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
                           #{c.rank}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-semibold truncate">{c.name}</h4>
+                          <div className="flex items-center gap-1.5">
+                            <h4 className="text-sm font-semibold truncate">{c.name}</h4>
+                            {c.isExternal && <Badge className="text-[8px] bg-purple-100 text-purple-700 border-purple-200 shrink-0">External</Badge>}
+                          </div>
                           <p className="text-[10px] text-muted-foreground truncate">{c.employee.job_title}</p>
                         </div>
                       </div>
