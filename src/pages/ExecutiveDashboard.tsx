@@ -14,7 +14,7 @@ export default function ExecutiveDashboard() {
   const { data: employees, isLoading: loadingEmp } = useEmployees();
   const { data: results } = useAlgorithmResults();
   const { data: interviews } = useInterviews();
-  const { data: reorgMatches } = useReorgMatches();
+  
   const { data: allSkills } = useAllEmployeeSkills();
   const { data: roles } = useRoles();
   const navigate = useNavigate();
