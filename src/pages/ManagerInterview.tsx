@@ -36,6 +36,8 @@ export default function ManagerInterview() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isAiTyping]);
 
+  const MAX_QUESTIONS = 10;
+
   const sendMessage = useCallback(async (userMessage?: string) => {
     if (!employee) return;
 
@@ -48,6 +50,53 @@ export default function ManagerInterview() {
       setInput("");
     }
 
+    // If we've hit the question limit, force completion
+    const currentCount = questionsAsked + 1;
+    if (currentCount > MAX_QUESTIONS && userMessage) {
+      setIsAiTyping(true);
+      const closingMsg = "Thank you for sharing all of that — I have a thorough picture now. Let me compile everything into the assessment.";
+      const finalMessages = [...newMessages, { role: "ai" as const, content: closingMsg, timestamp: new Date() }];
+      setMessages(finalMessages);
+      setQuestionsAsked(currentCount);
+
+      // Invoke one final time with forceComplete flag to get extracted data
+      try {
+        const { data, error } = await supabase.functions.invoke("interview-chat", {
+          body: {
+            messages: finalMessages.map(m => ({ role: m.role, content: m.content })),
+            interviewType: "manager",
+            employeeName: employee.name,
+            employeeTitle: employee.job_title,
+            managerName,
+            forceComplete: true,
+          },
+        });
+        if (!error && data?.extractedData?.manager_assessment) {
+          await handleComplete(data.extractedData.manager_assessment, finalMessages);
+        } else {
+          // Fallback: complete with empty assessment
+          await handleComplete({
+            observed_skills: {},
+            potential_indicators: [],
+            concerns: [],
+            learning_agility_observed: null,
+            leadership_potential_observed: null,
+            manager_confidence_score: null,
+            hidden_role_suggestion: null,
+          }, finalMessages);
+        }
+      } catch {
+        await handleComplete({
+          observed_skills: {},
+          potential_indicators: [],
+          concerns: [],
+        }, finalMessages);
+      } finally {
+        setIsAiTyping(false);
+      }
+      return;
+    }
+
     setIsAiTyping(true);
     try {
       const { data, error } = await supabase.functions.invoke("interview-chat", {
@@ -57,13 +106,15 @@ export default function ManagerInterview() {
           employeeName: employee.name,
           employeeTitle: employee.job_title,
           managerName,
+          questionNumber: currentCount,
+          maxQuestions: MAX_QUESTIONS,
         },
       });
 
       if (error) throw error;
 
       setMessages(prev => [...prev, { role: "ai", content: data.message, timestamp: new Date() }]);
-      setQuestionsAsked(prev => prev + 1);
+      setQuestionsAsked(currentCount);
 
       if (data.isComplete && data.extractedData?.manager_assessment) {
         const assessment = data.extractedData.manager_assessment;
@@ -75,7 +126,7 @@ export default function ManagerInterview() {
     } finally {
       setIsAiTyping(false);
     }
-  }, [employee, messages, managerName]);
+  }, [employee, messages, managerName, questionsAsked]);
 
   const pipeline = usePipeline();
 
