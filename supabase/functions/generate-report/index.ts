@@ -209,7 +209,7 @@ ${managerInsights ? `MANAGER INSIGHTS:\n${JSON.stringify(managerInsights, null, 
         system: SYSTEM,
         messages: [{ role: "user", content: userContent }],
         temperature: 0.4,
-        max_tokens: 3000,
+        max_tokens: 1500,
       }),
     });
 
