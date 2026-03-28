@@ -9,6 +9,7 @@ import { ReadinessRing } from "@/components/ReadinessRing";
 import { Button } from "@/components/ui/button";
 import { Info, ArrowRight } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function SuccessionBoard() {
   const { data: employees } = useEmployees();
