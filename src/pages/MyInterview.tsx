@@ -275,6 +275,19 @@ export default function MyInterview() {
       const empSkills: SkillVector = {};
       freshSkills?.forEach(s => { empSkills[s.skill_name] = s.proficiency || 0; });
 
+      // Enrich skills with capability-inferred starting points
+      const enrichedSkills = { ...empSkills };
+      const gapClassification = capabilityData?.gap_classification || {};
+      Object.entries(gapClassification).forEach(([skillName, gapData]: [string, any]) => {
+        if (
+          gapData.gap_type === 'progression' &&
+          gapData.bridging_capabilities?.length > 0 &&
+          !enrichedSkills[skillName]
+        ) {
+          enrichedSkills[skillName] = 1; // start as beginner, not zero
+        }
+      });
+
       // Fetch all roles for TF-IDF
       const { data: allRoles } = await supabase.from("roles").select("*");
 
@@ -285,11 +298,25 @@ export default function MyInterview() {
         return;
       }
 
+      // Compute capability match from capability profile
+      let capabilityReadiness = 0.5; // default
+      if (capabilityData?.capability_profile) {
+        const caps = Object.values(capabilityData.capability_profile) as any[];
+        const highRelevant = caps.filter((c: any) => c.relevance_to_role === 'HIGH');
+        const strongHighRelevant = highRelevant.filter((c: any) => ['DEMONSTRATED', 'EXCEPTIONAL'].includes(c.rating));
+        if (highRelevant.length > 0) {
+          capabilityReadiness = strongHighRelevant.length / highRelevant.length;
+        } else if (caps.length > 0) {
+          const strong = caps.filter((c: any) => ['DEMONSTRATED', 'EXCEPTIONAL'].includes(c.rating));
+          capabilityReadiness = strong.length / caps.length;
+        }
+      }
+
       const algorithmInput: AlgorithmInput = {
         employee: {
           id: employee.id,
           name: employee.name,
-          skills: empSkills,
+          skills: enrichedSkills,
           performanceScore: employee.performance_score || 0.5,
           learningAgility: employee.learning_agility || 0.5,
           tenureYears: employee.tenure_years || 0,
