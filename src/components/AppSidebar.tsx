@@ -24,7 +24,7 @@ const navSections = [
     label: "OVERVIEW",
     items: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-      { title: "Employees", url: "/employees", icon: Users },
+      { title: "People", url: "/employees", icon: Users },
     ],
   },
   {

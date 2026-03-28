@@ -11,7 +11,7 @@ import { ArrowLeft, ChevronDown, LogOut, Settings } from "lucide-react";
 
 const routeNames: Record<string, string> = {
   "/dashboard": "Executive Dashboard",
-  "/employees": "Employees",
+  "/employees": "People",
   "/analysis": "Analysis",
   "/interview/employee": "Employee Interview",
   "/interview/manager": "Manager Interview",
