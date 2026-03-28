@@ -1,6 +1,5 @@
-import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,7 +7,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, LogOut, Settings } from "lucide-react";
+import { ArrowLeft, ChevronDown, LogOut, Settings } from "lucide-react";
 
 const routeNames: Record<string, string> = {
   "/dashboard": "Executive Dashboard",
