@@ -3,7 +3,9 @@ import { StatCard } from "@/components/StatCard";
 import { ReadinessRing } from "@/components/ReadinessRing";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useEmployees, useAlgorithmResults, useInterviews, useBootcamps, useReorgMatches, useAllEmployeeSkills, useRoles } from "@/hooks/useData";
-import { Users, TrendingUp, AlertTriangle, MessageSquare, GraduationCap, DollarSign } from "lucide-react";
+import { Users, TrendingUp, AlertTriangle, MessageSquare, GraduationCap, DollarSign, UserPlus } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Legend } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { useMemo } from "react";
@@ -49,6 +51,16 @@ export default function ExecutiveDashboard() {
   const activeBootcamps = bootcamps?.filter(b => b.status !== 'not_started').length || 0;
   const immediateMatches = reorgMatches?.filter(m => m.immediate_readiness).length || 0;
   const hiringCostAvoided = immediateMatches * 45000;
+
+  const { data: externalCandidates } = useQuery({
+    queryKey: ["external_candidates_dashboard"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("external_candidates").select("id, interview_worthy, status").eq("interview_worthy", true);
+      if (error) throw error;
+      return data;
+    },
+  });
+  const externalWorthyCount = externalCandidates?.length || 0;
 
   const radarData = useMemo(() => {
     const strategicSkills = ['ThermalEngineering', 'Python', 'MachineLearning', 'EVBatterySystems', 'AUTOSAR', 'ProjectManagement', 'DeepLearning', 'ManufacturingProcesses'];
@@ -105,7 +117,7 @@ export default function ExecutiveDashboard() {
       <PageHeader title="Executive Dashboard" subtitle="Workforce intelligence overview" />
       <div className="p-6 space-y-6">
         {/* Stat cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
           <StatCard icon={Users} label="Employees Profiled" value={employees?.length || 0} subtitle="Full HR + interview data" color="blue" />
           <TooltipProvider>
             <Tooltip>
@@ -123,6 +135,7 @@ export default function ExecutiveDashboard() {
           <StatCard icon={MessageSquare} label="Interviews Completed" value={completedInterviews} subtitle="Employee + manager combined" color="blue" />
           <StatCard icon={GraduationCap} label="Active Bootcamps" value={activeBootcamps} subtitle="Personalized training plans" color="amber" />
           <StatCard icon={DollarSign} label="Hiring Cost Avoided" value={hiringCostAvoided > 0 ? `€${(hiringCostAvoided / 1000000).toFixed(1)}M` : '€0'} subtitle="Through internal mobility" color="green" />
+          <StatCard icon={UserPlus} label="External Pipeline" value={externalWorthyCount} subtitle="Interview-worthy candidates" color="purple" />
         </div>
 
         {/* Main content 60/40 split */}

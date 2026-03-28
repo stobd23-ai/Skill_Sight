@@ -23,6 +23,9 @@ import LoginPage from "./pages/LoginPage";
 import MyProfile from "./pages/MyProfile";
 import MyInterview from "./pages/MyInterview";
 import MyResults from "./pages/MyResults";
+import InterviewAccess from "./pages/InterviewAccess";
+import InterviewExternal from "./pages/InterviewExternal";
+import AnalysisExternal from "./pages/AnalysisExternal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -67,6 +70,13 @@ const App = () => (
               <Route path="/my-profile" element={<ProtectedRoute role="employee"><EmployeeLayout><MyProfile /></EmployeeLayout></ProtectedRoute>} />
               <Route path="/my-interview" element={<ProtectedRoute role="employee"><EmployeeLayout><MyInterview /></EmployeeLayout></ProtectedRoute>} />
               <Route path="/my-analysis" element={<ProtectedRoute role="employee"><EmployeeLayout><MyResults /></EmployeeLayout></ProtectedRoute>} />
+
+              {/* Public routes — no auth */}
+              <Route path="/interview-access" element={<InterviewAccess />} />
+              <Route path="/interview-external/:interviewId" element={<InterviewExternal />} />
+
+              {/* Manager route for external analysis */}
+              <Route path="/analysis-external/:id" element={<ProtectedRoute role="manager"><AppLayout><AnalysisExternal /></AppLayout></ProtectedRoute>} />
 
               <Route path="*" element={<NotFound />} />
             </Routes>

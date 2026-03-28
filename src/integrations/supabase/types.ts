@@ -337,6 +337,84 @@ export type Database = {
         }
         Relationships: []
       }
+      external_candidates: {
+        Row: {
+          access_code: string | null
+          code_expires_at: string | null
+          code_used_at: string | null
+          created_at: string | null
+          email: string | null
+          full_algorithm_results: Json | null
+          full_three_layer_score: number | null
+          id: string
+          interview_id: string | null
+          interview_notes: string | null
+          interview_skills: Json | null
+          interview_worthy: boolean | null
+          name: string
+          not_worthy_reasons: Json | null
+          role_id: string | null
+          status: string | null
+          worthy_reasoning: string | null
+          worthy_score: number | null
+        }
+        Insert: {
+          access_code?: string | null
+          code_expires_at?: string | null
+          code_used_at?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_algorithm_results?: Json | null
+          full_three_layer_score?: number | null
+          id?: string
+          interview_id?: string | null
+          interview_notes?: string | null
+          interview_skills?: Json | null
+          interview_worthy?: boolean | null
+          name: string
+          not_worthy_reasons?: Json | null
+          role_id?: string | null
+          status?: string | null
+          worthy_reasoning?: string | null
+          worthy_score?: number | null
+        }
+        Update: {
+          access_code?: string | null
+          code_expires_at?: string | null
+          code_used_at?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_algorithm_results?: Json | null
+          full_three_layer_score?: number | null
+          id?: string
+          interview_id?: string | null
+          interview_notes?: string | null
+          interview_skills?: Json | null
+          interview_worthy?: boolean | null
+          name?: string
+          not_worthy_reasons?: Json | null
+          role_id?: string | null
+          status?: string | null
+          worthy_reasoning?: string | null
+          worthy_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_candidates_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_candidates_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       interview_invitations: {
         Row: {
           accepted_at: string | null

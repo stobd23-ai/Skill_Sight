@@ -15,6 +15,7 @@ const colorMap: Record<string, { bg: string; text: string }> = {
   green: { bg: "bg-status-green-light", text: "text-status-green" },
   amber: { bg: "bg-status-amber-light", text: "text-status-amber" },
   red: { bg: "bg-status-red-light", text: "text-status-red" },
+  purple: { bg: "bg-status-purple-light", text: "text-status-purple" },
 };
 
 export function StatCard({ icon: Icon, label, value, subtitle, trend, color = "blue" }: StatCardProps) {
