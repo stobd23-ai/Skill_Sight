@@ -82,6 +82,8 @@ export default function ExternalCandidateProfile() {
   const [transcriptOpen, setTranscriptOpen] = useState(false);
   const [declineOpen, setDeclineOpen] = useState(false);
   const [declineNote, setDeclineNote] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: candidate, isLoading, refetch } = useQuery({
     queryKey: ["external_candidate_detail", id],
