@@ -47,7 +47,7 @@ export function TopBar() {
   return (
     <div className="h-12 border-b border-border bg-background px-6 flex items-center justify-between shrink-0">
       <div className="flex items-center gap-2">
-        {canGoBack && (
+        {canGoBack && location.pathname !== "/dashboard" && (
           <button
             onClick={() => navigate(-1)}
             className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
