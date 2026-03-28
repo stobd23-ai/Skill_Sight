@@ -235,7 +235,7 @@ ${cvText.slice(0, 6000)}`
             }
           ],
           temperature: 0.1,
-          max_tokens: 800,
+          max_tokens: 1500,
         }),
       });
 
