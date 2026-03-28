@@ -737,6 +737,7 @@ export type Database = {
           department: string | null
           description: string | null
           headcount_needed: number | null
+          hiring_status: string | null
           id: string
           is_open: boolean | null
           required_skills: Json | null
@@ -748,6 +749,7 @@ export type Database = {
           department?: string | null
           description?: string | null
           headcount_needed?: number | null
+          hiring_status?: string | null
           id?: string
           is_open?: boolean | null
           required_skills?: Json | null
@@ -759,6 +761,7 @@ export type Database = {
           department?: string | null
           description?: string | null
           headcount_needed?: number | null
+          hiring_status?: string | null
           id?: string
           is_open?: boolean | null
           required_skills?: Json | null
