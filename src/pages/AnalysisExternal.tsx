@@ -8,7 +8,7 @@ import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, UserPlus, Target, Zap, Brain, BarChart3, Shield, TrendingUp } from "lucide-react";
+import { ArrowLeft, UserPlus, Target, Zap, Brain, BarChart3, Shield, TrendingUp, FileText, CheckCircle, AlertTriangle, Circle } from "lucide-react";
 
 export default function AnalysisExternal() {
   const { id } = useParams();
@@ -42,11 +42,32 @@ export default function AnalysisExternal() {
 
   const results = (candidate.full_algorithm_results || {}) as any;
   const role = candidate.roles as any;
-  const score = candidate.full_three_layer_score != null ? Math.round(candidate.full_three_layer_score * 100) : null;
+  const interviewCompleted = candidate.status === "completed";
   const technicalMatch = results.technicalMatch != null ? Math.round(results.technicalMatch * 100) : null;
   const capabilityMatch = results.capabilityMatch != null ? Math.round(results.capabilityMatch * 100) : null;
-  const momentumScore = results.momentumScore != null ? Math.round(results.momentumScore * 100) : null;
+  const rawMomentum = results.momentumScore;
+  const hasMomentum = rawMomentum != null && rawMomentum > 0 && interviewCompleted;
+  const momentumScore = hasMomentum ? Math.round(rawMomentum * 100) : null;
   const transitionProfile = results.transitionProfile;
+
+  // Compute displayed score: exclude momentum when unavailable
+  let displayedScore: number | null = null;
+  if (technicalMatch != null && capabilityMatch != null) {
+    if (hasMomentum && momentumScore != null) {
+      // Full three-layer
+      displayedScore = candidate.full_three_layer_score != null
+        ? Math.round(candidate.full_three_layer_score * 100)
+        : Math.round((technicalMatch + capabilityMatch + momentumScore) / 3);
+    } else {
+      // Partial: tech + capability only
+      displayedScore = Math.round((technicalMatch * 0.5) + (capabilityMatch * 0.5));
+    }
+  }
+
+  // Report prerequisites
+  const hasRole = !!candidate.role_id && !!role?.title;
+  const hasAlgorithmResults = !!(results.technicalMatch != null || results.overallReadiness != null);
+  const canGenerateReport = hasRole && interviewCompleted && hasAlgorithmResults;
 
   return (
     <div>
@@ -67,11 +88,11 @@ export default function AnalysisExternal() {
             <p className="text-sm font-bold">External Candidate Assessment — {candidate.name}</p>
             <p className="text-xs text-muted-foreground">
               Applied for: {role?.title || "Unknown"} |
-              Assessment: {candidate.status === "completed" ? "CV + Interview" : "CV Only"}
+              Assessment: {interviewCompleted ? "CV + Interview" : "CV Only"}
             </p>
           </div>
-          <Badge variant={candidate.status === "completed" ? "default" : "secondary"}>
-            {candidate.status === "completed" ? "Complete" : candidate.status}
+          <Badge variant={interviewCompleted ? "default" : "secondary"}>
+            {interviewCompleted ? "Complete" : candidate.status}
           </Badge>
         </div>
 
@@ -92,9 +113,16 @@ export default function AnalysisExternal() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           <Card className="lg:col-span-1">
             <CardContent className="p-6 flex flex-col items-center justify-center">
-              <ReadinessRing value={score || 0} size="lg" />
+              <ReadinessRing value={displayedScore || 0} size="lg" />
               <p className="mt-3 text-sm font-bold">Overall Readiness</p>
-              <p className="text-xs text-muted-foreground">Three-Layer Score</p>
+              <p className="text-xs text-muted-foreground">
+                {hasMomentum ? "Three-Layer Score" : "Partial Score"}
+              </p>
+              {!hasMomentum && (
+                <p className="text-[11px] mt-1 text-center" style={{ color: "hsl(var(--amber, 45 93% 47%))" }}>
+                  Partial Score — CV only. Momentum assessment requires interview.
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -120,14 +148,24 @@ export default function AnalysisExternal() {
             </CardContent>
           </Card>
 
+          {/* Momentum card — gray placeholder when no interview */}
           <Card>
             <CardContent className="p-5 space-y-2">
               <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-primary" />
+                <Zap className={`w-4 h-4 ${hasMomentum ? "text-primary" : "text-muted-foreground"}`} />
                 <span className="text-sm font-medium">Momentum</span>
               </div>
-              <p className="text-2xl font-bold font-mono">{momentumScore ?? "—"}%</p>
-              <p className="text-[11px] text-muted-foreground">Growth trajectory</p>
+              {hasMomentum ? (
+                <>
+                  <p className="text-2xl font-bold font-mono">{momentumScore}%</p>
+                  <p className="text-[11px] text-muted-foreground">Growth trajectory</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-2xl font-bold font-mono text-muted-foreground">—</p>
+                  <p className="text-[11px] text-muted-foreground italic">Pending Interview</p>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -165,8 +203,8 @@ export default function AnalysisExternal() {
           </Card>
         )}
 
-        {/* AI Report */}
-        {report && (
+        {/* AI Report — conditional on prerequisites */}
+        {report && canGenerateReport ? (
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -184,6 +222,58 @@ export default function AnalysisExternal() {
                   if (line.trim() === "") return <br key={i} />;
                   return <p key={i} className="text-muted-foreground">{line}</p>;
                 })}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="p-8 flex flex-col items-center text-center space-y-4">
+              <FileText className="w-12 h-12 text-muted-foreground" />
+              <div>
+                <p className="text-base font-semibold">Report Pending</p>
+                <p className="text-sm text-muted-foreground mt-1 max-w-md">
+                  The full AI assessment report generates automatically after the candidate completes their interview.
+                </p>
+              </div>
+              <div className="space-y-2 text-left text-sm w-full max-w-xs">
+                <div className="flex items-center gap-2">
+                  {results.technicalMatch != null ? (
+                    <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+                  ) : (
+                    <Circle className="w-4 h-4 text-muted-foreground shrink-0" />
+                  )}
+                  <span className={results.technicalMatch != null ? "text-green-600" : "text-muted-foreground"}>
+                    CV submitted and scored
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {hasRole ? (
+                    <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+                  ) : (
+                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                  )}
+                  <span className={hasRole ? "text-green-600" : "text-amber-600"}>
+                    {hasRole ? "Role assigned" : "⚠ Role not assigned"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {interviewCompleted ? (
+                    <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+                  ) : (
+                    <Circle className="w-4 h-4 text-muted-foreground shrink-0" />
+                  )}
+                  <span className={interviewCompleted ? "text-green-600" : "text-muted-foreground"}>
+                    Interview completed
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {report && canGenerateReport ? (
+                    <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+                  ) : (
+                    <Circle className="w-4 h-4 text-muted-foreground shrink-0" />
+                  )}
+                  <span className="text-muted-foreground">Report generated</span>
+                </div>
               </div>
             </CardContent>
           </Card>

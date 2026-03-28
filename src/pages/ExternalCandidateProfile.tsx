@@ -180,18 +180,27 @@ export default function ExternalCandidateProfile() {
             </div>
             {/* Right: readiness rings */}
             <div className="flex items-center gap-6">
-              {isCompleted && technicalMatch != null ? (
+              {technicalMatch != null ? (
                 <>
                   <ReadinessRing value={Math.round(technicalMatch * 100)} size="sm" label="Technical" />
                   <ReadinessRing value={Math.round((capabilityMatch || 0) * 100)} size="sm" label="Capability" />
-                  <ReadinessRing value={Math.round((momentumScore || 0) * 100)} size="sm" label="Momentum" />
+                  {isCompleted && momentumScore != null && momentumScore > 0 ? (
+                    <ReadinessRing value={Math.round(momentumScore * 100)} size="sm" label="Momentum" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="w-12 h-12 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
+                        <span className="text-[10px] text-muted-foreground">—</span>
+                      </div>
+                      <span className="text-[11px] text-muted-foreground italic">Pending</span>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="flex items-center gap-3 text-muted-foreground">
                   <div className="w-12 h-12 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
                     <span className="text-[10px]">—</span>
                   </div>
-                  <span className="text-xs">Pending Interview</span>
+                  <span className="text-xs">Pending Assessment</span>
                 </div>
               )}
             </div>
