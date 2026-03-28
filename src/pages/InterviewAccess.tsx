@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Shield, Clock, MessageSquare, CheckCircle } from "lucide-react";
+import { ArrowLeft, Shield, Clock, MessageSquare, CheckCircle } from "lucide-react";
 
 export default function InterviewAccess() {
   const navigate = useNavigate();
