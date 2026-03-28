@@ -301,6 +301,11 @@ export default function ExternalCandidateProfile() {
                 </Button>
               </>
             )}
+            {candidate.status === "rejected" && (
+              <Button variant="destructive" size="sm" className="text-xs" onClick={() => setDeleteOpen(true)}>
+                <Trash2 className="h-3 w-3 mr-1" />Delete Candidate
+              </Button>
+            )}
           </div>
         </div>
 
