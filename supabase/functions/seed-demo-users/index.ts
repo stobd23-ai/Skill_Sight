@@ -177,6 +177,47 @@ serve(async (req) => {
       }
     }
 
+    // Additional employees
+    const additionalEmployees = [
+      { name: "Klaus Hoffmann", email: "klaus.hoffmann@bmw.de" },
+      { name: "Lena Fischer", email: "lena.fischer@bmw.de" },
+      { name: "Sarah Weber", email: "sarah.weber@bmw.de" },
+      { name: "Marie Dupont", email: "marie.dupont@bmw.de" },
+    ];
+
+    for (const emp of additionalEmployees) {
+      const empExists = existing?.some(e => e.email === emp.email);
+      if (!empExists) {
+        const { data: empRecord } = await supabaseAdmin
+          .from("employees")
+          .select("id")
+          .eq("name", emp.name)
+          .limit(1)
+          .single();
+
+        const { data: empUser, error: empErr } = await supabaseAdmin.auth.admin.createUser({
+          email: emp.email,
+          password: "SkillSight2026!",
+          email_confirm: true,
+          user_metadata: { full_name: emp.name },
+        });
+
+        if (empErr) {
+          console.error(`${emp.name} creation error:`, empErr);
+          results.push(`${emp.name} error: ${empErr.message}`);
+        } else if (empUser?.user) {
+          await supabaseAdmin.from("user_profiles").insert({
+            id: empUser.user.id,
+            email: emp.email,
+            role: "employee",
+            employee_id: empRecord?.id || null,
+            full_name: emp.name,
+          });
+          results.push(`Employee (${emp.name}) created`);
+        }
+      }
+    }
+
     return new Response(JSON.stringify({ message: "Seeding complete", results, seeded: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
