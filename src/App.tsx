@@ -26,6 +26,7 @@ import MyResults from "./pages/MyResults";
 import InterviewAccess from "./pages/InterviewAccess";
 import InterviewExternal from "./pages/InterviewExternal";
 import AnalysisExternal from "./pages/AnalysisExternal";
+import ApplyPage from "./pages/ApplyPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -74,6 +75,7 @@ const App = () => (
               {/* Public routes — no auth */}
               <Route path="/interview-access" element={<InterviewAccess />} />
               <Route path="/interview-external/:interviewId" element={<InterviewExternal />} />
+              <Route path="/apply" element={<ApplyPage />} />
 
               {/* Manager route for external analysis */}
               <Route path="/analysis-external/:id" element={<ProtectedRoute role="manager"><AppLayout><AnalysisExternal /></AppLayout></ProtectedRoute>} />

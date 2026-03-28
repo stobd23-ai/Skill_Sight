@@ -340,6 +340,8 @@ export type Database = {
       external_candidates: {
         Row: {
           access_code: string | null
+          candidate_email: string | null
+          candidate_message: string | null
           code_expires_at: string | null
           code_used_at: string | null
           created_at: string | null
@@ -351,15 +353,23 @@ export type Database = {
           interview_notes: string | null
           interview_skills: Json | null
           interview_worthy: boolean | null
+          manager_decision: string | null
+          manager_decision_at: string | null
+          manager_decision_note: string | null
+          manager_notified: boolean | null
           name: string
           not_worthy_reasons: Json | null
           role_id: string | null
           status: string | null
+          submission_source: string | null
+          submitted_at: string | null
           worthy_reasoning: string | null
           worthy_score: number | null
         }
         Insert: {
           access_code?: string | null
+          candidate_email?: string | null
+          candidate_message?: string | null
           code_expires_at?: string | null
           code_used_at?: string | null
           created_at?: string | null
@@ -371,15 +381,23 @@ export type Database = {
           interview_notes?: string | null
           interview_skills?: Json | null
           interview_worthy?: boolean | null
+          manager_decision?: string | null
+          manager_decision_at?: string | null
+          manager_decision_note?: string | null
+          manager_notified?: boolean | null
           name: string
           not_worthy_reasons?: Json | null
           role_id?: string | null
           status?: string | null
+          submission_source?: string | null
+          submitted_at?: string | null
           worthy_reasoning?: string | null
           worthy_score?: number | null
         }
         Update: {
           access_code?: string | null
+          candidate_email?: string | null
+          candidate_message?: string | null
           code_expires_at?: string | null
           code_used_at?: string | null
           created_at?: string | null
@@ -391,10 +409,16 @@ export type Database = {
           interview_notes?: string | null
           interview_skills?: Json | null
           interview_worthy?: boolean | null
+          manager_decision?: string | null
+          manager_decision_at?: string | null
+          manager_decision_note?: string | null
+          manager_notified?: boolean | null
           name?: string
           not_worthy_reasons?: Json | null
           role_id?: string | null
           status?: string | null
+          submission_source?: string | null
+          submitted_at?: string | null
           worthy_reasoning?: string | null
           worthy_score?: number | null
         }
@@ -560,6 +584,38 @@ export type Database = {
           {
             foreignKeyName: "interviews_target_role_id_fkey"
             columns: ["target_role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      open_applications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_accepting: boolean | null
+          public_description: string | null
+          role_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_accepting?: boolean | null
+          public_description?: string | null
+          role_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_accepting?: boolean | null
+          public_description?: string | null
+          role_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "open_applications_role_id_fkey"
+            columns: ["role_id"]
             isOneToOne: false
             referencedRelation: "roles"
             referencedColumns: ["id"]

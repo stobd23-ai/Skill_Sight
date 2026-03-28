@@ -3,7 +3,7 @@ import { StatCard } from "@/components/StatCard";
 import { ReadinessRing } from "@/components/ReadinessRing";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useEmployees, useAlgorithmResults, useInterviews, useBootcamps, useReorgMatches, useAllEmployeeSkills, useRoles } from "@/hooks/useData";
-import { Users, TrendingUp, AlertTriangle, MessageSquare, GraduationCap, DollarSign, UserPlus } from "lucide-react";
+import { Users, TrendingUp, AlertTriangle, MessageSquare, GraduationCap, DollarSign, UserPlus, Inbox } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Legend } from "recharts";
@@ -55,12 +55,13 @@ export default function ExecutiveDashboard() {
   const { data: externalCandidates } = useQuery({
     queryKey: ["external_candidates_dashboard"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("external_candidates").select("id, interview_worthy, status").eq("interview_worthy", true);
+      const { data, error } = await supabase.from("external_candidates").select("id, interview_worthy, status, submission_source, manager_decision, name, role_id, submitted_at, worthy_score");
       if (error) throw error;
       return data;
     },
   });
-  const externalWorthyCount = externalCandidates?.length || 0;
+  const externalWorthyCount = externalCandidates?.filter((c: any) => c.interview_worthy).length || 0;
+  const pendingReviewCount = externalCandidates?.filter((c: any) => c.submission_source === "candidate_self_submit" && c.manager_decision === "pending" && c.interview_worthy).length || 0;
 
   const radarData = useMemo(() => {
     const strategicSkills = ['ThermalEngineering', 'Python', 'MachineLearning', 'EVBatterySystems', 'AUTOSAR', 'ProjectManagement', 'DeepLearning', 'ManufacturingProcesses'];
@@ -117,7 +118,7 @@ export default function ExecutiveDashboard() {
       <PageHeader title="Executive Dashboard" subtitle="Workforce intelligence overview" />
       <div className="p-6 space-y-6">
         {/* Stat cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
           <StatCard icon={Users} label="Employees Profiled" value={employees?.length || 0} subtitle="Full HR + interview data" color="blue" />
           <TooltipProvider>
             <Tooltip>
@@ -136,6 +137,7 @@ export default function ExecutiveDashboard() {
           <StatCard icon={GraduationCap} label="Active Bootcamps" value={activeBootcamps} subtitle="Personalized training plans" color="amber" />
           <StatCard icon={DollarSign} label="Hiring Cost Avoided" value={hiringCostAvoided > 0 ? `€${(hiringCostAvoided / 1000000).toFixed(1)}M` : '€0'} subtitle="Through internal mobility" color="green" />
           <StatCard icon={UserPlus} label="External Pipeline" value={externalWorthyCount} subtitle="Interview-worthy candidates" color="purple" />
+          <StatCard icon={Inbox} label="Pending Review" value={pendingReviewCount} subtitle="Self-submitted, AI-cleared" color="amber" />
         </div>
 
         {/* Main content 60/40 split */}
@@ -266,6 +268,44 @@ export default function ExecutiveDashboard() {
                 );
               }) : (
                 <p className="text-xs text-muted-foreground text-center py-4">No assessments yet</p>
+              )}
+            </div>
+
+            {/* Pending Applications */}
+            <div className="card-skillsight p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="w-2 h-2 rounded-full bg-yellow-500" />
+                <h3 className="text-[15px] font-semibold">New Applications — Pending Your Review</h3>
+              </div>
+              {pendingReviewCount > 0 ? (
+                externalCandidates
+                  ?.filter((c: any) => c.submission_source === "candidate_self_submit" && c.manager_decision === "pending" && c.interview_worthy)
+                  .slice(0, 3)
+                  .map((c: any) => {
+                    const role = roles?.find(r => r.id === c.role_id);
+                    const hoursAgo = Math.round((Date.now() - new Date(c.submitted_at || c.created_at).getTime()) / 3600000);
+                    return (
+                      <div key={c.id} className="flex items-center gap-3 py-2 border-t border-border first:border-0">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate">{c.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{role?.title} · {hoursAgo}h ago</p>
+                        </div>
+                        {c.worthy_score != null && (
+                          <div className="h-1.5 w-16 rounded-full bg-secondary overflow-hidden">
+                            <div className="h-full rounded-full bg-primary" style={{ width: `${Math.round(c.worthy_score * 100)}%` }} />
+                          </div>
+                        )}
+                        <button
+                          onClick={() => navigate("/employees?tab=external&filter=pending")}
+                          className="text-[10px] text-primary font-medium hover:underline"
+                        >
+                          Review
+                        </button>
+                      </div>
+                    );
+                  })
+              ) : (
+                <p className="text-xs text-muted-foreground text-center py-4">No new applications awaiting review.</p>
               )}
             </div>
           </div>

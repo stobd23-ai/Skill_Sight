@@ -1,17 +1,20 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { SkillBadge } from "@/components/SkillBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { useEmployees, useAllEmployeeSkills, useAlgorithmResults } from "@/hooks/useData";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { useEmployees, useAllEmployeeSkills, useAlgorithmResults, useRoles } from "@/hooks/useData";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Clock, Star, Zap, Plus, UserPlus, Users } from "lucide-react";
+import { Search, Clock, Star, Zap, Plus, UserPlus, Users, CheckCircle, XCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { AddExternalCandidateModal } from "@/components/AddExternalCandidateModal";
 import { ReadinessRing } from "@/components/ReadinessRing";
+import { toast } from "sonner";
 
 function useExternalCandidates() {
   return useQuery({
@@ -32,13 +35,21 @@ export default function EmployeeList() {
   const { data: allSkills } = useAllEmployeeSkills();
   const { data: results } = useAlgorithmResults();
   const { data: externalCandidates, refetch: refetchExternal } = useExternalCandidates();
+  const { data: roles } = useRoles();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
   const [readinessFilter, setReadinessFilter] = useState("all");
-  const [viewMode, setViewMode] = useState<"internal" | "external">("internal");
+  const initialView = searchParams.get("tab") === "external" ? "external" : "internal";
+  const [viewMode, setViewMode] = useState<"internal" | "external">(initialView);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [extFilter, setExtFilter] = useState<"all" | "pending" | "self">(searchParams.get("filter") === "pending" ? "pending" : "all");
+  const [declineOpen, setDeclineOpen] = useState(false);
+  const [declineTarget, setDeclineTarget] = useState<any>(null);
+  const [declineNote, setDeclineNote] = useState("");
+  const [codeModalCandidate, setCodeModalCandidate] = useState<any>(null);
 
   const departments = useMemo(() => {
     if (!employees) return [];
@@ -63,11 +74,52 @@ export default function EmployeeList() {
 
   const filteredExternal = useMemo(() => {
     if (!externalCandidates) return [];
-    return externalCandidates.filter(c => {
+    let list = externalCandidates;
+    if (extFilter === "pending") {
+      list = list.filter((c: any) => c.submission_source === "candidate_self_submit" && c.manager_decision === "pending" && c.interview_worthy);
+    } else if (extFilter === "self") {
+      list = list.filter((c: any) => c.submission_source === "candidate_self_submit");
+    }
+    return list.filter(c => {
       if (!search) return true;
       return c.name?.toLowerCase().includes(search.toLowerCase());
     });
-  }, [externalCandidates, search]);
+  }, [externalCandidates, search, extFilter]);
+
+  const pendingCount = useMemo(() => {
+    if (!externalCandidates) return 0;
+    return externalCandidates.filter((c: any) => c.submission_source === "candidate_self_submit" && c.manager_decision === "pending" && c.interview_worthy).length;
+  }, [externalCandidates]);
+
+  const handleApprove = async (candidate: any) => {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    await supabase.from("external_candidates").update({
+      access_code: code,
+      code_expires_at: expiresAt,
+      status: "invited",
+      manager_decision: "approved",
+      manager_decision_at: new Date().toISOString(),
+    } as any).eq("id", candidate.id);
+    toast.success("Interview code generated");
+    setCodeModalCandidate({ ...candidate, access_code: code, code_expires_at: expiresAt });
+    refetchExternal();
+  };
+
+  const handleDecline = async () => {
+    if (!declineTarget) return;
+    await supabase.from("external_candidates").update({
+      status: "rejected",
+      manager_decision: "rejected",
+      manager_decision_at: new Date().toISOString(),
+      manager_decision_note: declineNote || null,
+    } as any).eq("id", declineTarget.id);
+    toast.success("Application declined");
+    setDeclineOpen(false);
+    setDeclineTarget(null);
+    setDeclineNote("");
+    refetchExternal();
+  };
 
   if (isLoading) return <div className="flex items-center justify-center h-64"><LoadingSpinner /></div>;
 
@@ -78,6 +130,9 @@ export default function EmployeeList() {
       interviewing: { label: "Interview In Progress", variant: "outline" },
       completed: { label: "Assessment Complete", variant: "default" },
       not_worthy: { label: "Below Threshold", variant: "destructive" },
+      pending_manager_review: { label: "Pending Review", variant: "outline" },
+      below_threshold: { label: "Below Threshold", variant: "destructive" },
+      rejected: { label: "Declined", variant: "secondary" },
     };
     const s = map[status] || { label: status, variant: "secondary" as const };
     return <Badge variant={s.variant} className="text-[10px]">{s.label}</Badge>;
@@ -218,83 +273,116 @@ export default function EmployeeList() {
 
         {/* External candidates grid */}
         {viewMode === "external" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filteredExternal.length === 0 ? (
-              <div className="col-span-full text-center py-12">
-                <UserPlus className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm font-medium">No external candidates yet</p>
-                <p className="text-xs text-muted-foreground mt-1">Click "External Candidate" to add one and generate an interview code.</p>
-              </div>
-            ) : (
-              filteredExternal.map(c => {
-                const initials = c.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
-                const role = c.roles as any;
-                const score = c.full_three_layer_score != null ? Math.round(c.full_three_layer_score * 100) : null;
-                const codeDisplay = c.access_code ? c.access_code.slice(0, 3) + "***" : "";
-                const isExpiringSoon = c.code_expires_at ? (new Date(c.code_expires_at).getTime() - Date.now()) < 2 * 24 * 60 * 60 * 1000 : false;
+          <div className="space-y-4">
+            {/* Sub-filter tabs */}
+            <div className="flex gap-1">
+              {[
+                { value: "all" as const, label: "All" },
+                { value: "pending" as const, label: `Pending Review${pendingCount > 0 ? ` (${pendingCount})` : ""}` },
+                { value: "self" as const, label: "Self-Submitted" },
+              ].map(f => (
+                <button
+                  key={f.value}
+                  onClick={() => setExtFilter(f.value)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${extFilter === f.value ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-accent"}`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
 
-                return (
-                  <div key={c.id} className="card-skillsight p-5">
-                    <div className="flex items-start gap-3">
-                      <div className="w-11 h-11 rounded-full bg-purple-500 flex items-center justify-center text-sm font-bold text-primary-foreground shrink-0">
-                        {initials}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[15px] font-bold truncate">{c.name}</p>
-                        <p className="text-[13px] text-muted-foreground truncate">{role?.title || "Unknown Role"}</p>
-                        <div className="mt-1">{statusBadge(c.status || "invited")}</div>
-                      </div>
-                    </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {filteredExternal.length === 0 ? (
+                <div className="col-span-full text-center py-12">
+                  <UserPlus className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-sm font-medium">No candidates match this filter</p>
+                </div>
+              ) : (
+                filteredExternal.map(c => {
+                  const initials = c.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+                  const role = c.roles as any;
+                  const score = c.full_three_layer_score != null ? Math.round(c.full_three_layer_score * 100) : null;
+                  const codeDisplay = c.access_code ? c.access_code.slice(0, 3) + "***" : "";
+                  const isExpiringSoon = c.code_expires_at ? (new Date(c.code_expires_at).getTime() - Date.now()) < 2 * 24 * 60 * 60 * 1000 : false;
+                  const isSelfSubmit = (c as any).submission_source === "candidate_self_submit";
+                  const isPendingReview = isSelfSubmit && (c as any).manager_decision === "pending" && c.interview_worthy;
 
-                    {/* Score */}
-                    <div className="mt-3">
-                      {score !== null ? (
-                        <div className="flex items-center gap-2">
-                          <ReadinessRing value={score} size="sm" />
-                          <div>
-                            <p className="text-xs font-medium">Full Score: {score}%</p>
-                            <Badge variant="outline" className="text-[9px] mt-0.5">CV + Interview ✓</Badge>
+                  return (
+                    <div key={c.id} className="card-skillsight p-5">
+                      <div className="flex items-start gap-3">
+                        <div className="w-11 h-11 rounded-full bg-purple-500 flex items-center justify-center text-sm font-bold text-primary-foreground shrink-0">
+                          {initials}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-[15px] font-bold truncate">{c.name}</p>
+                            {isSelfSubmit && <Badge variant="outline" className="text-[9px] shrink-0">Self-submitted</Badge>}
+                          </div>
+                          <p className="text-[13px] text-muted-foreground truncate">{role?.title || "Unknown Role"}</p>
+                          <div className="mt-1">{statusBadge(c.status || "invited")}</div>
+                        </div>
+                      </div>
+
+                      {/* Score */}
+                      <div className="mt-3">
+                        {score !== null ? (
+                          <div className="flex items-center gap-2">
+                            <ReadinessRing value={score} size="sm" />
+                            <div>
+                              <p className="text-xs font-medium">Full Score: {score}%</p>
+                              <Badge variant="outline" className="text-[9px] mt-0.5">CV + Interview ✓</Badge>
+                            </div>
+                          </div>
+                        ) : c.worthy_score != null ? (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className="font-mono">Partial Score (CV Only): {Math.round(c.worthy_score * 100)}%</span>
+                            <Badge variant="secondary" className="text-[9px]">CV Only ⚠</Badge>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {/* Code section */}
+                      {c.status === "invited" && c.access_code && (
+                        <div className="mt-3 p-2 rounded-md bg-secondary text-xs space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Code: <span className="font-mono font-medium">{codeDisplay}</span></span>
+                            {c.code_expires_at && (
+                              <span className={isExpiringSoon ? "text-yellow-600 font-medium" : "text-muted-foreground"}>
+                                Expires {new Date(c.code_expires_at).toLocaleDateString()}
+                              </span>
+                            )}
                           </div>
                         </div>
-                      ) : c.worthy_score != null ? (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span className="font-mono">Partial Score (CV Only): {Math.round(c.worthy_score * 100)}%</span>
-                          <Badge variant="secondary" className="text-[9px]">CV Only ⚠</Badge>
-                        </div>
-                      ) : null}
-                    </div>
+                      )}
 
-                    {/* Code section */}
-                    {c.status === "invited" && c.access_code && (
-                      <div className="mt-3 p-2 rounded-md bg-secondary text-xs space-y-1">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Code: <span className="font-mono font-medium">{codeDisplay}</span></span>
-                          {c.code_expires_at && (
-                            <span className={isExpiringSoon ? "text-yellow-600 font-medium" : "text-muted-foreground"}>
-                              Expires {new Date(c.code_expires_at).toLocaleDateString()}
-                            </span>
-                          )}
-                        </div>
+                      {/* Actions */}
+                      <div className="flex gap-2 mt-4">
+                        {isPendingReview && (
+                          <>
+                            <Button size="sm" className="flex-1 text-xs bg-green-600 hover:bg-green-700" onClick={() => handleApprove(c)}>
+                              <CheckCircle className="w-3 h-3 mr-1" />Send Interview Code
+                            </Button>
+                            <Button variant="outline" size="sm" className="text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => { setDeclineTarget(c); setDeclineOpen(true); }}>
+                              <XCircle className="w-3 h-3 mr-1" />Decline
+                            </Button>
+                          </>
+                        )}
+                        {c.status === "completed" && (
+                          <Button size="sm" className="flex-1 text-xs" onClick={() => navigate(`/analysis-external/${c.id}`)}>
+                            View Full Assessment
+                          </Button>
+                        )}
+                        {c.status === "invited" && (
+                          <Button variant="outline" size="sm" className="flex-1 text-xs">
+                            View Code
+                          </Button>
+                        )}
                       </div>
-                    )}
-
-                    {/* Actions */}
-                    <div className="flex gap-2 mt-4">
-                      {c.status === "completed" && (
-                        <Button size="sm" className="flex-1 text-xs" onClick={() => navigate(`/analysis-external/${c.id}`)}>
-                          View Full Assessment
-                        </Button>
-                      )}
-                      {c.status === "invited" && (
-                        <Button variant="outline" size="sm" className="flex-1 text-xs">
-                          View Code
-                        </Button>
-                      )}
                     </div>
-                  </div>
-                );
-              })
-            )}
+                  );
+                })
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -304,6 +392,34 @@ export default function EmployeeList() {
         onOpenChange={setShowAddModal}
         onCreated={() => refetchExternal()}
       />
+
+      {/* Code modal after approve */}
+      {codeModalCandidate && (
+        <AddExternalCandidateModal
+          open={!!codeModalCandidate}
+          onOpenChange={() => setCodeModalCandidate(null)}
+          onCreated={() => refetchExternal()}
+        />
+      )}
+
+      {/* Decline dialog */}
+      <Dialog open={declineOpen} onOpenChange={setDeclineOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Decline {declineTarget?.name}'s application?</DialogTitle>
+          </DialogHeader>
+          <Textarea
+            placeholder="Add a reason (internal only, not shown to candidate)"
+            value={declineNote}
+            onChange={e => setDeclineNote(e.target.value)}
+            rows={3}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeclineOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDecline}>Confirm Decline</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
