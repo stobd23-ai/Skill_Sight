@@ -385,13 +385,6 @@ export default function AnalysisPage() {
           />
         </div>
 
-        {/* Metric Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard label="Profile Match" value={`${Math.round(cosine * 100)}%`} icon={<Target className="h-4 w-4" />} />
-          <MetricCard label="Skill Coverage" value={`${Math.round(jaccBin * 100)}%`} icon={<Shield className="h-4 w-4" />} />
-          <MetricCard label="Weighted Overlap" value={`${Math.round(jaccW * 100)}%`} icon={<BarChart3 className="h-4 w-4" />} />
-          <MetricCard label="Strategic Gap" value={`${Math.round(gapScore * 100)}%`} icon={<AlertTriangle className="h-4 w-4" />} />
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Skills Radar */}
@@ -644,143 +637,33 @@ export default function AnalysisPage() {
           </Card>
         )}
 
-        {/* Tabs: AI Report / Raw Scores */}
-        <Tabs defaultValue="report">
-          <TabsList>
-            <TabsTrigger value="report">AI Report</TabsTrigger>
-            <TabsTrigger value="raw">Raw Scores</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="report">
-            <Card>
-              <CardContent className="p-6">
-                {reportLoading ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <RefreshCw className="h-4 w-4 animate-spin text-primary" />
-                      <span className="text-sm text-muted-foreground">Generating your personalised action plan…</span>
-                    </div>
-                    {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-4 w-full" />)}
-                  </div>
-                ) : report ? (
-                  <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground/80 prose-strong:text-foreground prose-li:text-foreground/80" dangerouslySetInnerHTML={{ __html: markdownToHtml(report.replace(/### Risk Factors[\s\S]*?(?=\n### |\n## |$)/, '')) }} />
-                ) : (
-                  <div className="text-center py-12">
-                    <Sparkles className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground mb-4">AI will interpret your algorithm results into an actionable plan.</p>
-                    <Button onClick={generateReport} className="bg-primary text-primary-foreground">
-                      Generate AI Report
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="raw">
-            <Card>
-              <CardContent className="p-6 font-mono text-xs space-y-6">
-                {/* Metric Hierarchy Explanation */}
-                <div className="bg-muted/50 rounded-lg p-4 font-sans text-xs space-y-3 border border-border">
-                  <h3 className="font-semibold text-muted-foreground uppercase tracking-wider text-[11px]">How To Read These Scores</h3>
-                  <div className="grid gap-3">
-                    <div>
-                      <span className="font-semibold text-foreground">Jaccard (Binary)</span>
-                      <span className="text-muted-foreground"> → Most important for initial screening</span>
-                      <p className="text-muted-foreground mt-0.5">Does this person have the required skills at all? {Math.round(jaccBin * 100)}% means they possess {Math.round(jaccBin * 100)}% of required skill areas.</p>
-                    </div>
-                    <div>
-                      <span className="font-semibold text-foreground">Cosine Similarity</span>
-                      <span className="text-muted-foreground"> → Most important for potential assessment</span>
-                      <p className="text-muted-foreground mt-0.5">Is their skill emphasis shaped like the role? {Math.round(cosine * 100)}% means high directional alignment even where coverage is low.</p>
-                    </div>
-                    <div>
-                      <span className="font-semibold text-foreground">Weighted Gap Score</span>
-                      <span className="text-muted-foreground"> → Most important for development planning</span>
-                      <p className="text-muted-foreground mt-0.5">What is missing, weighted by BMW strategic priority? {Math.round(gapScore * 100)}% of requirements unmet. Lower is better.</p>
-                    </div>
-                  </div>
+        {/* AI Report */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold">AI Assessment Report</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            {reportLoading ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <RefreshCw className="h-4 w-4 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">Generating your personalised action plan…</span>
                 </div>
-
-                {/* Three-Layer Breakdown */}
-                {threeLayerScore != null && (
-                  <div>
-                    <h3 className="font-semibold text-muted-foreground uppercase tracking-wider mb-3 font-sans text-xs">
-                      Three-Layer Score Breakdown
-                    </h3>
-                    <div className="space-y-1.5 border-b border-border pb-4">
-                      <RawMonoRow label="Technical Match" value={Number(technicalMatch).toFixed(3)} weight={scoreBreakdown?.weights?.technical} contribution={technicalMatch * (scoreBreakdown?.weights?.technical || 0.33)} />
-                      <RawMonoRow label="Capability Match" value={Number(capabilityMatch).toFixed(3)} weight={scoreBreakdown?.weights?.capability} contribution={capabilityMatch * (scoreBreakdown?.weights?.capability || 0.33)} />
-                      <RawMonoRow label="Momentum Score" value={Number(momentumScore).toFixed(3)} weight={scoreBreakdown?.weights?.momentum} contribution={momentumScore * (scoreBreakdown?.weights?.momentum || 0.33)} />
-                      <div className="flex items-center justify-between pt-1 border-t border-border font-bold">
-                        <span>Final Three-Layer</span>
-                        <span>{Number(threeLayerScore).toFixed(3)} → {readiness}%</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Role Type + AHP */}
-                <div>
-                  <h3 className="font-semibold text-muted-foreground uppercase tracking-wider mb-3 font-sans text-xs">
-                    Role Type: {roleTypeLabel} ({targetRole?.title || 'N/A'})
-                  </h3>
-                  <h4 className="text-muted-foreground mb-2 font-sans text-[11px]">AHP Weights Applied ({roleTypeLabel} profile)</h4>
-                  <div className="space-y-1.5">
-                    {ahpWeightsUsed?.weights ? (
-                      <>
-                        <RawRow label="Skills Match" value={`${(ahpWeightsUsed.weights[0] * 100).toFixed(1)}%`} desc="" />
-                        <RawRow label="Performance" value={`${(ahpWeightsUsed.weights[1] * 100).toFixed(1)}%`} desc="" />
-                        <RawRow label="Learning Agility" value={`${(ahpWeightsUsed.weights[2] * 100).toFixed(1)}%`} desc={roleType === 'emerging_tech' ? '← adjusted UP for emerging tech' : ''} />
-                        <RawRow label="Tenure" value={`${(ahpWeightsUsed.weights[3] * 100).toFixed(1)}%`} desc="" />
-                        <RawRow label="Strategic Fit" value={`${(ahpWeightsUsed.weights[4] * 100).toFixed(1)}%`} desc="" />
-                      </>
-                    ) : (
-                      <>
-                        <RawRow label="Skills Match" value="33.2%" desc="" />
-                        <RawRow label="Strategic Fit" value="30.5%" desc="" />
-                        <RawRow label="Learning Agility" value="15.8%" desc="" />
-                        <RawRow label="Performance" value="14.7%" desc="" />
-                        <RawRow label="Tenure" value="5.7%" desc="" />
-                      </>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-2">Consistency Ratio: {ahpWeightsUsed?.cr != null ? `${(ahpWeightsUsed.cr * 100).toFixed(2)}%` : '0.69%'} ✓</p>
-                </div>
-
-                {/* Momentum Breakdown */}
-                {momentumBreakdown && momentumBreakdown.momentum_score != null && (
-                  <div>
-                    <h3 className="font-semibold text-muted-foreground uppercase tracking-wider mb-3 font-sans text-xs">
-                      Momentum Breakdown
-                    </h3>
-                    <div className="space-y-1.5">
-                      <RawRow label="Learning Velocity" value={Number(momentumBreakdown.learning_velocity || 0).toFixed(3)} desc="Weight: 35%" />
-                      <RawRow label="Scope Trajectory" value={Number(momentumBreakdown.scope_trajectory || 0).toFixed(3)} desc="Weight: 35%" />
-                      <RawRow label="Motivation Align." value={Number(momentumBreakdown.motivation_alignment || 0).toFixed(3)} desc="Weight: 30%" />
-                      <RawRow label="Momentum Score" value={Number(momentumBreakdown.momentum_score || 0).toFixed(3)} desc="" highlight />
-                    </div>
-                  </div>
-                )}
-
-                {/* Classic Algorithm Results */}
-                <div>
-                  <h3 className="font-semibold text-muted-foreground uppercase tracking-wider mb-3 font-sans text-xs">
-                    Algorithm Results — {employee.name} vs {targetRole?.title || 'N/A'}
-                  </h3>
-                  <div className="space-y-1.5">
-                    <RawRow label="Cosine Similarity" value={cosine.toFixed(3)} desc="Profile shape alignment" />
-                    <RawRow label="Jaccard (Binary)" value={jaccBin.toFixed(3)} desc="Skill set coverage" />
-                    <RawRow label="Jaccard (Weighted)" value={jaccW.toFixed(3)} desc="Proficiency-weighted overlap" />
-                    <RawRow label="Weighted Gap Score" value={gapScore.toFixed(3)} desc="Strategic priority gap" />
-                    <RawRow label="Overall Readiness" value={((latestResult?.overall_readiness ?? localResults?.overallReadiness ?? 0)).toFixed(3)} desc="Composite score" />
-                    <RawRow label="Manager Adjustment" value={`${managerAdj >= 0 ? '+' : ''}${managerAdj.toFixed(3)}`} desc={managerInterview ? 'From manager interview' : 'Pending manager interview'} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-4 w-full" />)}
+              </div>
+            ) : report ? (
+              <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground/80 prose-strong:text-foreground prose-li:text-foreground/80" dangerouslySetInnerHTML={{ __html: markdownToHtml(report.replace(/### Risk Factors[\s\S]*?(?=\n### |\n## |$)/, '')) }} />
+            ) : (
+              <div className="text-center py-12">
+                <Sparkles className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground mb-4">AI will interpret your algorithm results into an actionable plan.</p>
+                <Button onClick={generateReport} className="bg-primary text-primary-foreground">
+                  Generate AI Report
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Risk Factors Card */}
         <Card>

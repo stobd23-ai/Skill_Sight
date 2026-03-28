@@ -79,36 +79,31 @@ Include exactly three risks. For each:
 
 Pick the 3 most relevant from: SKILL PLATEAU RISK, MENTORSHIP DEPENDENCY RISK, TECHNICAL DEPTH GAP RISK, MOTIVATION MISALIGNMENT RISK, SCOPE JUMP RISK, KNOWLEDGE TRANSFER RISK.
 
-OUTPUT FORMAT — strict markdown:
+OUTPUT FORMAT — strict markdown, CONCISE (300-450 words max):
 ## SkillSight Assessment: [name]
-**Role:** [role] | **Readiness:** [X]% | **Assessment Type:** [transition_stage if transitioning, else 'Standard'] | **Date:** [today]
+**Role:** [role] | **Readiness:** [X]% | **Date:** [today]
 ---
 ### Summary
-One honest paragraph. Translate cosine+readiness into plain language. Include momentum narrative. Be direct.
-Metric explanation sentence.
-
-Trajectory Projection: [as described above]
+2-3 sentences maximum. State readiness plainly, mention three-layer score composition in one line, and include trajectory projection in one sentence.
 ---
 ### Distinctive Strengths
-2-4 bullets. Behavioral strengths first, then surplus skills + high TF-IDF rarity scores. Connect to BMW strategy.
+2-3 bullets only. Lead with behavioral evidence, not background. Each bullet = one sentence.
 ---
-### Priority Skill Gaps
-Top 4 gaps max. For each:
-**[Skill]** · [current]/3 → [required]/3 · Priority: [CRITICAL/HIGH/MEDIUM]
-Gap Type: [Progression/Foundational] — [reason]
-Why it matters: [1-2 sentences — BMW-specific]
+### Critical Gaps for This Role
+Top 3 gaps max. For each, one line only:
+**[Skill]** · [current]/3 → [required]/3 · [CRITICAL/HIGH] — [one sentence why this matters for the role]
 ---
 ### Risk Factors
 Exactly 3 risks. For each:
 **[Risk Name]** · [LOW/MEDIUM/HIGH]
-[What the risk is in one sentence]. [How to mitigate in one sentence].
+[One sentence combining what the risk is and how to mitigate it.]
 ---
-### Recommended HR Actions
-Exactly 3 bullets. Verb-first. Specific. Time-bound.
+### Recommended Actions
+Exactly 3 bullets. Verb-first. One sentence each. Time-bound.
 
-TONE: Professional, direct, honest. Not cheerleader. If rank is 4th of 4 say so. Specific > vague.
+TONE: Professional, direct, honest. Not cheerleader. Specific > vague.
 Avoid: leverage, synergize, holistic, robust, cutting-edge.
-700-1000 words total.`;
+STRICT LENGTH: 300-450 words. Do NOT exceed. Be ruthlessly concise.`;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -214,7 +209,7 @@ ${managerInsights ? `MANAGER INSIGHTS:\n${JSON.stringify(managerInsights, null, 
         system: SYSTEM,
         messages: [{ role: "user", content: userContent }],
         temperature: 0.4,
-        max_tokens: 3000,
+        max_tokens: 1500,
       }),
     });
 

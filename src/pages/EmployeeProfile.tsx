@@ -107,8 +107,6 @@ export default function EmployeeProfile() {
               </div>
             </div>
             <div className="flex items-center gap-6">
-              <ReadinessRing value={Math.round((employee.performance_score || 0) * 100)} size="sm" label="Performance" />
-              <ReadinessRing value={Math.round((employee.learning_agility || 0) * 100)} size="sm" label="Agility" />
               {readiness !== null && <ReadinessRing value={readiness} size="sm" label="Readiness" />}
             </div>
           </div>
