@@ -71,8 +71,6 @@ export default function MyResults() {
           header.includes("summary") ||
           header.includes("strength") ||
           header.includes("distinctive") ||
-          header.includes("action plan") ||
-          header.includes("90-day") ||
           header.includes("overview")
         ) {
           inSafeSection = true;
@@ -84,7 +82,13 @@ export default function MyResults() {
           header.includes("ranking") ||
           header.includes("manager") ||
           header.includes("recommendation") ||
-          header.includes("readiness breakdown")
+          header.includes("readiness breakdown") ||
+          header.includes("action plan") ||
+          header.includes("90-day") ||
+          header.includes("90 day") ||
+          header.includes("6-month") ||
+          header.includes("6 month") ||
+          header.includes("roadmap")
         ) {
           inSafeSection = false;
           skipSection = true;
