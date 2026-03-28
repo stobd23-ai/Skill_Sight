@@ -199,7 +199,7 @@ export default function RolesPage() {
 
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-h-[85vh] overflow-y-auto" style={{ maxWidth: '720px', width: '90vw' }}>
           <DialogHeader>
             <DialogTitle>{editId ? 'Edit Role' : 'Add New Role'}</DialogTitle>
           </DialogHeader>
