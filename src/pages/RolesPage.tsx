@@ -19,7 +19,7 @@ import { useQuery } from "@tanstack/react-query";
 import { SkillBadge } from "@/components/SkillBadge";
 import type { SkillVector } from "@/lib/algorithms";
 
-interface SkillReq { name: string; required: number; weight: number }
+interface SkillReq { name: string; required: number; weight: number | string }
 
 const hiringStatusConfig: Record<string, { dot: string; label: string; labelColor: string }> = {
   actively_hiring: { dot: '#dc3545', label: 'Actively Hiring', labelColor: '#dc3545' },
@@ -67,7 +67,7 @@ export default function RolesPage() {
     setEditOpen(true);
   };
 
-  const addSkill = () => setSkillReqs([...skillReqs, { name: "", required: 2, weight: 0.6 }]);
+  const addSkill = () => setSkillReqs([...skillReqs, { name: "", required: 2, weight: "" as any }]);
   const removeSkill = (i: number) => setSkillReqs(skillReqs.filter((_, j) => j !== i));
   const updateSkill = (i: number, field: keyof SkillReq, value: string | number) => {
     setSkillReqs(skillReqs.map((s, j) => j === i ? { ...s, [field]: value } : s));
@@ -78,7 +78,7 @@ export default function RolesPage() {
     const required_skills: Record<string, number> = {};
     const strategic_weights: Record<string, number> = {};
     skillReqs.forEach(s => {
-      if (s.name.trim()) { required_skills[s.name.trim()] = s.required; strategic_weights[s.name.trim()] = s.weight; }
+      if (s.name.trim()) { required_skills[s.name.trim()] = s.required; strategic_weights[s.name.trim()] = Number(s.weight) || 0.6; }
     });
 
     const payload = {
@@ -199,7 +199,7 @@ export default function RolesPage() {
 
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-h-[85vh] overflow-y-auto" style={{ maxWidth: '720px', width: '90vw' }}>
           <DialogHeader>
             <DialogTitle>{editId ? 'Edit Role' : 'Add New Role'}</DialogTitle>
           </DialogHeader>
@@ -228,37 +228,48 @@ export default function RolesPage() {
                 <Button variant="outline" size="sm" onClick={addSkill} className="text-xs h-7"><Plus className="h-3 w-3" /> Add Skill</Button>
               </div>
               <div className="space-y-3">
-                {skillReqs.map((s, i) => (
-                  <div key={i} className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <Input placeholder="Skill Name" value={s.name} onChange={e => updateSkill(i, 'name', e.target.value)} className="flex-1" />
-                      <Select value={String(s.required)} onValueChange={v => updateSkill(i, 'required', Number(v))}>
-                        <SelectTrigger className="w-[130px]"><SelectValue placeholder="Proficiency" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">Beginner</SelectItem>
-                          <SelectItem value="2">Intermediate</SelectItem>
-                          <SelectItem value="3">Expert</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select value={String(s.weight)} onValueChange={v => updateSkill(i, 'weight', Number(v))}>
-                        <SelectTrigger className="w-[170px]"><SelectValue placeholder="Weight" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="0.3">Low Priority — 0.3</SelectItem>
-                          <SelectItem value="0.5">Below Average — 0.5</SelectItem>
-                          <SelectItem value="0.6">Standard — 0.6</SelectItem>
-                          <SelectItem value="0.8">High Priority — 0.8</SelectItem>
-                          <SelectItem value="0.95">Critical — 0.95</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeSkill(i)}><X className="h-3 w-3" /></Button>
-                    </div>
-                    {s.name && (
-                      <div className="flex items-center gap-2 pl-1">
-                        <SkillBadge skill={s.name} proficiency={s.required as 0 | 1 | 2 | 3} showLabel />
+                {skillReqs.map((s, i) => {
+                  const weightVal = s.weight;
+                  const isInvalid = weightVal !== "" && (isNaN(Number(weightVal)) || Number(weightVal) < 0.1 || Number(weightVal) > 1.0);
+                  return (
+                    <div key={i} className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Input placeholder="Skill Name" value={s.name} onChange={e => updateSkill(i, 'name', e.target.value)} className="h-10" style={{ flex: 3 }} />
+                        <Select value={String(s.required)} onValueChange={v => updateSkill(i, 'required', Number(v))}>
+                          <SelectTrigger className="h-10" style={{ flex: 1.5 }}><SelectValue placeholder="Proficiency" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">Beginner</SelectItem>
+                            <SelectItem value="2">Intermediate</SelectItem>
+                            <SelectItem value="3">Expert</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          placeholder="Weight (0.1 – 1.0)"
+                          value={weightVal === 0 ? "" : weightVal}
+                          onChange={e => updateSkill(i, 'weight', e.target.value as any)}
+                          onBlur={() => {
+                            const num = Number(weightVal);
+                            if (weightVal === "" || weightVal === undefined) return;
+                            if (isNaN(num) || num < 0.1 || num > 1.0) {
+                              updateSkill(i, 'weight', 0.6);
+                            } else {
+                              updateSkill(i, 'weight', num);
+                            }
+                          }}
+                          className="h-10"
+                          style={{ flex: 1 }}
+                        />
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeSkill(i)}><X className="h-3 w-3" /></Button>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      {isInvalid && <p className="text-[11px] text-destructive pl-1">Enter a number between 0.1 and 1.0</p>}
+                      {s.name && (
+                        <div className="flex items-center gap-2 pl-1">
+                          <SkillBadge skill={s.name} proficiency={s.required as 0 | 1 | 2 | 3} showLabel />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Strategic Weights Visualizer */}
@@ -268,17 +279,17 @@ export default function RolesPage() {
                   <div className="flex h-5 rounded-md overflow-hidden border border-border">
                     {(() => {
                       const named = skillReqs.filter(s => s.name.trim());
-                      const total = named.reduce((sum, s) => sum + s.weight, 0);
-                      const weightColors: Record<string, string> = {
-                        '0.3': 'hsl(var(--muted))',
-                        '0.5': 'hsl(210 60% 80%)',
-                        '0.6': 'hsl(var(--primary))',
-                        '0.8': 'hsl(40 90% 55%)',
-                        '0.95': 'hsl(0 70% 55%)',
+                      const total = named.reduce((sum, s) => sum + (Number(s.weight) || 0), 0);
+                      const getWeightColor = (w: number) => {
+                        if (w >= 0.9) return 'hsl(0 70% 55%)';
+                        if (w >= 0.7) return 'hsl(40 90% 55%)';
+                        if (w >= 0.5) return 'hsl(var(--primary))';
+                        return 'hsl(var(--muted))';
                       };
                       return named.map((s, i) => {
-                        const pct = total > 0 ? (s.weight / total) * 100 : 0;
-                        const color = weightColors[String(s.weight)] || 'hsl(var(--primary))';
+                        const w = Number(s.weight) || 0;
+                        const pct = total > 0 ? (w / total) * 100 : 0;
+                        const color = getWeightColor(w);
                         return (
                           <div
                             key={i}
