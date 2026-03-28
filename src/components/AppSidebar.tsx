@@ -33,20 +33,6 @@ const navSections = [
     ],
   },
   {
-    label: "INTELLIGENCE",
-    items: [
-      { title: "Employee Interview", url: "/interview/employee", icon: MessageSquare },
-      { title: "Manager Interview", url: "/interview/manager", icon: UserCheck },
-      { title: "Analysis", url: "/analysis", icon: BarChart3 },
-    ],
-  },
-  {
-    label: "DEVELOPMENT",
-    items: [
-      { title: "Strategy Hub", url: "/strategy", icon: Target },
-    ],
-  },
-  {
     label: "PLANNING",
     items: [
       { title: "Internal Reorg", url: "/reorg", icon: Shuffle },
