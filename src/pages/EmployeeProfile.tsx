@@ -271,7 +271,7 @@ export default function EmployeeProfile() {
                   <th className="text-left py-2 font-medium text-muted-foreground">Role</th>
                    <th className="text-left py-2 font-medium text-muted-foreground">Focus</th>
                    <th className="text-left py-2 font-medium text-muted-foreground">Status</th>
-                   <th className="text-right py-2 font-medium text-muted-foreground">Action</th>
+                   
                 </tr>
               </thead>
               <tbody>
