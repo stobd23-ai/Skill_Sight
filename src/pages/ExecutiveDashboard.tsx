@@ -3,7 +3,7 @@ import { StatCard } from "@/components/StatCard";
 import { ReadinessRing } from "@/components/ReadinessRing";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useEmployees, useAlgorithmResults, useInterviews, useAllEmployeeSkills, useRoles } from "@/hooks/useData";
-import { Users, AlertTriangle, MessageSquare, UserPlus, Inbox, UserCheck, Plus } from "lucide-react";
+import { Users, AlertTriangle, MessageSquare, UserPlus, Inbox, UserCheck, Plus, Award } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Legend } from "recharts";
