@@ -270,6 +270,44 @@ export default function ExecutiveDashboard() {
                 <p className="text-xs text-muted-foreground text-center py-4">No assessments yet</p>
               )}
             </div>
+
+            {/* Pending Applications */}
+            <div className="card-skillsight p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="w-2 h-2 rounded-full bg-yellow-500" />
+                <h3 className="text-[15px] font-semibold">New Applications — Pending Your Review</h3>
+              </div>
+              {pendingReviewCount > 0 ? (
+                externalCandidates
+                  ?.filter((c: any) => c.submission_source === "candidate_self_submit" && c.manager_decision === "pending" && c.interview_worthy)
+                  .slice(0, 3)
+                  .map((c: any) => {
+                    const role = roles?.find(r => r.id === c.role_id);
+                    const hoursAgo = Math.round((Date.now() - new Date(c.submitted_at || c.created_at).getTime()) / 3600000);
+                    return (
+                      <div key={c.id} className="flex items-center gap-3 py-2 border-t border-border first:border-0">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate">{c.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{role?.title} · {hoursAgo}h ago</p>
+                        </div>
+                        {c.worthy_score != null && (
+                          <div className="h-1.5 w-16 rounded-full bg-secondary overflow-hidden">
+                            <div className="h-full rounded-full bg-primary" style={{ width: `${Math.round(c.worthy_score * 100)}%` }} />
+                          </div>
+                        )}
+                        <button
+                          onClick={() => navigate("/employees?tab=external&filter=pending")}
+                          className="text-[10px] text-primary font-medium hover:underline"
+                        >
+                          Review
+                        </button>
+                      </div>
+                    );
+                  })
+              ) : (
+                <p className="text-xs text-muted-foreground text-center py-4">No new applications awaiting review.</p>
+              )}
+            </div>
           </div>
         </div>
       </div>
