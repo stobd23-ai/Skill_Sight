@@ -257,7 +257,7 @@ export default function InterviewExternal() {
               threeLayerScore: threeLayer.threeLayerScore,
               technicalMatch,
               capabilityMatch,
-              momentumScore,
+              momentumScoreVal,
               roleType,
             },
             capabilityProfile: capabilityData?.capability_profile || {},
@@ -288,7 +288,7 @@ export default function InterviewExternal() {
           tfidf: fullResults.tfidfRarity,
           technicalMatch,
           capabilityMatch,
-          momentumScore,
+          momentumScoreVal,
           threeLayerScore: threeLayer.threeLayerScore,
           roleType,
           capabilityProfile: capabilityData?.capability_profile || {},
@@ -303,7 +303,7 @@ export default function InterviewExternal() {
 
       // Step 8: Evaluate for talent pool
       const meetsScoreThreshold = threeLayer.threeLayerScore >= 0.65;
-      const meetsMomentumThreshold = momentumScore >= 0.60;
+      const meetsMomentumThreshold = momentumScoreVal != null && momentumScoreVal >= 0.60;
       const meetsCapabilityThreshold = capabilityMatch >= 0.50;
       const shouldAddToPool = meetsScoreThreshold && meetsMomentumThreshold && meetsCapabilityThreshold;
 
@@ -312,7 +312,7 @@ export default function InterviewExternal() {
           status: "talent_pool",
           manager_decision: "approved_for_pool",
           manager_decision_at: new Date().toISOString(),
-          manager_decision_note: `Automatically promoted to talent pool after interview. Three-layer score: ${Math.round(threeLayer.threeLayerScore * 100)}%, Momentum: ${Math.round(momentumScore * 100)}%, Capability: ${Math.round(capabilityMatch * 100)}%`,
+          manager_decision_note: `Automatically promoted to talent pool after interview. Three-layer score: ${Math.round(threeLayer.threeLayerScore * 100)}%, Momentum: ${Math.round(((momentumScoreVal || 0) * 100))}%, Capability: ${Math.round(capabilityMatch * 100)}%`,
         } as any).eq("id", candidate.id);
       }
 
