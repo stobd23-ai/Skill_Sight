@@ -294,7 +294,7 @@ export default function EmployeeProfile() {
                       <td className="py-2.5">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${interview.status === 'completed' ? 'bg-status-green-light text-status-green' : interview.status === 'in_progress' ? 'bg-status-amber-light text-status-amber' : 'bg-secondary text-muted-foreground'}`}>{interview.status}</span>
                       </td>
-                      <td className="py-2.5 text-right"><button className="text-primary hover:underline">View →</button></td>
+                      
                     </tr>
                   );
                 })}
