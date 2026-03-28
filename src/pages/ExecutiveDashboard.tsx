@@ -133,12 +133,13 @@ export default function ExecutiveDashboard() {
       <PageHeader title="Executive Dashboard" subtitle="Workforce intelligence overview" />
       <div className="p-6 space-y-6">
         {/* Stat cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           <StatCard icon={Users} label="Employees Profiled" value={employees?.length || 0} subtitle="Full HR + interview data" color="blue" />
           <StatCard icon={AlertTriangle} label="Critical Skill Gaps" value={criticalGaps} subtitle="Require immediate action" color="red" />
           <StatCard icon={MessageSquare} label="Interviews Completed" value={completedInterviews} subtitle="Employee + manager combined" color="blue" />
           <StatCard icon={UserPlus} label="External Pipeline" value={externalWorthyCount} subtitle="Interview-worthy candidates" color="purple" />
           <StatCard icon={Inbox} label="Pending Review" value={pendingReviewCount} subtitle="Self-submitted, AI-cleared" color="amber" />
+          <StatCard icon={AlertTriangle} label="Flagged for Review" value={flaggedReviewCount} subtitle="Conflicting AI and algorithm signals" color="amber" />
         </div>
 
         {/* Main content row — stretch aligned */}
