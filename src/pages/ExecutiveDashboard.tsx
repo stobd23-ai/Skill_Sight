@@ -52,6 +52,16 @@ export default function ExecutiveDashboard() {
   const immediateMatches = reorgMatches?.filter(m => m.immediate_readiness).length || 0;
   const hiringCostAvoided = immediateMatches * 45000;
 
+  const { data: externalCandidates } = useQuery({
+    queryKey: ["external_candidates_dashboard"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("external_candidates").select("id, interview_worthy, status").eq("interview_worthy", true);
+      if (error) throw error;
+      return data;
+    },
+  });
+  const externalWorthyCount = externalCandidates?.length || 0;
+
   const radarData = useMemo(() => {
     const strategicSkills = ['ThermalEngineering', 'Python', 'MachineLearning', 'EVBatterySystems', 'AUTOSAR', 'ProjectManagement', 'DeepLearning', 'ManufacturingProcesses'];
     if (!allSkills?.length || !roles?.length) return [];
