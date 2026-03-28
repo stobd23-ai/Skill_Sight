@@ -27,6 +27,7 @@ import InterviewAccess from "./pages/InterviewAccess";
 import InterviewExternal from "./pages/InterviewExternal";
 import AnalysisExternal from "./pages/AnalysisExternal";
 import ApplyPage from "./pages/ApplyPage";
+import ExternalCandidateProfile from "./pages/ExternalCandidateProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
