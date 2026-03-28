@@ -301,7 +301,7 @@ export default function ExternalCandidateProfile() {
                 </Button>
               </>
             )}
-            {candidate.status === "rejected" && (
+            {(candidate.status === "rejected" || candidate.status === "below_threshold") && (
               <Button variant="destructive" size="sm" className="text-xs" onClick={() => setDeleteOpen(true)}>
                 <Trash2 className="h-3 w-3 mr-1" />Delete Candidate
               </Button>
