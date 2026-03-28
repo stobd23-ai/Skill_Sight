@@ -76,20 +76,20 @@ export function InviteInterviewModal({ open, onOpenChange, employee, onSent }: P
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[480px] p-0">
-        <DialogHeader className="p-6 pb-0">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0" style={{ backgroundColor: employee.avatar_color || "#1c69d3" }}>
+      <DialogContent className="max-w-[440px] p-0 max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="p-4 pb-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ backgroundColor: employee.avatar_color || "#1c69d3" }}>
               {employee.avatar_initials}
             </div>
             <div>
-              <DialogTitle className="text-base">Invite {employee.name} to Interview</DialogTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">Career Assessment Invitation</p>
+              <DialogTitle className="text-sm">Invite {employee.name}</DialogTitle>
+              <p className="text-[11px] text-muted-foreground">Career Assessment</p>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="px-6 pb-6 space-y-5">
+        <div className="px-4 pb-4 space-y-3">
           {/* Target Role */}
           <div className="space-y-1.5">
             <label className="text-[13px] font-medium">Target Role <span className="text-destructive">*</span></label>
