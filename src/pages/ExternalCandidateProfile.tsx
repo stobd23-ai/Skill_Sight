@@ -204,6 +204,18 @@ export default function ExternalCandidateProfile() {
     refetch();
   };
 
+  const handleDelete = async () => {
+    setDeleting(true);
+    const { error } = await supabase.from("external_candidates").delete().eq("id", candidate.id);
+    if (error) {
+      toast.error("Failed to delete candidate");
+      setDeleting(false);
+      return;
+    }
+    toast.success("Candidate deleted");
+    navigate("/employees?tab=external");
+  };
+
   const conversationHistory = interview?.conversation_history as any[] || [];
 
   return (
