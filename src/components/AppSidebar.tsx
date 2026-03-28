@@ -30,7 +30,7 @@ const navSections = [
   {
     label: "PLANNING",
     items: [
-      { title: "Internal Reorg", url: "/reorg", icon: Shuffle },
+      { title: "Organization", url: "/reorg", icon: Shuffle },
       { title: "Succession", url: "/succession", icon: Network },
       { title: "Roles", url: "/roles", icon: Briefcase },
     ],

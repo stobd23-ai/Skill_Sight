@@ -140,7 +140,7 @@ export default function InternalReorg() {
 
   return (
     <div>
-      <PageHeader title="Internal Reorganisation Engine" subtitle="Scan employees against open roles using all six algorithms" />
+      <PageHeader title="Organization" subtitle="Scan employees against open roles using all six algorithms" />
       <div className="p-6 space-y-6">
         {/* Role selector */}
         <Card>

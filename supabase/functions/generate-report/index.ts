@@ -32,9 +32,8 @@ If gap_type is 'foundational': add a line "Gap Type: Foundational — requires b
 For progression gaps, the "Why it matters" should also include "Why it's achievable" — reference the bridging capabilities.
 
 === STARTING POINT REALISM ===
-In the 90-Day Action Plan, use actual_starting_point from gap_classification, not assumed beginner.
-If someone is already coding Python and working with production data, their ML plan should NOT start with "learn Python." 
-Pull the actual_starting_point text directly into the plan.
+Use actual_starting_point from gap_classification, not assumed beginner.
+If someone is already coding Python and working with production data, their plan should NOT start with "learn Python."
 
 === MOMENTUM DATA ===
 You have access to a trajectory assessment showing where this person is going, not just where they are now.
@@ -99,16 +98,10 @@ Top 4 gaps max. For each:
 Gap Type: [Progression/Foundational] — [reason]
 Why it matters: [1-2 sentences — BMW-specific]
 ---
-### 90-Day Action Plan
-3 phases (Weeks 1-4, 5-8, 9-12). Use actual_starting_point for realism. BMW-specific resources: Digital Boost modules, internal secondments, BMW Academy.
----
 ### Risk Factors
 Exactly 3 risks. For each:
 **[Risk Name]** · [LOW/MEDIUM/HIGH]
 [What the risk is in one sentence]. [How to mitigate in one sentence].
----
-### 6-Month Roadmap
-Month-by-month bullets. Reference Digital Boost, iFACTORY, Neue Klasse.
 ---
 ### Recommended HR Actions
 Exactly 3 bullets. Verb-first. Specific. Time-bound.
