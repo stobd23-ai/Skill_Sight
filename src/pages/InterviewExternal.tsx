@@ -445,7 +445,7 @@ export default function InterviewExternal() {
               <div className={`max-w-[75%] rounded-lg px-4 py-3 text-sm whitespace-pre-wrap ${
                 msg.role === "user"
                   ? "bg-primary text-primary-foreground"
-                  : "bg-secondary"
+                  : "bg-muted"
               }`}>
                 {msg.content}
               </div>
@@ -453,7 +453,7 @@ export default function InterviewExternal() {
           ))}
           {isAiTyping && (
             <div className="flex justify-start">
-              <div className="bg-secondary rounded-lg px-4 py-3 text-sm">
+              <div className="bg-muted rounded-lg px-4 py-3 text-sm">
                 <span className="animate-pulse">Thinking...</span>
               </div>
             </div>
