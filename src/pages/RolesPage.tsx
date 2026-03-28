@@ -288,7 +288,8 @@ export default function RolesPage() {
                         '0.95': 'hsl(0 70% 55%)',
                       };
                       return named.map((s, i) => {
-                        const pct = total > 0 ? (s.weight / total) * 100 : 0;
+                        const w = Number(s.weight) || 0;
+                        const pct = total > 0 ? (w / total) * 100 : 0;
                         const color = weightColors[String(s.weight)] || 'hsl(var(--primary))';
                         return (
                           <div
