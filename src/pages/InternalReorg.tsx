@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { useEmployees, useAllEmployeeSkills, useRoles } from "@/hooks/useData";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,15 +9,19 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ReadinessRing } from "@/components/ReadinessRing";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Clock, Sparkles, Scan } from "lucide-react";
+import { CheckCircle2, Clock, Sparkles, Scan, Users, UserPlus, UsersRound } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 
 interface ReorgMatch {
   employee: { id: string; name: string; job_title: string | null; department: string | null; avatar_initials: string | null; avatar_color: string | null };
   matchScore: number; readinessPercent: number; immediateReadiness: boolean;
   transferType: string; gapsRemaining: GapItem[];
   threeLayerScore?: number;
+  isExternal?: boolean;
 }
+
+type CandidateFilter = "both" | "internal" | "external";
 
 export default function InternalReorg() {
   const { data: employees } = useEmployees();
@@ -29,7 +33,17 @@ export default function InternalReorg() {
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [results, setResults] = useState<ReorgMatch[] | null>(null);
+  const [candidateFilter, setCandidateFilter] = useState<CandidateFilter>("both");
   const autoScanTriggered = useRef(false);
+
+  const { data: externalCandidates } = useQuery({
+    queryKey: ["external_candidates_reorg"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("external_candidates").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const selectedRole = roles?.find(r => r.id === selectedRoleId);
 
@@ -72,7 +86,8 @@ export default function InternalReorg() {
       }
     });
 
-    const matches: ReorgMatch[] = employees.map(emp => {
+    // Internal employees
+    const internalMatches: ReorgMatch[] = employees.map(emp => {
       const empSkills: SkillVector = {};
       allSkills.filter(s => s.employee_id === emp.id).forEach(s => { empSkills[s.skill_name] = s.proficiency || 0; });
 
@@ -92,7 +107,6 @@ export default function InternalReorg() {
       const readiness = gap.readinessPercent;
       const isSameDept = emp.department === selectedRole.department;
 
-      // Use three-layer score from DB if available, otherwise fall back to gap readiness
       const dbScore = dbScoreMap[emp.id];
       const effectiveReadiness = dbScore?.threeLayer
         ? Math.round(dbScore.threeLayer * 100)
@@ -105,15 +119,34 @@ export default function InternalReorg() {
         matchScore: cosine, readinessPercent: effectiveReadiness, immediateReadiness: effectiveReadiness >= 80,
         transferType, gapsRemaining: gap.criticalGaps,
         threeLayerScore: dbScore?.threeLayer,
+        isExternal: false,
       };
-    }).sort((a, b) => {
+    });
+
+    // External candidates for this role
+    const externalMatches: ReorgMatch[] = (externalCandidates || [])
+      .filter(c => c.role_id === selectedRole.id && c.interview_worthy)
+      .map(c => {
+        const score = c.full_three_layer_score || (c.worthy_score ? c.worthy_score * 0.8 : 0);
+        const readiness = Math.round(score * 100);
+        const initials = c.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+        return {
+          employee: { id: c.id, name: c.name, job_title: "External Candidate", department: "External", avatar_initials: initials, avatar_color: "#8b5cf6" },
+          matchScore: score, readinessPercent: readiness, immediateReadiness: readiness >= 80,
+          transferType: 'external', gapsRemaining: [],
+          threeLayerScore: score,
+          isExternal: true,
+        };
+      });
+
+    const allMatches = [...internalMatches, ...externalMatches].sort((a, b) => {
       if (a.immediateReadiness && !b.immediateReadiness) return -1;
       if (!a.immediateReadiness && b.immediateReadiness) return 1;
       return b.readinessPercent - a.readinessPercent;
     });
 
     await supabase.from("reorg_matches").delete().eq("role_id", selectedRole.id);
-    for (const m of matches) {
+    for (const m of internalMatches) {
       await supabase.from("reorg_matches").insert({
         employee_id: m.employee.id, role_id: selectedRole.id,
         cosine_similarity: m.matchScore, readiness_percent: m.readinessPercent,
@@ -123,9 +156,9 @@ export default function InternalReorg() {
       });
     }
 
-    setResults(matches);
+    setResults(allMatches);
     setScanning(false);
-  }, [selectedRole, employees, allSkills, roles]);
+  }, [selectedRole, employees, allSkills, roles, externalCandidates]);
 
   // Auto-trigger scan when navigated from dashboard
   useEffect(() => {
@@ -134,9 +167,16 @@ export default function InternalReorg() {
     }
   }, [autoScanReady, runScan]);
 
-  const immediate = results?.filter(r => r.readinessPercent >= 80) || [];
-  const nearReady = results?.filter(r => r.readinessPercent >= 60 && r.readinessPercent < 80) || [];
-  const developing = results?.filter(r => r.readinessPercent < 60) || [];
+  const filteredResults = useMemo(() => {
+    if (!results) return null;
+    if (candidateFilter === "internal") return results.filter(r => !r.isExternal);
+    if (candidateFilter === "external") return results.filter(r => r.isExternal);
+    return results;
+  }, [results, candidateFilter]);
+
+  const immediate = filteredResults?.filter(r => r.readinessPercent >= 80) || [];
+  const nearReady = filteredResults?.filter(r => r.readinessPercent >= 60 && r.readinessPercent < 80) || [];
+  const developing = filteredResults?.filter(r => r.readinessPercent < 60) || [];
 
   return (
     <div>
@@ -153,6 +193,22 @@ export default function InternalReorg() {
                 {roles?.filter(r => r.is_open).map(r => (
                   <SelectItem key={r.id} value={r.id}>{r.title}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+            <Select value={candidateFilter} onValueChange={v => setCandidateFilter(v as CandidateFilter)}>
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="both">
+                  <span className="flex items-center gap-2"><UsersRound className="h-3.5 w-3.5" /> All Candidates</span>
+                </SelectItem>
+                <SelectItem value="internal">
+                  <span className="flex items-center gap-2"><Users className="h-3.5 w-3.5" /> Internal Only</span>
+                </SelectItem>
+                <SelectItem value="external">
+                  <span className="flex items-center gap-2"><UserPlus className="h-3.5 w-3.5" /> External Only</span>
+                </SelectItem>
               </SelectContent>
             </Select>
             {selectedRoleId && (
@@ -174,7 +230,7 @@ export default function InternalReorg() {
         )}
 
         {/* Results */}
-        {results && !scanning && (
+        {filteredResults && !scanning && (
           <>
             <div className="flex flex-wrap items-center gap-6">
               <div className="flex items-center gap-2 text-sm">
@@ -189,7 +245,7 @@ export default function InternalReorg() {
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <Sparkles className="h-4 w-4 text-status-purple" />
-                <span className="font-semibold">{results.filter(r => r.transferType === 'hidden_match').length}</span>
+                <span className="font-semibold">{filteredResults.filter(r => r.transferType === 'hidden_match').length}</span>
                 <span className="text-muted-foreground">Hidden Matches</span>
               </div>
             </div>
@@ -216,7 +272,7 @@ function Lane({ title, subtitle, color, matches, navigate }: { title: string; su
       <div className="space-y-3">
         {matches.map(m => (
           <Card key={m.employee.id} className={`cursor-pointer hover:shadow-md transition-shadow ${borderColor}`}
-            onClick={() => navigate(`/analysis/${m.employee.id}`)}>
+            onClick={() => navigate(m.isExternal ? `/external-candidate/${m.employee.id}` : `/analysis/${m.employee.id}`)}>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-primary-foreground"
@@ -224,7 +280,12 @@ function Lane({ title, subtitle, color, matches, navigate }: { title: string; su
                   {m.employee.avatar_initials || '?'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-semibold truncate">{m.employee.name}</h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-semibold truncate">{m.employee.name}</h4>
+                    {m.isExternal && (
+                      <Badge className="text-[9px] bg-purple-100 text-purple-700 border-purple-200">External</Badge>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground truncate">{m.employee.job_title}</p>
                   <p className="text-[10px] text-muted-foreground">{m.employee.department}</p>
                 </div>
