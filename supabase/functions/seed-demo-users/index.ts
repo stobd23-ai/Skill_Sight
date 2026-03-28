@@ -74,7 +74,7 @@ serve(async (req) => {
           email: "manager@bmw-skillsight.com",
           role: "manager",
           employee_id: null,
-          full_name: "Dr. Ishansh Gupta",
+          full_name: "Dr. Marcus Weber",
         });
         results.push("Manager created");
       }
