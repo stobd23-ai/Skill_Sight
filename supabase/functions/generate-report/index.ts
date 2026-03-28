@@ -99,16 +99,10 @@ Top 4 gaps max. For each:
 Gap Type: [Progression/Foundational] — [reason]
 Why it matters: [1-2 sentences — BMW-specific]
 ---
-### 90-Day Action Plan
-3 phases (Weeks 1-4, 5-8, 9-12). Use actual_starting_point for realism. BMW-specific resources: Digital Boost modules, internal secondments, BMW Academy.
----
 ### Risk Factors
 Exactly 3 risks. For each:
 **[Risk Name]** · [LOW/MEDIUM/HIGH]
 [What the risk is in one sentence]. [How to mitigate in one sentence].
----
-### 6-Month Roadmap
-Month-by-month bullets. Reference Digital Boost, iFACTORY, Neue Klasse.
 ---
 ### Recommended HR Actions
 Exactly 3 bullets. Verb-first. Specific. Time-bound.
