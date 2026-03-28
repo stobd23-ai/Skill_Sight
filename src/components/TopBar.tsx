@@ -27,8 +27,11 @@ const routeNames: Record<string, string> = {
 export function TopBar() {
   const { profile, signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   if (!profile) return null;
+
+  const canGoBack = location.key !== "default";
 
   const isManager = profile.role === "manager";
   const initials = profile.full_name
