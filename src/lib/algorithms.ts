@@ -19,10 +19,15 @@ export interface GapItem {
   priority: 'critical' | 'high' | 'medium' | 'low';
 }
 
+export interface InterviewSurplusItem {
+  skill: string; type: 'capability'; rating: string; evidence: string; relevance: string;
+}
+
 export interface GapAnalysis {
   normalizedGapScore: number; readinessPercent: number;
   criticalGaps: GapItem[];
   surplusSkills: { skill: string; current: number; required: number; surplus: number }[];
+  interviewSurplus: InterviewSurplusItem[];
 }
 
 export interface PathResult {
