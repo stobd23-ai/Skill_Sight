@@ -308,7 +308,7 @@ export default function EmployeeList() {
                   const isPendingReview = isSelfSubmit && (c as any).manager_decision === "pending" && c.interview_worthy;
 
                   return (
-                    <div key={c.id} className="card-skillsight p-5">
+                    <div key={c.id} className="card-skillsight p-5 cursor-pointer hover:shadow-skillsight-md hover:-translate-y-0.5 transition-all duration-150" onClick={() => navigate(`/external-candidate/${c.id}`)}>
                       <div className="flex items-start gap-3">
                         <div className="w-11 h-11 rounded-full bg-purple-500 flex items-center justify-center text-sm font-bold text-primary-foreground shrink-0">
                           {initials}
