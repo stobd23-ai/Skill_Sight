@@ -33,6 +33,48 @@ function markdownToHtml(md: string): string {
     .replace(/<\/li>\n<li/g, '</li><li');
 }
 
+function AbsenceAnalysisSection({ analysis }: { analysis: { critical_gaps?: string[]; indirect_only?: string[]; well_evidenced?: string[] } }) {
+  const [open, setOpen] = useState(false);
+  const hasContent = (analysis.well_evidenced?.length || 0) + (analysis.indirect_only?.length || 0) + (analysis.critical_gaps?.length || 0) > 0;
+  if (!hasContent) return null;
+  return (
+    <div>
+      <button onClick={() => setOpen(!open)} className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors">
+        <Search className="h-3 w-3" />Evidence Analysis
+        {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+      </button>
+      {open && (
+        <div className="mt-2 space-y-2 pl-1">
+          {(analysis.well_evidenced?.length || 0) > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-green-700 mb-0.5">✓ Well Evidenced</p>
+              <ul className="space-y-0.5">{analysis.well_evidenced!.map((s: string, i: number) => (
+                <li key={i} className="text-[11px] text-green-700 flex items-start gap-1"><CheckCircle className="h-2.5 w-2.5 mt-0.5 shrink-0" />{s}</li>
+              ))}</ul>
+            </div>
+          )}
+          {(analysis.indirect_only?.length || 0) > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-amber-700 mb-0.5">⚠ Indirect Only</p>
+              <ul className="space-y-0.5">{analysis.indirect_only!.map((s: string, i: number) => (
+                <li key={i} className="text-[11px] text-amber-700 flex items-start gap-1"><AlertTriangle className="h-2.5 w-2.5 mt-0.5 shrink-0" />{s}</li>
+              ))}</ul>
+            </div>
+          )}
+          {(analysis.critical_gaps?.length || 0) > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-destructive mb-0.5">✗ Critical Gaps</p>
+              <ul className="space-y-0.5">{analysis.critical_gaps!.map((s: string, i: number) => (
+                <li key={i} className="text-[11px] text-destructive flex items-start gap-1"><XCircle className="h-2.5 w-2.5 mt-0.5 shrink-0" />{s}</li>
+              ))}</ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ExternalCandidateProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
