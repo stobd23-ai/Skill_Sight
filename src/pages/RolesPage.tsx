@@ -227,16 +227,88 @@ export default function RolesPage() {
                 <Label>Skill Requirements</Label>
                 <Button variant="outline" size="sm" onClick={addSkill} className="text-xs h-7"><Plus className="h-3 w-3" /> Add Skill</Button>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {skillReqs.map((s, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <Input placeholder="Skill Name" value={s.name} onChange={e => updateSkill(i, 'name', e.target.value)} className="flex-1" />
-                    <Input type="number" value={s.required} onChange={e => updateSkill(i, 'required', Number(e.target.value))} min={1} max={3} className="w-20" placeholder="Req" />
-                    <Input type="number" value={s.weight} onChange={e => updateSkill(i, 'weight', Number(e.target.value))} min={0} max={1} step={0.05} className="w-20" placeholder="Weight" />
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeSkill(i)}><X className="h-3 w-3" /></Button>
+                  <div key={i} className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Input placeholder="Skill Name" value={s.name} onChange={e => updateSkill(i, 'name', e.target.value)} className="flex-1" />
+                      <Select value={String(s.required)} onValueChange={v => updateSkill(i, 'required', Number(v))}>
+                        <SelectTrigger className="w-[130px]"><SelectValue placeholder="Proficiency" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">Beginner</SelectItem>
+                          <SelectItem value="2">Intermediate</SelectItem>
+                          <SelectItem value="3">Expert</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select value={String(s.weight)} onValueChange={v => updateSkill(i, 'weight', Number(v))}>
+                        <SelectTrigger className="w-[170px]"><SelectValue placeholder="Weight" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0.3">Low Priority — 0.3</SelectItem>
+                          <SelectItem value="0.5">Below Average — 0.5</SelectItem>
+                          <SelectItem value="0.6">Standard — 0.6</SelectItem>
+                          <SelectItem value="0.8">High Priority — 0.8</SelectItem>
+                          <SelectItem value="0.95">Critical — 0.95</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeSkill(i)}><X className="h-3 w-3" /></Button>
+                    </div>
+                    {s.name && (
+                      <div className="flex items-center gap-2 pl-1">
+                        <SkillBadge skill={s.name} proficiency={s.required as 0 | 1 | 2 | 3} showLabel />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
+
+              {/* Strategic Weights Visualizer */}
+              {skillReqs.filter(s => s.name.trim()).length > 0 && (
+                <div className="mt-3">
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Strategic Weight Distribution</Label>
+                  <div className="flex h-5 rounded-md overflow-hidden border border-border">
+                    {(() => {
+                      const named = skillReqs.filter(s => s.name.trim());
+                      const total = named.reduce((sum, s) => sum + s.weight, 0);
+                      const weightColors: Record<string, string> = {
+                        '0.3': 'hsl(var(--muted))',
+                        '0.5': 'hsl(210 60% 80%)',
+                        '0.6': 'hsl(var(--primary))',
+                        '0.8': 'hsl(40 90% 55%)',
+                        '0.95': 'hsl(0 70% 55%)',
+                      };
+                      return named.map((s, i) => {
+                        const pct = total > 0 ? (s.weight / total) * 100 : 0;
+                        const color = weightColors[String(s.weight)] || 'hsl(var(--primary))';
+                        return (
+                          <div
+                            key={i}
+                            style={{ width: `${pct}%`, backgroundColor: color }}
+                            className="relative group"
+                            title={`${s.name}: ${s.weight}`}
+                          >
+                            <span className="absolute inset-0 flex items-center justify-center text-[9px] font-semibold text-white opacity-0 group-hover:opacity-100 truncate px-0.5">
+                              {s.name}
+                            </span>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                  <div className="flex gap-3 mt-1.5">
+                    {[
+                      { label: 'Low', color: 'hsl(var(--muted))' },
+                      { label: 'Standard', color: 'hsl(var(--primary))' },
+                      { label: 'High', color: 'hsl(40 90% 55%)' },
+                      { label: 'Critical', color: 'hsl(0 70% 55%)' },
+                    ].map(l => (
+                      <div key={l.label} className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: l.color }} />
+                        <span className="text-[10px] text-muted-foreground">{l.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
