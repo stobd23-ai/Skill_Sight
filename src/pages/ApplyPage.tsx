@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Shield, CheckCircle, FileText, Loader2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Clock, Shield, CheckCircle, FileText, Loader2, AlertTriangle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { runFullAnalysis, detectRoleType } from "@/lib/algorithms";
 
@@ -396,14 +396,23 @@ export default function ApplyPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b px-6 py-3 flex items-center justify-center gap-2">
-        <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
-          <span className="text-[9px] font-bold text-primary-foreground">BMW</span>
+      <header className="border-b px-6 py-3 flex items-center justify-between">
+        <button
+          onClick={() => window.history.length > 1 ? window.history.back() : (window.location.href = "/login")}
+          className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
+            <span className="text-[9px] font-bold text-primary-foreground">BMW</span>
+          </div>
+          <div className="text-center">
+            <span className="text-sm font-bold">SkillSight</span>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">BMW Group · Career Assessment Portal</p>
+          </div>
         </div>
-        <div className="text-center">
-          <span className="text-sm font-bold">SkillSight</span>
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">BMW Group · Career Assessment Portal</p>
-        </div>
+        <div className="w-7" />
       </header>
 
       <div className="text-center py-10 px-6">

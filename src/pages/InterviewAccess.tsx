@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Shield, Clock, MessageSquare, CheckCircle } from "lucide-react";
+import { ArrowLeft, Shield, Clock, MessageSquare, CheckCircle } from "lucide-react";
 
 export default function InterviewAccess() {
   const navigate = useNavigate();
@@ -129,7 +129,13 @@ export default function InterviewAccess() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative">
+      <button
+        onClick={() => window.history.length > 1 ? window.history.back() : (window.location.href = "/login")}
+        className="absolute top-4 left-4 h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+      >
+        <ArrowLeft className="h-4 w-4" />
+      </button>
       <div className="w-full max-w-[460px]">
         <div className="card-skillsight p-8 space-y-6">
           {/* Header */}
