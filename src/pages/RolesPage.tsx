@@ -67,7 +67,7 @@ export default function RolesPage() {
     setEditOpen(true);
   };
 
-  const addSkill = () => setSkillReqs([...skillReqs, { name: "", required: 2, weight: 0.6 }]);
+  const addSkill = () => setSkillReqs([...skillReqs, { name: "", required: 2, weight: "" as any }]);
   const removeSkill = (i: number) => setSkillReqs(skillReqs.filter((_, j) => j !== i));
   const updateSkill = (i: number, field: keyof SkillReq, value: string | number) => {
     setSkillReqs(skillReqs.map((s, j) => j === i ? { ...s, [field]: value } : s));
