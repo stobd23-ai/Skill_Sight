@@ -168,7 +168,7 @@ export default function InterviewExternal() {
             tenureYears: 0,
           },
         });
-        momentum = momentumResponse;
+        momentum = momentumResponse?.momentum;
       } catch (e) {
         console.error("Momentum computation failed:", e);
       }
