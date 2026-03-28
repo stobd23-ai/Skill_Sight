@@ -18,7 +18,7 @@ import {
   ArrowLeft, ArrowRight, UserPlus, Target, Zap, Brain, BarChart3, Shield, TrendingUp,
   FileText, Sparkles, ExternalLink, Mail, Eye, EyeOff, Quote, AlertTriangle,
   CheckCircle, XCircle, ChevronDown, ChevronUp, Star, Heart, Route, Search, ShieldAlert,
-  Copy, RefreshCw,
+  Copy, RefreshCw, Trash2,
 } from "lucide-react";
 
 function markdownToHtml(md: string): string {
