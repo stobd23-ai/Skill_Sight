@@ -279,7 +279,7 @@ export default function RolesPage() {
                   <div className="flex h-5 rounded-md overflow-hidden border border-border">
                     {(() => {
                       const named = skillReqs.filter(s => s.name.trim());
-                      const total = named.reduce((sum, s) => sum + s.weight, 0);
+                      const total = named.reduce((sum, s) => sum + (Number(s.weight) || 0), 0);
                       const weightColors: Record<string, string> = {
                         '0.3': 'hsl(var(--muted))',
                         '0.5': 'hsl(210 60% 80%)',
