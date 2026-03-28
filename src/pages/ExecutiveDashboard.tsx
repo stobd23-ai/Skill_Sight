@@ -255,7 +255,7 @@ export default function ExecutiveDashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {hiringPriorities.map(({ role, bestReadiness, bestEmployee, worthyExternals, urgency }) => {
+            {hiringPriorities.map(({ role, bestReadiness, bestEmployee, worthyExternals, talentPoolReady, urgency }) => {
               const colors = urgencyColors[urgency];
               const gap = 100 - bestReadiness;
               return (
@@ -266,9 +266,16 @@ export default function ExecutiveDashboard() {
                 >
                   <div className="flex items-start justify-between mb-1">
                     <h3 className="text-[16px] font-bold leading-tight">{role.title}</h3>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ${colors.badgeBg}`}>
-                      {urgency}
-                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ${colors.badgeBg}`}>
+                        {urgency}
+                      </span>
+                      {talentPoolReady > 0 && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                          <Award className="h-3 w-3" /> {talentPoolReady} verified
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <p className="text-[13px] text-muted-foreground mb-4">{role.department || 'No department'}</p>
 
@@ -289,11 +296,17 @@ export default function ExecutiveDashboard() {
 
                   <div className="mb-4">
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">External Pipeline:</p>
-                    {worthyExternals > 0 ? (
-                      <span className="text-[13px] text-status-green font-medium flex items-center gap-1">
-                        <UserCheck className="h-3.5 w-3.5" /> {worthyExternals} qualified
+                    {worthyExternals > 0 && (
+                      <span className="text-[13px] text-primary font-medium flex items-center gap-1 mb-0.5">
+                        <UserCheck className="h-3.5 w-3.5" /> {worthyExternals} in pipeline
                       </span>
-                    ) : (
+                    )}
+                    {talentPoolReady > 0 && (
+                      <span className="text-[13px] font-medium flex items-center gap-1" style={{ color: '#d97706' }}>
+                        <Award className="h-3.5 w-3.5" /> {talentPoolReady} talent pool ready
+                      </span>
+                    )}
+                    {worthyExternals === 0 && talentPoolReady === 0 && (
                       <span className="text-[13px] text-destructive font-medium">0 qualified externals</span>
                     )}
                   </div>
