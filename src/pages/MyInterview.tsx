@@ -376,7 +376,7 @@ export default function MyInterview() {
           technical_match: results.overallReadiness,
           capability_match: capabilityReadiness,
           three_layer_score: threeLayer.threeLayerScore,
-          score_breakdown: threeLayer as any,
+          score_breakdown: { ...threeLayer, capabilityData: capabilityData || null } as any,
           computed_at: new Date().toISOString(),
         },
         { onConflict: "employee_id,role_id" }

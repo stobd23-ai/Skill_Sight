@@ -84,6 +84,10 @@ export default function AnalysisPage() {
   const roleType = (latestResult as any)?.role_type || 'technical_specialist';
   const ahpWeightsUsed = (latestResult as any)?.ahp_weights_used as any || null;
   const scoreBreakdown = (latestResult as any)?.score_breakdown as any || null;
+  const capabilityData = scoreBreakdown?.capabilityData || null;
+  const transitionProfile = capabilityData?.transition_profile || null;
+  const capabilityProfile = capabilityData?.capability_profile || null;
+  const gapClassification = capabilityData?.gap_classification || null;
 
   const readiness = threeLayerScore != null
     ? Math.round(threeLayerScore * 100)
