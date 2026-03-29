@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
+import { formatSkillName } from "@/lib/utils";
+
 function markdownToHtml(md: string): string {
   return md
     .replace(/^### (.+)$/gm, '<h3 class="text-base font-semibold mt-6 mb-2">$1</h3>')
@@ -49,7 +51,7 @@ function AbsenceAnalysisSection({ analysis }: { analysis: { critical_gaps?: stri
             <div>
               <p className="text-[10px] font-semibold text-green-700 mb-0.5">✓ Well Evidenced</p>
               <ul className="space-y-0.5">{analysis.well_evidenced!.map((s: string, i: number) => (
-                <li key={i} className="text-[11px] text-green-700 flex items-start gap-1"><CheckCircle className="h-2.5 w-2.5 mt-0.5 shrink-0" />{s}</li>
+                <li key={i} className="text-[11px] text-green-700 flex items-start gap-1"><CheckCircle className="h-2.5 w-2.5 mt-0.5 shrink-0" />{formatSkillName(s)}</li>
               ))}</ul>
             </div>
           )}
@@ -57,7 +59,7 @@ function AbsenceAnalysisSection({ analysis }: { analysis: { critical_gaps?: stri
             <div>
               <p className="text-[10px] font-semibold text-amber-700 mb-0.5">⚠ Indirect Only</p>
               <ul className="space-y-0.5">{analysis.indirect_only!.map((s: string, i: number) => (
-                <li key={i} className="text-[11px] text-amber-700 flex items-start gap-1"><AlertTriangle className="h-2.5 w-2.5 mt-0.5 shrink-0" />{s}</li>
+                <li key={i} className="text-[11px] text-amber-700 flex items-start gap-1"><AlertTriangle className="h-2.5 w-2.5 mt-0.5 shrink-0" />{formatSkillName(s)}</li>
               ))}</ul>
             </div>
           )}
@@ -65,7 +67,7 @@ function AbsenceAnalysisSection({ analysis }: { analysis: { critical_gaps?: stri
             <div>
               <p className="text-[10px] font-semibold text-destructive mb-0.5">✗ Critical Gaps</p>
               <ul className="space-y-0.5">{analysis.critical_gaps!.map((s: string, i: number) => (
-                <li key={i} className="text-[11px] text-destructive flex items-start gap-1"><XCircle className="h-2.5 w-2.5 mt-0.5 shrink-0" />{s}</li>
+                <li key={i} className="text-[11px] text-destructive flex items-start gap-1"><XCircle className="h-2.5 w-2.5 mt-0.5 shrink-0" />{formatSkillName(s)}</li>
               ))}</ul>
             </div>
           )}
@@ -614,7 +616,7 @@ export default function ExternalCandidateProfile() {
                       {(gapAnalysis.criticalGaps || []).slice(0, 6).map((gap: any, i: number) => (
                         <div key={i} className="flex items-center gap-3">
                           <PriorityBadge priority={gap.priority} />
-                          <span className="text-sm font-medium flex-1">{gap.skill?.replace(/([A-Z])/g, " $1").trim()}</span>
+                          <span className="text-sm font-medium flex-1">{formatSkillName(gap.skill)}</span>
                           <div className="flex items-center gap-1.5 text-xs">
                             <span className="font-mono text-muted-foreground">{gap.currentProficiency}</span>
                             <ArrowRight className="h-3 w-3 text-muted-foreground" />
@@ -634,17 +636,45 @@ export default function ExternalCandidateProfile() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {gapAnalysis.surplusSkills?.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {gapAnalysis.surplusSkills.map((s: any, i: number) => (
-                          <Badge key={i} className="bg-status-green-light text-status-green border-status-green/20">
-                            {s.skill?.replace(/([A-Z])/g, " $1").trim()} +{s.surplus}
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">No surplus skills identified</p>
-                    )}
+                    {(() => {
+                      const algorithmicSurplus = gapAnalysis.surplusSkills || [];
+                      // Auto-detect surplus signals from experience profile / hybrid data
+                      const autoSignals: string[] = [];
+                      const expProfile = results.parsed?.experience_profile || hybridInfo || {};
+                      const educationLevel = expProfile.education_level || results.parsed?.education_level;
+                      const publications = expProfile.publications || results.parsed?.publications || [];
+                      const totalYears = expProfile.total_years || expProfile.total_years_experience || 0;
+                      const skills = results.parsed?.skills || [];
+                      const hasHighDepthSkills = skills.some((s: any) => s.depth === "HIGH");
+
+                      if (educationLevel === "phd") autoSignals.push("Doctoral-level domain expertise");
+                      if (publications.length >= 2) autoSignals.push("Published research in domain");
+                      // Check for patents in CV text
+                      const cvText = ((candidate as any).candidate_message || "").toLowerCase();
+                      if (cvText.includes("patent") || cvText.match(/\d+\s*patents?/i)) autoSignals.push("Patented innovations in domain");
+                      // TÜV or equivalent certification
+                      if (cvText.includes("tüv") || cvText.includes("tuev") || cvText.includes("tüv") || skills.some((s: any) => s.name?.toLowerCase().includes("tüv"))) autoSignals.push("Professional safety certification");
+                      if (totalYears >= 10) autoSignals.push("Decade-plus domain experience");
+
+                      const hasSurplus = algorithmicSurplus.length > 0 || autoSignals.length > 0;
+
+                      return hasSurplus ? (
+                        <div className="flex flex-wrap gap-2">
+                          {algorithmicSurplus.map((s: any, i: number) => (
+                            <Badge key={`alg-${i}`} className="bg-status-green-light text-status-green border-status-green/20">
+                              {formatSkillName(s.skill)} +{s.surplus}
+                            </Badge>
+                          ))}
+                          {autoSignals.map((signal, i) => (
+                            <Badge key={`auto-${i}`} className="bg-status-green-light text-status-green border-status-green/20">
+                              ★ {signal}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No surplus skills identified</p>
+                      );
+                    })()}
                   </CardContent>
                 </Card>
               </div>
