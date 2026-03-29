@@ -245,9 +245,6 @@ export default function LoginPage() {
             </p>
             <p className="text-xs text-white/50 mt-3">— SkillSight Vision, BMW Group</p>
           </div>
-          <p className="text-[11px] text-white/40 uppercase tracking-widest mt-auto pt-4 hidden md:block">
-            BMW Group · Neue Klasse Transformation
-          </p>
         </div>
       </div>
 
