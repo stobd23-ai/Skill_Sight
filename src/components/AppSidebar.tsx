@@ -4,6 +4,7 @@ import {
   Shuffle,
   Network,
   Briefcase,
+  Bug,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import bmwLogo from "@/assets/bmw_logo.svg";
