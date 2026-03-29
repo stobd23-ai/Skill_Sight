@@ -411,7 +411,7 @@ export async function seedDemoCandidates(
           cvText: candidate.cvText,
           targetRole: role.title,
           targetRoleType: roleType,
-          roleRequirements: role.required_skills || {},
+          roleRequirements: skillsToVector(role.required_skills),
         },
       });
 
@@ -455,7 +455,8 @@ export async function seedDemoCandidates(
         parsed.extracted_skills,
         role,
         parsed.experience_profile,
-        aiJudgment
+        aiJudgment,
+        candidate.cvText
       );
 
       let candidateStatus: string;
