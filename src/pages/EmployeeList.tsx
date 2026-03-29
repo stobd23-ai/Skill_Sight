@@ -48,8 +48,8 @@ export default function EmployeeList() {
   const initialView = searchParams.get("tab") === "external" ? "external" : "internal";
   const [viewMode, setViewMode] = useState<"internal" | "external">(initialView);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [extFilter, setExtFilter] = useState<"all" | "pending" | "flagged">(
-    searchParams.get("filter") === "pending" ? "pending" : searchParams.get("filter") === "flagged" ? "flagged" : "all"
+  const [extFilter, setExtFilter] = useState<"all" | "pending" | "flagged" | "denied">(
+    searchParams.get("filter") === "pending" ? "pending" : searchParams.get("filter") === "flagged" ? "flagged" : searchParams.get("filter") === "denied" ? "denied" : "all"
   );
   const [extRoleFilter, setExtRoleFilter] = useState<string>("all");
   const [declineOpen, setDeclineOpen] = useState(false);
@@ -94,6 +94,8 @@ export default function EmployeeList() {
       list = list.filter((c: any) => c.submission_source === "candidate_self_submit" && c.manager_decision === "pending" && c.interview_worthy);
     } else if (extFilter === "flagged") {
       list = list.filter((c: any) => c.status === "flagged_review");
+    } else if (extFilter === "denied") {
+      list = list.filter((c: any) => c.status === "rejected" || c.manager_decision === "rejected");
     }
     if (extRoleFilter !== "all") {
       list = list.filter((c: any) => c.role_id === extRoleFilter);
@@ -112,6 +114,11 @@ export default function EmployeeList() {
   const flaggedCount = useMemo(() => {
     if (!externalCandidates) return 0;
     return externalCandidates.filter((c: any) => c.status === "flagged_review").length;
+  }, [externalCandidates]);
+
+  const deniedCount = useMemo(() => {
+    if (!externalCandidates) return 0;
+    return externalCandidates.filter((c: any) => c.status === "rejected" || c.manager_decision === "rejected").length;
   }, [externalCandidates]);
 
 
@@ -261,6 +268,7 @@ export default function EmployeeList() {
                 { value: "all" as const, label: "All" },
                 { value: "pending" as const, label: `Pending Review${pendingCount > 0 ? ` (${pendingCount})` : ""}` },
                 { value: "flagged" as const, label: `Flagged${flaggedCount > 0 ? ` (${flaggedCount})` : ""}`, amber: true },
+                { value: "denied" as const, label: `Denied${deniedCount > 0 ? ` (${deniedCount})` : ""}`, red: true },
               ].map(f => (
                 <button
                   key={f.value}
@@ -268,6 +276,7 @@ export default function EmployeeList() {
                   className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                     extFilter === f.value
                       ? (f as any).amber ? "bg-amber-500 text-white"
+                        : (f as any).red ? "bg-destructive text-destructive-foreground"
                         : "bg-primary text-primary-foreground"
                       : "bg-secondary text-muted-foreground hover:bg-accent"
                   }`}
