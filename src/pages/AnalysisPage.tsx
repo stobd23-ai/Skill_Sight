@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { formatSkillName } from "@/lib/utils";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { ReadinessRing } from "@/components/ReadinessRing";
@@ -120,7 +121,7 @@ export default function AnalysisPage() {
     const reqSkills = targetRole.required_skills as Record<string, number>;
     return Object.entries(reqSkills).map(([skill, required]) => {
       const empSkill = skills.find(s => s.skill_name === skill);
-      return { skill: skill.replace(/([A-Z])/g, ' $1').trim(), employee: empSkill?.proficiency || 0, required };
+      return { skill: skill), employee: empSkill?.proficiency || 0, required };
     });
   }, [targetRole, skills]);
 
@@ -155,8 +156,8 @@ export default function AnalysisPage() {
     const bestSurplus = gapAnalysis?.surplusSkills?.[0];
     const worstGap = gapAnalysis?.criticalGaps?.[0];
     let standout = '';
-    if (bestSurplus) standout += `Strongest contributor: ${bestSurplus.skill.replace(/([A-Z])/g, ' $1').trim()} (${bestSurplus.current}/3, surplus +${bestSurplus.surplus})`;
-    if (worstGap) standout += `${standout ? ' · ' : ''}Biggest drag: ${worstGap.skill.replace(/([A-Z])/g, ' $1').trim()} (${worstGap.currentProficiency}/3 → ${worstGap.requiredProficiency}/3, weight ${(worstGap.strategicWeight * 100).toFixed(0)}%)`;
+    if (bestSurplus) standout += `Strongest contributor: ${bestSurplus.skill)} (${bestSurplus.current}/3, surplus +${bestSurplus.surplus})`;
+    if (worstGap) standout += `${standout ? ' · ' : ''}Biggest drag: ${worstGap.skill)} (${worstGap.currentProficiency}/3 → ${worstGap.requiredProficiency}/3, weight ${(worstGap.strategicWeight * 100).toFixed(0)}%)`;
     return { factors, standout };
   }, [cosine, jaccBin, jaccW, gapScore, gapAnalysis]);
 
@@ -423,7 +424,7 @@ export default function AnalysisPage() {
                     {critical.length > 0 ? critical.slice(0, 4).map((gap: any, i: number) => (
                       <div key={i} className="flex items-center gap-2 py-1">
                         <PriorityBadge priority={gap.priority as 'critical' | 'high' | 'medium' | 'low'} />
-                        <span className="text-xs font-medium flex-1">{gap.skill.replace(/([A-Z])/g, ' $1').trim()}</span>
+                        <span className="text-xs font-medium flex-1">{gap.skill)}</span>
                         <span className="text-[10px] text-muted-foreground font-mono">
                           wt {(gap.strategicWeight * 100).toFixed(0)}%
                         </span>
@@ -431,7 +432,7 @@ export default function AnalysisPage() {
                     )) : <p className="text-xs text-muted-foreground">No critical gaps identified</p>}
                     {minor.length > 0 && (
                       <p className="text-[10px] text-muted-foreground pt-1 border-t border-border">
-                        + {minor.length} minor gap{minor.length > 1 ? 's' : ''} ({minor.map((g: any) => g.skill.replace(/([A-Z])/g, ' $1').trim()).join(', ')})
+                        + {minor.length} minor gap{minor.length > 1 ? 's' : ''} ({minor.map((g: any) => g.skill)).join(', ')})
                       </p>
                     )}
                   </div>
@@ -458,7 +459,7 @@ export default function AnalysisPage() {
                   <div className="flex flex-wrap gap-2">
                     {gapAnalysis.surplusSkills.map((s, i) => (
                       <Badge key={i} className="bg-status-green-light text-status-green border-status-green/20 hover:bg-status-green-light">
-                        {s.skill.replace(/([A-Z])/g, ' $1').trim()} +{s.surplus}
+                        {s.skill)} +{s.surplus}
                       </Badge>
                     ))}
                   </div>
@@ -476,7 +477,7 @@ export default function AnalysisPage() {
                     {interviewSurplus.map((s, i) => (
                       <div key={i} className="rounded-lg border border-purple-200 bg-purple-50 dark:bg-purple-950/20 dark:border-purple-800 p-3">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-semibold">{s.skill.replace(/([A-Z])/g, ' $1').trim()}</span>
+                          <span className="text-sm font-semibold">{s.skill)}</span>
                           <Badge className={`text-[10px] ${s.rating === 'EXCEPTIONAL' ? 'bg-status-green-light text-status-green border-status-green/20' : 'bg-primary/10 text-primary border-primary/20'}`}>
                             {s.rating}
                           </Badge>
@@ -511,7 +512,7 @@ export default function AnalysisPage() {
                     const maxScore = Math.max(...Object.values(tfidfRarity), 0.01);
                     return (
                       <div key={skill} className="flex items-center gap-3">
-                        <span className="text-xs w-28 truncate">{skill.replace(/([A-Z])/g, ' $1').trim()}</span>
+                        <span className="text-xs w-28 truncate">{skill)}</span>
                         <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
                           <div className="h-full bg-primary/60 rounded-full" style={{ width: `${(score / maxScore) * 100}%` }} />
                         </div>
