@@ -119,8 +119,15 @@ export default function AnalysisPage() {
   const radarData = useMemo(() => {
     if (!targetRole?.required_skills || !skills) return [];
     const reqSkills = skillsToVector(targetRole.required_skills);
+    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
     return Object.entries(reqSkills).map(([skill, required]) => {
-      const empSkill = skills.find(s => s.skill_name === skill);
+      const normSkill = normalize(skill);
+      const empSkill = skills.find(s => {
+        const normEmp = normalize(s.skill_name);
+        return normEmp === normSkill
+          || normSkill.includes(normEmp)
+          || normEmp.includes(normSkill);
+      });
       return { skill: formatSkillName(skill), employee: empSkill?.proficiency || 0, required };
     });
   }, [targetRole, skills]);
