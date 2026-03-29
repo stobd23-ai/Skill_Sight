@@ -71,8 +71,8 @@ export default function InternalReorg() {
 
     await new Promise(r => setTimeout(r, 1500));
 
-    const reqSkills = (selectedRole.required_skills || {}) as SkillVector;
-    const stratWeights = (selectedRole.strategic_weights || {}) as SkillVector;
+    const reqSkills = skillsToVector(selectedRole.required_skills);
+    const stratWeights = skillsToWeights(selectedRole.required_skills);
 
     // Fetch existing three-layer scores from DB
     const { data: dbResults } = await supabase
