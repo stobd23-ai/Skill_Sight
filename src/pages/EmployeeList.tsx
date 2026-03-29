@@ -89,18 +89,17 @@ export default function EmployeeList() {
     let list = externalCandidates;
     if (extFilter === "pending") {
       list = list.filter((c: any) => c.submission_source === "candidate_self_submit" && c.manager_decision === "pending" && c.interview_worthy);
-    } else if (extFilter === "self") {
-      list = list.filter((c: any) => c.submission_source === "candidate_self_submit");
     } else if (extFilter === "flagged") {
       list = list.filter((c: any) => c.status === "flagged_review");
-    } else if (extFilter === "talent_pool") {
-      list = list.filter((c: any) => c.status === "talent_pool" || c.status === "proceeding");
+    }
+    if (extRoleFilter !== "all") {
+      list = list.filter((c: any) => c.role_id === extRoleFilter);
     }
     return list.filter(c => {
       if (!search) return true;
       return c.name?.toLowerCase().includes(search.toLowerCase());
     });
-  }, [externalCandidates, search, extFilter]);
+  }, [externalCandidates, search, extFilter, extRoleFilter]);
 
   const pendingCount = useMemo(() => {
     if (!externalCandidates) return 0;
