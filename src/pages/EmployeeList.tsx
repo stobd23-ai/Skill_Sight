@@ -329,39 +329,26 @@ export default function EmployeeList() {
         {/* External candidates grid */}
         {viewMode === "external" && (
           <div className="space-y-4">
-            {/* Sub-filter tabs + role dropdown */}
-            <div className="flex items-center gap-3">
-              <div className="flex gap-1">
-                {[
-                  { value: "all" as const, label: "All" },
-                  { value: "pending" as const, label: `Pending Review${pendingCount > 0 ? ` (${pendingCount})` : ""}` },
-                  { value: "flagged" as const, label: `Flagged${flaggedCount > 0 ? ` (${flaggedCount})` : ""}`, amber: true },
-                ].map(f => (
-                  <button
-                    key={f.value}
-                    onClick={() => setExtFilter(f.value)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                      extFilter === f.value
-                        ? (f as any).amber ? "bg-amber-500 text-white"
-                          : "bg-primary text-primary-foreground"
-                        : "bg-secondary text-muted-foreground hover:bg-accent"
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-              <Select value={extRoleFilter} onValueChange={setExtRoleFilter}>
-                <SelectTrigger className="h-8 w-[200px] text-xs">
-                  <SelectValue placeholder="All Roles" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  {roles?.map(r => (
-                    <SelectItem key={r.id} value={r.id}>{r.title}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Sub-filter tabs */}
+            <div className="flex gap-1">
+              {[
+                { value: "all" as const, label: "All" },
+                { value: "pending" as const, label: `Pending Review${pendingCount > 0 ? ` (${pendingCount})` : ""}` },
+                { value: "flagged" as const, label: `Flagged${flaggedCount > 0 ? ` (${flaggedCount})` : ""}`, amber: true },
+              ].map(f => (
+                <button
+                  key={f.value}
+                  onClick={() => setExtFilter(f.value)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                    extFilter === f.value
+                      ? (f as any).amber ? "bg-amber-500 text-white"
+                        : "bg-primary text-primary-foreground"
+                      : "bg-secondary text-muted-foreground hover:bg-accent"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
