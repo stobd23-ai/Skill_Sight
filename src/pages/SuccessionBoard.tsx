@@ -255,7 +255,7 @@ export default function SuccessionBoard() {
                           </Badge>
                         )}
                       </div>
-                      <Button variant="ghost" size="sm" className="w-full mt-2 text-xs text-primary h-7">
+                      <Button variant="ghost" size="sm" className="w-full mt-auto pt-2 text-xs text-primary h-7">
                         View Analysis <ArrowRight className="h-3 w-3 ml-1" />
                       </Button>
                     </div>
