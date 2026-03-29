@@ -301,7 +301,7 @@ export default function ExternalCandidateProfile() {
 
           {/* Action buttons */}
           <div className="flex flex-wrap gap-2 mt-4">
-             {(candidate.status === "pending_manager_review" || candidate.status === "flagged_review" || ((candidate as any).submission_source === "candidate_self_submit" && (candidate as any).manager_decision === "pending" && candidate.interview_worthy)) && (
+             {hybridInfo?.verdict !== 'hard_reject' && (candidate.status === "pending_manager_review" || candidate.status === "flagged_review" || ((candidate as any).submission_source === "candidate_self_submit" && (candidate as any).manager_decision === "pending" && candidate.interview_worthy)) && (
               <>
                 <Button size="sm" className="bg-green-600 hover:bg-green-700 text-xs" onClick={handleApprove}>
                   <CheckCircle className="h-3 w-3 mr-1" />Approve for Interview
