@@ -279,6 +279,8 @@ export default function ExternalCandidateProfile() {
                     </div>
                   )}
                 </>
+              ) : candidate.worthy_score != null ? (
+                <ReadinessRing value={Math.round(candidate.worthy_score * 100)} size="sm" label="CV Score" />
               ) : (
                 <div className="flex items-center gap-3 text-muted-foreground">
                   <div className="w-12 h-12 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
@@ -326,13 +328,14 @@ export default function ExternalCandidateProfile() {
           const confidence = hybridInfo.confidence || 'mixed_signals';
           const confLabel = confidence === 'high' ? 'High Confidence' : confidence === 'low' ? 'Low Confidence' : 'Mixed Signals';
           const reasoning = hybridInfo.reasoning || hybridInfo.aiReasoning || '';
-          const recruiterSummary = hybridInfo.recruiterSummary || hybridInfo.recruiter_summary || '';
+          const recruiterSummary = hybridInfo.recruiterSummary || hybridInfo.recruiter_summary || hybridInfo.recruiterNote || hybridInfo.recruiter_note || '';
           const absenceAnalysis = hybridInfo.absence_analysis || null;
           const seniorityCheck = hybridInfo.seniority_check || null;
           const domainGaps = hybridInfo.domain_gap_classification || null;
           const strongMetrics = (hybridInfo.strong_metrics_count || 0) + (hybridInfo.medium_metrics_count || 0);
-          const closingJudgment = hybridInfo.closing_judgment || hybridInfo.closingJudgment || '';
-          const ownershipSignal = hybridInfo.ownership_signal || hybridInfo.ownershipSignal || null;
+          const closingJudgment = hybridInfo.closing_judgment || hybridInfo.closingJudgment || hybridInfo.verb_quality_assessment || '';
+          const ownershipRaw = hybridInfo.ownership_signal || hybridInfo.ownershipSignal || null;
+          const builderVerbRatio = hybridInfo.builder_verb_ratio;
           const notWorthyReasons = hybridInfo.not_worthy_reasons || hybridInfo.concerns || candidate.not_worthy_reasons as any[] || [];
           const keyStrengths = hybridInfo.keyStrengths || hybridInfo.key_strengths || [];
 
@@ -345,9 +348,10 @@ export default function ExternalCandidateProfile() {
           const titleColor = isPositive ? 'text-green-700' : isFlag ? 'text-amber-700' : 'text-destructive';
           const agreementLabel = confidence === 'high' ? 'Both algorithmic and AI assessment agree.' : confidence === 'low' ? 'Assessment signals are weak or insufficient.' : 'Algorithmic and AI assessments show mixed signals.';
 
-          const builderPct = ownershipSignal?.builder_pct ?? ownershipSignal?.builder ?? null;
-          const participantPct = ownershipSignal?.participant_pct ?? ownershipSignal?.participant ?? null;
-          const ownershipNote = ownershipSignal?.note || ownershipSignal?.description || '';
+          // Derive ownership percentages from either object or decimal ratio
+          const builderPct = ownershipRaw?.builder_pct ?? ownershipRaw?.builder ?? (builderVerbRatio != null ? Math.round(builderVerbRatio * 100) : null);
+          const participantPct = ownershipRaw?.participant_pct ?? ownershipRaw?.participant ?? (builderVerbRatio != null ? Math.round((1 - builderVerbRatio) * 100) : null);
+          const ownershipNote = ownershipRaw?.note || ownershipRaw?.description || (builderVerbRatio != null ? hybridInfo.verb_quality_assessment || '' : '');
 
           return (
             <>
