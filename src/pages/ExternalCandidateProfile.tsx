@@ -590,12 +590,3 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
     </div>
   );
 }
-
-function RawRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between py-1.5 px-2 rounded">
-      <span className="text-sm">{label}</span>
-      <span className="font-mono text-sm">{value}</span>
-    </div>
-  );
-}
