@@ -134,10 +134,24 @@ export function InviteInterviewModal({ open, onOpenChange, employee, onSent }: P
                   </button>
                 );
               })}
+              <button
+                onClick={() => { setPresetPack("custom"); setCustomFocus(""); }}
+                className={`text-left p-2 rounded-md border transition-all ${presetPack === "custom" ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border hover:border-primary/30"}`}
+              >
+                <PenLine className={`h-4 w-4 mb-1 ${presetPack === "custom" ? "text-primary" : "text-muted-foreground"}`} />
+                <p className="text-[11px] font-semibold leading-tight">Other</p>
+              </button>
             </div>
+            {presetPack === "custom" && (
+              <Input
+                value={customFocus}
+                onChange={e => setCustomFocus(e.target.value)}
+                placeholder="e.g. Cross-functional collaboration"
+                className="h-8 text-xs mt-1.5"
+                maxLength={100}
+              />
+            )}
           </div>
-
-          {/* Message + Expiry inline */}
           <div className="flex gap-3">
             <div className="space-y-1 flex-1">
               <label className="text-[12px] font-medium">Message <span className="text-muted-foreground font-normal">(optional)</span></label>
