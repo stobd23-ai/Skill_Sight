@@ -253,6 +253,13 @@ export default function EmployeeList() {
               </div>
             </>
           )}
+
+          {viewMode === "external" && (
+            <select value={extRoleFilter} onChange={e => setExtRoleFilter(e.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
+              <option value="all">All Departments</option>
+              {roles?.map(r => <option key={r.id} value={r.id}>{r.title}{r.department ? ` — ${r.department}` : ''}</option>)}
+            </select>
+          )}
         </div>
 
         <p className="text-xs text-muted-foreground">
