@@ -324,8 +324,27 @@ export default function EmployeeProfile() {
                 View Full Analysis <ChevronRight className="h-3 w-3 ml-1" />
               </Button>
             </div>
+          ) : completedEmployee || completedManager ? (
+            <div className="text-center py-6">
+              <BarChart3 className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm font-medium">Analysis will be available once the pipeline completes</p>
+              <Button size="sm" className="mt-3" onClick={() => navigate(`/analysis/${id}`)}>View Analysis</Button>
+            </div>
+          ) : empInterviews.some(i => i.status === 'in_progress' || i.status === 'pending') ? (
+            <div className="text-center py-6">
+              <Clock className="h-8 w-8 mx-auto text-status-amber mb-2" />
+              <p className="text-sm font-medium">Interview In Progress</p>
+              <p className="text-xs text-muted-foreground mt-1">Analysis will be generated once the interview is completed.</p>
+            </div>
           ) : (
-            <EmptyState icon={BarChart3} title="No analysis yet" description="Run an interview first to generate skill analysis." action={{ label: "Run Analysis →", onClick: () => navigate(`/interview/employee/${id}`) }} />
+            <div className="text-center py-6">
+              <BarChart3 className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm font-medium">No analysis yet</p>
+              <p className="text-xs text-muted-foreground mt-1">This person needs to be interviewed before an assessment can be generated.</p>
+              <Button size="sm" className="mt-3" onClick={() => setInviteModalOpen(true)}>
+                <Mail className="h-3 w-3 mr-1" /> Invite to Interview
+              </Button>
+            </div>
           )}
         </div>
       </div>
