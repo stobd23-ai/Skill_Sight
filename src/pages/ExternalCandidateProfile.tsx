@@ -320,20 +320,21 @@ export default function ExternalCandidateProfile() {
           </div>
         </div>
 
-        {/* Unified Assessment Summary (replaces old hybrid verdict + AI Screening Decision) */}
+        {/* Full Assessment Summary Card */}
         {hybridInfo && (() => {
           const verdictLabel = hybridInfo.verdictLabel || hybridInfo.reasoning || '';
           const confidence = hybridInfo.confidence || 'mixed_signals';
           const confLabel = confidence === 'high' ? 'High Confidence' : confidence === 'low' ? 'Low Confidence' : 'Mixed Signals';
           const reasoning = hybridInfo.reasoning || hybridInfo.aiReasoning || '';
-          // Truncate reasoning to 3 sentences
-          const sentences = reasoning.match(/[^.!?]+[.!?]+/g) || [reasoning];
-          const shortReasoning = sentences.slice(0, 3).join(' ').trim();
-          const hasMore = sentences.length > 3;
+          const recruiterSummary = hybridInfo.recruiterSummary || hybridInfo.recruiter_summary || '';
           const absenceAnalysis = hybridInfo.absence_analysis || null;
           const seniorityCheck = hybridInfo.seniority_check || null;
           const domainGaps = hybridInfo.domain_gap_classification || null;
           const strongMetrics = (hybridInfo.strong_metrics_count || 0) + (hybridInfo.medium_metrics_count || 0);
+          const closingJudgment = hybridInfo.closing_judgment || hybridInfo.closingJudgment || '';
+          const ownershipSignal = hybridInfo.ownership_signal || hybridInfo.ownershipSignal || null;
+          const notWorthyReasons = hybridInfo.not_worthy_reasons || hybridInfo.concerns || candidate.not_worthy_reasons as any[] || [];
+          const keyStrengths = hybridInfo.keyStrengths || hybridInfo.key_strengths || [];
 
           const isPositive = hybridInfo.verdict === 'recommend' || candidate.interview_worthy;
           const isFlag = hybridInfo.verdict === 'flag' || confidence === 'mixed_signals' || confidence === 'low';
@@ -342,72 +343,124 @@ export default function ExternalCandidateProfile() {
           const iconColor = isPositive ? 'text-green-600' : isFlag ? 'text-amber-600' : 'text-destructive';
           const Icon = isPositive ? CheckCircle : isFlag ? AlertTriangle : XCircle;
           const titleColor = isPositive ? 'text-green-700' : isFlag ? 'text-amber-700' : 'text-destructive';
+          const agreementLabel = confidence === 'high' ? 'Both algorithmic and AI assessment agree.' : confidence === 'low' ? 'Assessment signals are weak or insufficient.' : 'Algorithmic and AI assessments show mixed signals.';
+
+          const builderPct = ownershipSignal?.builder_pct ?? ownershipSignal?.builder ?? null;
+          const participantPct = ownershipSignal?.participant_pct ?? ownershipSignal?.participant ?? null;
+          const ownershipNote = ownershipSignal?.note || ownershipSignal?.description || '';
 
           return (
-            <Card className={borderClass}>
-              <CardContent className="p-5 space-y-3">
-                {/* Verdict + Confidence */}
-                <div className="flex items-start gap-2">
-                  <Icon className={`h-5 w-5 ${iconColor} mt-0.5 shrink-0`} />
-                  <div>
-                    <h3 className={`text-base font-bold ${titleColor}`}>{verdictLabel}</h3>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <Badge variant="outline" className="text-[10px]">{confLabel}</Badge>
-                      {seniorityCheck && seniorityCheck !== 'not_applicable' && (
-                        <Badge variant="outline" className={`text-[10px] ${seniorityCheck === 'validated' ? 'border-green-300 text-green-700' : seniorityCheck === 'mismatch' ? 'border-destructive text-destructive' : 'border-amber-300 text-amber-700'}`}>
-                          Seniority: {seniorityCheck === 'validated' ? 'Validated' : seniorityCheck === 'mismatch' ? 'Mismatch' : 'Insufficient Evidence'}
-                        </Badge>
-                      )}
-                      {domainGaps && domainGaps !== 'mixed' && (
-                        <Badge variant="outline" className={`text-[10px] ${domainGaps === 'trainable' ? 'border-blue-300 text-blue-700' : 'border-destructive text-destructive'}`}>
-                          Domain gaps: {domainGaps === 'trainable' ? 'Trainable' : 'Critical'}
-                        </Badge>
-                      )}
-                      {strongMetrics > 0 && (
-                        <Badge variant="secondary" className="text-[10px]">
-                          <BarChart3 className="h-2.5 w-2.5 mr-1" />{strongMetrics} measurable impact{strongMetrics !== 1 ? 's' : ''}
-                        </Badge>
-                      )}
+            <>
+              <Card className={borderClass}>
+                <CardContent className="p-5 space-y-4">
+                  {/* Verdict Header */}
+                  <div className="flex items-start gap-2">
+                    <Icon className={`h-5 w-5 ${iconColor} mt-0.5 shrink-0`} />
+                    <div>
+                      <h3 className={`text-base font-bold ${titleColor}`}>
+                        {isPositive ? '✓' : isFlag ? '⚠' : '✕'} {verdictLabel} — {confLabel}
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">{agreementLabel}</p>
+                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                        {seniorityCheck && seniorityCheck !== 'not_applicable' && (
+                          <Badge variant="outline" className={`text-[10px] ${seniorityCheck === 'validated' ? 'border-green-300 text-green-700' : seniorityCheck === 'mismatch' ? 'border-destructive text-destructive' : 'border-amber-300 text-amber-700'}`}>
+                            Seniority: {seniorityCheck === 'validated' ? 'Validated' : seniorityCheck === 'mismatch' ? 'Mismatch' : 'Insufficient Evidence'}
+                          </Badge>
+                        )}
+                        {domainGaps && domainGaps !== 'mixed' && (
+                          <Badge variant="outline" className={`text-[10px] ${domainGaps === 'trainable' ? 'border-blue-300 text-blue-700' : 'border-destructive text-destructive'}`}>
+                            Domain gaps: {domainGaps === 'trainable' ? 'Trainable' : 'Critical'}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
+
+                  {/* Full reasoning paragraph — no truncation */}
+                  {reasoning && (
+                    <p className="text-sm text-foreground/90 leading-relaxed">{reasoning}</p>
+                  )}
+
+                  {/* Recruiter summary blockquote */}
+                  {recruiterSummary && (
+                    <blockquote className="border-l-2 border-muted-foreground/30 pl-3 py-1">
+                      <p className="text-sm italic text-muted-foreground">"{recruiterSummary}"</p>
+                    </blockquote>
+                  )}
+
+                  {/* Rejection/Flag Reasons */}
+                  {notWorthyReasons.length > 0 && (
+                    <div className="space-y-1.5">
+                      {notWorthyReasons.map((reason: any, i: number) => {
+                        const text = typeof reason === 'string' ? reason : reason.reason || reason.text || JSON.stringify(reason);
+                        return (
+                          <div key={i} className="flex items-start gap-2">
+                            <XCircle className="h-3.5 w-3.5 text-destructive mt-0.5 shrink-0" />
+                            <span className="text-xs text-destructive">{text}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Closing judgment */}
+                  {closingJudgment && (
+                    <p className="text-xs italic text-muted-foreground">{closingJudgment}</p>
+                  )}
+
+                  {/* Strengths section */}
+                  {keyStrengths.length > 0 && (
+                    <div className="space-y-1.5 pt-1">
+                      <p className="text-xs font-semibold text-muted-foreground">
+                        {isPositive ? 'Key strengths:' : 'Strengths noted but insufficient for this role:'}
+                      </p>
+                      {keyStrengths.map((s: string, i: number) => (
+                        <div key={i} className="flex items-start gap-2">
+                          <Star className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                          <span className="text-xs text-muted-foreground">{s}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Ownership Signal Bar — outside the card */}
+              {builderPct != null && participantPct != null && (
+                <div className="space-y-1.5">
+                  <p className="text-xs font-semibold text-muted-foreground">Ownership Signal</p>
+                  <div className="w-full h-5 rounded-full overflow-hidden flex bg-secondary">
+                    <div
+                      className="h-full bg-primary flex items-center justify-center"
+                      style={{ width: `${builderPct}%` }}
+                    >
+                      {builderPct > 15 && <span className="text-[10px] font-bold text-primary-foreground">Builder {builderPct}%</span>}
+                    </div>
+                    <div
+                      className="h-full bg-muted flex items-center justify-center"
+                      style={{ width: `${participantPct}%` }}
+                    >
+                      {participantPct > 15 && <span className="text-[10px] font-medium text-muted-foreground">Participant {participantPct}%</span>}
+                    </div>
+                  </div>
+                  {ownershipNote && (
+                    <p className="text-[11px] italic text-muted-foreground">{ownershipNote}</p>
+                  )}
                 </div>
+              )}
 
-                {/* 3-sentence reasoning */}
-                <p className="text-sm text-foreground/80">{shortReasoning}</p>
-                {hasMore && (
-                  <ExpandableSection label="See full analysis">
-                    <p className="text-sm text-foreground/80">{sentences.slice(3).join(' ').trim()}</p>
-                  </ExpandableSection>
-                )}
+              {/* Metrics badge */}
+              {strongMetrics > 0 && (
+                <Badge className="bg-green-100 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300">
+                  📊 {strongMetrics} measurable impact{strongMetrics !== 1 ? 's' : ''} found
+                </Badge>
+              )}
 
-                {/* Key strengths (max 3) */}
-                {hybridInfo.keyStrengths?.length > 0 && (
-                  <ul className="space-y-1">
-                    {hybridInfo.keyStrengths.slice(0, 3).map((s: string, i: number) => (
-                      <li key={i} className="text-xs text-green-700 flex items-start gap-1.5">
-                        <CheckCircle className="h-3 w-3 mt-0.5 shrink-0" />{s}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {/* Key gaps (max 3) */}
-                {hybridInfo.concerns?.length > 0 && (
-                  <ul className="space-y-1">
-                    {hybridInfo.concerns.slice(0, 3).map((c: string, i: number) => (
-                      <li key={i} className="text-xs text-amber-700 flex items-start gap-1.5">
-                        <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />{c}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {/* Evidence Analysis (collapsible) */}
-                {absenceAnalysis && (
-                  <AbsenceAnalysisSection analysis={absenceAnalysis} />
-                )}
-              </CardContent>
-            </Card>
+              {/* Evidence Analysis — collapsed by default */}
+              {absenceAnalysis && (
+                <AbsenceAnalysisSection analysis={absenceAnalysis} />
+              )}
+            </>
           );
         })()}
 
