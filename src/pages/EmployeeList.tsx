@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
@@ -10,12 +10,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useEmployees, useAllEmployeeSkills, useAlgorithmResults, useRoles } from "@/hooks/useData";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Clock, Star, Zap, Plus, UserPlus, Users, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { Search, Clock, Star, Zap, Plus, UserPlus, Users, CheckCircle, XCircle, AlertTriangle, Loader2, Trash2, Database } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { AddExternalCandidateModal } from "@/components/AddExternalCandidateModal";
 import { ReadinessRing } from "@/components/ReadinessRing";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { seedDemoCandidates, clearDemoCandidates, type SeedProgress } from "@/lib/seedCandidates";
 
 
 function useExternalCandidates() {
@@ -63,6 +64,39 @@ export default function EmployeeList() {
   const [successionOpen, setSuccessionOpen] = useState(false);
   const [successionTarget, setSuccessionTarget] = useState<any>(null);
   const [successionRoleId, setSuccessionRoleId] = useState("");
+
+  // Seed state
+  const [seeding, setSeeding] = useState(false);
+  const [seedProgress, setSeedProgress] = useState<SeedProgress | null>(null);
+  const [clearing, setClearing] = useState(false);
+
+  const handleSeed = useCallback(async () => {
+    setSeeding(true);
+    setSeedProgress({ current: 0, total: 15, currentName: "", done: false, results: { strong: 0, flagged: 0, rejected: 0 } });
+    try {
+      const res = await seedDemoCandidates((p) => setSeedProgress(p));
+      toast.success(`15 candidates processed — ${res.strong} strong matches, ${res.flagged} flagged for review, ${res.rejected} hard rejected.`);
+      refetchExternal();
+    } catch (err: any) {
+      toast.error("Seeding failed: " + err.message);
+    } finally {
+      setSeeding(false);
+      setSeedProgress(null);
+    }
+  }, [refetchExternal]);
+
+  const handleClear = useCallback(async () => {
+    setClearing(true);
+    try {
+      const count = await clearDemoCandidates();
+      toast.success(`Cleared ${count} demo candidates.`);
+      refetchExternal();
+    } catch (err: any) {
+      toast.error("Clear failed: " + err.message);
+    } finally {
+      setClearing(false);
+    }
+  }, [refetchExternal]);
 
   const departments = useMemo(() => {
     if (!employees) return [];
@@ -277,12 +311,36 @@ export default function EmployeeList() {
           )}
         </div>
 
-        <p className="text-xs text-muted-foreground">
-          {viewMode === "internal"
-            ? `Showing ${filtered.length} of ${employees?.length || 0} employees`
-            : `Showing ${filteredExternal.length} external candidates`
-          }
-        </p>
+        {/* Seed progress bar */}
+        {seeding && seedProgress && (
+          <div className="card-skillsight p-4 flex items-center gap-3">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <span className="text-sm font-medium">
+              Processing {seedProgress.currentName} ({seedProgress.current} of {seedProgress.total})...
+            </span>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
+            {viewMode === "internal"
+              ? `Showing ${filtered.length} of ${employees?.length || 0} employees`
+              : `Showing ${filteredExternal.length} external candidates`
+            }
+          </p>
+          {viewMode === "external" && (
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleSeed} disabled={seeding || clearing}>
+                {seeding ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Database className="h-3 w-3 mr-1" />}
+                Seed 15 Demo Candidates
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleClear} disabled={seeding || clearing} className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                {clearing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Trash2 className="h-3 w-3 mr-1" />}
+                Clear Demo Candidates
+              </Button>
+            </div>
+          )}
+        </div>
 
         {/* Internal employees grid */}
         {viewMode === "internal" && (
