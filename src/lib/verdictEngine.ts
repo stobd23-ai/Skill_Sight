@@ -132,7 +132,7 @@ export function hybridWorthinessDecision(
     verdict = 'hard_reject';
     verdictLabel = '✕ Below Threshold — Hard Reject';
     worthy = false;
-    worthyScore = Math.min(partialScore, 0.10);
+    worthyScore = partialScore;
     domainGapClassification = 'critical';
   }
   // ── STRONG MATCH ──
