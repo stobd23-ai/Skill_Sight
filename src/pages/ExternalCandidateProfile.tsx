@@ -98,6 +98,14 @@ export default function ExternalCandidateProfile() {
   const [deleting, setDeleting] = useState(false);
   const [cvModalOpen, setCvModalOpen] = useState(false);
   const [promoting, setPromoting] = useState(false);
+  const [insightsOpen, setInsightsOpen] = useState(false);
+  const [managerInsights, setManagerInsights] = useState({
+    culturalFit: "",
+    communicationStyle: "",
+    leadershipPotential: "",
+    technicalDepth: "",
+    concernsOrRisks: "",
+  });
 
   const { data: candidate, isLoading, refetch } = useQuery({
     queryKey: ["external_candidate_detail", id],
@@ -244,11 +252,32 @@ export default function ExternalCandidateProfile() {
   };
 
   const handleToggleInterviewPassed = async (passed: boolean) => {
+    if (passed) {
+      // Open insights dialog instead of toggling directly
+      setInsightsOpen(true);
+      return;
+    }
     await supabase.from("external_candidates").update({
-      interview_passed: passed,
+      interview_passed: false,
+      manager_insights: null,
     } as any).eq("id", candidate.id);
     refetch();
-    toast.success(passed ? "Interview marked as passed" : "Interview marked as not passed");
+    toast.success("Interview marked as not passed");
+  };
+
+  const handleSubmitInsights = async () => {
+    const hasContent = Object.values(managerInsights).some(v => v.trim());
+    if (!hasContent) {
+      toast.error("Please fill in at least one insight field");
+      return;
+    }
+    await supabase.from("external_candidates").update({
+      interview_passed: true,
+      manager_insights: managerInsights,
+    } as any).eq("id", candidate.id);
+    setInsightsOpen(false);
+    refetch();
+    toast.success("Interview passed with manager insights saved");
   };
 
   const handlePromote = async () => {
@@ -368,8 +397,8 @@ export default function ExternalCandidateProfile() {
                 <FileText className="h-3 w-3 mr-1" />View Submitted CV
               </Button>
             )}
-            {/* Interview Pass Toggle */}
-            {cvPassed && hybridInfo?.verdict !== 'hard_reject' && candidate.status !== "rejected" && candidate.status !== "below_threshold" && (
+            {/* Interview Pass Toggle — only after AI interview completed with summary */}
+            {cvPassed && hybridInfo?.verdict !== 'hard_reject' && candidate.status !== "rejected" && candidate.status !== "below_threshold" && isCompleted && interview?.status === "completed" && (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-muted/30">
                 <span className="text-xs text-muted-foreground">In-Person Interview Passed:</span>
                 <Switch
@@ -379,6 +408,12 @@ export default function ExternalCandidateProfile() {
                 <span className={`text-xs font-medium ${interviewPassed ? "text-green-600" : "text-muted-foreground"}`}>
                   {interviewPassed ? "Yes" : "No"}
                 </span>
+              </div>
+            )}
+            {/* Show message if AI interview not yet completed */}
+            {cvPassed && hybridInfo?.verdict !== 'hard_reject' && candidate.status !== "rejected" && candidate.status !== "below_threshold" && !(isCompleted && interview?.status === "completed") && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-dashed border-muted-foreground/30 bg-muted/10">
+                <span className="text-xs text-muted-foreground italic">AI Interview must be completed before marking in-person interview</span>
               </div>
             )}
             {/* Promote to Employee */}
@@ -764,6 +799,41 @@ export default function ExternalCandidateProfile() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCvModalOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Manager Insights Dialog */}
+      <Dialog open={insightsOpen} onOpenChange={setInsightsOpen}>
+        <DialogContent className="max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>In-Person Interview Insights</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Share your observations from the in-person interview with {candidate.name}. These insights will be used by AI to generate their employee profile.</p>
+          <div className="space-y-3 max-h-[50vh] overflow-y-auto">
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cultural Fit & Team Dynamics</label>
+              <Textarea placeholder="How well would they integrate with the team? Any cultural alignment or concerns?" value={managerInsights.culturalFit} onChange={e => setManagerInsights(p => ({ ...p, culturalFit: e.target.value }))} rows={2} className="mt-1" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Communication Style</label>
+              <Textarea placeholder="How did they communicate? Clear, articulate, confident, reserved?" value={managerInsights.communicationStyle} onChange={e => setManagerInsights(p => ({ ...p, communicationStyle: e.target.value }))} rows={2} className="mt-1" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Leadership Potential</label>
+              <Textarea placeholder="Did they show initiative, problem-solving ability, or leadership qualities?" value={managerInsights.leadershipPotential} onChange={e => setManagerInsights(p => ({ ...p, leadershipPotential: e.target.value }))} rows={2} className="mt-1" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Technical Depth Impression</label>
+              <Textarea placeholder="How well did they demonstrate technical knowledge during the conversation?" value={managerInsights.technicalDepth} onChange={e => setManagerInsights(p => ({ ...p, technicalDepth: e.target.value }))} rows={2} className="mt-1" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Concerns or Risks</label>
+              <Textarea placeholder="Any red flags, hesitations, or areas needing development?" value={managerInsights.concernsOrRisks} onChange={e => setManagerInsights(p => ({ ...p, concernsOrRisks: e.target.value }))} rows={2} className="mt-1" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInsightsOpen(false)}>Cancel</Button>
+            <Button onClick={handleSubmitInsights}>Confirm & Mark Passed</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

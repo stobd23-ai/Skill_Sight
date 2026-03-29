@@ -357,6 +357,7 @@ export type Database = {
           manager_decision: string | null
           manager_decision_at: string | null
           manager_decision_note: string | null
+          manager_insights: Json | null
           manager_notified: boolean | null
           name: string
           not_worthy_reasons: Json | null
@@ -386,6 +387,7 @@ export type Database = {
           manager_decision?: string | null
           manager_decision_at?: string | null
           manager_decision_note?: string | null
+          manager_insights?: Json | null
           manager_notified?: boolean | null
           name: string
           not_worthy_reasons?: Json | null
@@ -415,6 +417,7 @@ export type Database = {
           manager_decision?: string | null
           manager_decision_at?: string | null
           manager_decision_note?: string | null
+          manager_insights?: Json | null
           manager_notified?: boolean | null
           name?: string
           not_worthy_reasons?: Json | null

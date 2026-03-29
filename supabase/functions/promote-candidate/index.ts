@@ -52,6 +52,17 @@ serve(async (req) => {
     const algResults = candidate.full_algorithm_results || {};
     const cvText = candidate.candidate_message || "";
     const worthyReasoning = candidate.worthy_reasoning || "";
+    const managerInsights = candidate.manager_insights || {};
+
+    const insightsBlock = managerInsights && Object.keys(managerInsights).length > 0
+      ? `
+MANAGER IN-PERSON INTERVIEW INSIGHTS:
+- Cultural Fit & Team Dynamics: ${managerInsights.culturalFit || "Not provided"}
+- Communication Style: ${managerInsights.communicationStyle || "Not provided"}
+- Leadership Potential: ${managerInsights.leadershipPotential || "Not provided"}
+- Technical Depth Impression: ${managerInsights.technicalDepth || "Not provided"}
+- Concerns or Risks: ${managerInsights.concernsOrRisks || "Not provided"}`
+      : "";
 
     const prompt = `You are an HR system that generates structured employee profiles.
 
@@ -65,6 +76,7 @@ CANDIDATE INFO:
 - Assessment reasoning: ${worthyReasoning.slice(0, 1500)}
 - Interview skills detected: ${JSON.stringify(interviewSkills).slice(0, 2000)}
 - Algorithm results: ${JSON.stringify(algResults).slice(0, 2000)}
+${insightsBlock}
 
 Generate a JSON response with EXACTLY these fields:
 {
@@ -79,9 +91,10 @@ Generate a JSON response with EXACTLY these fields:
   ]
 }
 
-Base the skills on what was detected in their CV and interview. Include 5-10 most relevant skills.
-The performance_score should reflect their assessment results.
-The learning_agility should be based on momentum/learning velocity signals if available.`;
+Base the skills on what was detected in their CV, AI interview, and manager in-person observations. Include 5-10 most relevant skills.
+The performance_score should reflect their assessment results and the manager's impression.
+The learning_agility should be based on momentum/learning velocity signals and the manager's leadership/communication observations.
+If the manager noted concerns, factor those into lower scores where appropriate.`;
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) {

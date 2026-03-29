@@ -1,0 +1,1 @@
+ALTER TABLE public.external_candidates ADD COLUMN IF NOT EXISTS manager_insights jsonb DEFAULT NULL;
