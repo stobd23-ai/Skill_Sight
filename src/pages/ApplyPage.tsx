@@ -77,7 +77,7 @@ export default function ApplyPage() {
           cvText: cvText,
           targetRole: selectedRole.title,
           targetRoleType: roleType,
-          roleRequirements: selectedRole.required_skills || {},
+          roleRequirements: skillsToVector(selectedRole.required_skills),
         },
       });
 

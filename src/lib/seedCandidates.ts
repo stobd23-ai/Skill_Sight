@@ -411,7 +411,7 @@ export async function seedDemoCandidates(
           cvText: candidate.cvText,
           targetRole: role.title,
           targetRoleType: roleType,
-          roleRequirements: role.required_skills || {},
+          roleRequirements: skillsToVector(role.required_skills),
         },
       });
 
