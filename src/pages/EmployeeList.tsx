@@ -236,19 +236,14 @@ export default function EmployeeList() {
               <Input placeholder="Search by name or role..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 text-sm" />
             </div>
 
-            {viewMode === "internal" && (
-              <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-sm min-w-[200px]">
-                <option value="all">All Departments</option>
-                {departments.map(d => <option key={d} value={d!}>{d}</option>)}
-              </select>
-            )}
-
-            {viewMode === "external" && (
-              <select value={extRoleFilter} onChange={e => setExtRoleFilter(e.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-sm min-w-[200px]">
-                <option value="all">All Departments</option>
-                {roles?.map(r => <option key={r.id} value={r.id}>{r.title}{r.department ? ` — ${r.department}` : ''}</option>)}
-              </select>
-            )}
+            <select
+              value={viewMode === "internal" ? deptFilter : extRoleFilter}
+              onChange={e => viewMode === "internal" ? setDeptFilter(e.target.value) : setExtRoleFilter(e.target.value)}
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm w-[280px]"
+            >
+              <option value="all">All Departments</option>
+              {roles?.map(r => <option key={r.id} value={viewMode === "internal" ? r.department || r.title : r.id}>{r.title}{r.department ? ` — ${r.department}` : ''}</option>)}
+            </select>
           </div>
 
           {viewMode === "internal" && (
