@@ -411,47 +411,63 @@ export default function ExternalCandidateProfile() {
           );
         })()}
 
-        {/* Section 5 — Interview & Assessment (after completion) */}
-        {isCompleted && score != null && (
+        {/* Section 5 — Algorithm Results (show whenever data exists) */}
+        {(technicalMatch != null || gapAnalysis) && (
           <>
-            {/* Three-Layer Score */}
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-5">Three-Layer Assessment</h3>
-                <div className="flex items-start gap-8 flex-wrap">
-                  <div className="flex gap-6">
-                    <div className="flex flex-col items-center">
-                      <ReadinessRing value={Math.round((technicalMatch || 0) * 100)} size="md" />
-                      <span className="text-xs font-semibold mt-1">Technical Match</span>
-                      <span className="text-[11px] text-muted-foreground">Current skills vs</span>
-                      <span className="text-[11px] text-muted-foreground">role requirements</span>
+            {/* Three-Layer Score — show if we have scores */}
+            {technicalMatch != null && (
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-5">
+                    {isCompleted ? 'Three-Layer Assessment' : 'CV-Based Assessment'}
+                  </h3>
+                  <div className="flex items-start gap-8 flex-wrap">
+                    <div className="flex gap-6">
+                      <div className="flex flex-col items-center">
+                        <ReadinessRing value={Math.round((technicalMatch || 0) * 100)} size="md" />
+                        <span className="text-xs font-semibold mt-1">Technical Match</span>
+                        <span className="text-[11px] text-muted-foreground">Current skills vs</span>
+                        <span className="text-[11px] text-muted-foreground">role requirements</span>
+                      </div>
+                      <div className="flex flex-col items-center">
+                        <ReadinessRing value={Math.round((capabilityMatch || 0) * 100)} size="md" />
+                        <span className="text-xs font-semibold mt-1">Capability Match</span>
+                        <span className="text-[11px] text-muted-foreground">Problem-solving depth</span>
+                        <span className="text-[11px] text-muted-foreground">& thinking patterns</span>
+                      </div>
+                      {isCompleted && momentumScore != null && momentumScore > 0 ? (
+                        <div className="flex flex-col items-center">
+                          <ReadinessRing value={Math.round(momentumScore * 100)} size="md" />
+                          <span className="text-xs font-semibold mt-1">Momentum Score</span>
+                          <span className="text-[11px] text-muted-foreground">Growth trajectory</span>
+                          <span className="text-[11px] text-muted-foreground">& role motivation</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center">
+                          <div className="w-16 h-16 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
+                            <span className="text-xs text-muted-foreground">—</span>
+                          </div>
+                          <span className="text-xs font-semibold mt-1">Momentum</span>
+                          <span className="text-[11px] text-muted-foreground italic">Interview needed</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex flex-col items-center">
-                      <ReadinessRing value={Math.round((capabilityMatch || 0) * 100)} size="md" />
-                      <span className="text-xs font-semibold mt-1">Capability Match</span>
-                      <span className="text-[11px] text-muted-foreground">Problem-solving depth</span>
-                      <span className="text-[11px] text-muted-foreground">& thinking patterns</span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <ReadinessRing value={Math.round((momentumScore || 0) * 100)} size="md" />
-                      <span className="text-xs font-semibold mt-1">Momentum Score</span>
-                      <span className="text-[11px] text-muted-foreground">Growth trajectory</span>
-                      <span className="text-[11px] text-muted-foreground">& role motivation</span>
-                    </div>
-                  </div>
-                  <div className="flex-1 border-l border-border pl-8 min-w-[200px]">
-                    <div className="flex items-center gap-4 mb-3">
-                      <span className="text-4xl font-bold font-mono">{score}%</span>
-                      <span className="text-sm font-medium text-muted-foreground">Final Score</span>
-                    </div>
-                    <Progress value={score} className="h-2.5 mb-2" />
-                    {scoreBreakdown?.interpretation && (
-                      <p className="text-sm text-muted-foreground italic">{scoreBreakdown.interpretation}</p>
+                    {score != null && (
+                      <div className="flex-1 border-l border-border pl-8 min-w-[200px]">
+                        <div className="flex items-center gap-4 mb-3">
+                          <span className="text-4xl font-bold font-mono">{score}%</span>
+                          <span className="text-sm font-medium text-muted-foreground">Final Score</span>
+                        </div>
+                        <Progress value={score} className="h-2.5 mb-2" />
+                        {scoreBreakdown?.interpretation && (
+                          <p className="text-sm text-muted-foreground italic">{scoreBreakdown.interpretation}</p>
+                        )}
+                      </div>
                     )}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Gap Analysis */}
             {gapAnalysis && (
