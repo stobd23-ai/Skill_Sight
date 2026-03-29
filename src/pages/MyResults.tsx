@@ -9,7 +9,7 @@ import { SkillBadge } from "@/components/SkillBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer } from "recharts";
-import { BarChart3, Sparkles, Star, Route } from "lucide-react";
+import { BarChart3, Sparkles, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function MyResults() {
