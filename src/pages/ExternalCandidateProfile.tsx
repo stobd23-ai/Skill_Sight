@@ -635,7 +635,7 @@ export default function ExternalCandidateProfile() {
                       {(gapAnalysis.criticalGaps || []).slice(0, 6).map((gap: any, i: number) => (
                         <div key={i} className="flex items-center gap-3">
                           <PriorityBadge priority={gap.priority} />
-                          <span className="text-sm font-medium flex-1">{gap.skill?.replace(/([A-Z])/g, " $1").trim()}</span>
+                          <span className="text-sm font-medium flex-1">{formatSkillName(gap.skill)}</span>
                           <div className="flex items-center gap-1.5 text-xs">
                             <span className="font-mono text-muted-foreground">{gap.currentProficiency}</span>
                             <ArrowRight className="h-3 w-3 text-muted-foreground" />
