@@ -205,83 +205,87 @@ export default function EmployeeList() {
       />
       <div className="p-6 space-y-5">
         {/* Filter bar */}
-        <div className="card-skillsight p-4 flex flex-wrap items-center gap-3">
-          <div className="flex rounded-lg border border-input overflow-hidden">
-            <button
-              onClick={() => setViewMode("internal")}
-              className={`px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors ${
-                viewMode === "internal" ? "bg-background shadow-sm" : "bg-transparent text-muted-foreground hover:bg-accent"
-              }`}
-            >
-              <Users className="h-3 w-3" />Internal Employees
-            </button>
-            <button
-              onClick={() => setViewMode("external")}
-              className={`px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors ${
-                viewMode === "external" ? "bg-background shadow-sm" : "bg-transparent text-muted-foreground hover:bg-accent"
-              }`}
-            >
-              <UserPlus className="h-3 w-3" />External Candidates
-              {(externalCandidates?.length || 0) > 0 && (
-                <span className="ml-1 w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center">
-                  {externalCandidates?.length}
-                </span>
-              )}
-            </button>
-          </div>
+        <div className="card-skillsight p-4 space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex rounded-lg border border-input overflow-hidden">
+              <button
+                onClick={() => setViewMode("internal")}
+                className={`px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                  viewMode === "internal" ? "bg-background shadow-sm" : "bg-transparent text-muted-foreground hover:bg-accent"
+                }`}
+              >
+                <Users className="h-3 w-3" />Internal Employees
+              </button>
+              <button
+                onClick={() => setViewMode("external")}
+                className={`px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                  viewMode === "external" ? "bg-background shadow-sm" : "bg-transparent text-muted-foreground hover:bg-accent"
+                }`}
+              >
+                <UserPlus className="h-3 w-3" />External Candidates
+                {(externalCandidates?.length || 0) > 0 && (
+                  <span className="ml-1 w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center">
+                    {externalCandidates?.length}
+                  </span>
+                )}
+              </button>
+            </div>
 
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search by name or role..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 text-sm" />
-          </div>
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search by name or role..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 text-sm" />
+            </div>
 
-          {viewMode === "internal" && (
-            <>
+            {viewMode === "internal" && (
               <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
                 <option value="all">All Departments</option>
                 {departments.map(d => <option key={d} value={d!}>{d}</option>)}
               </select>
-              <div className="flex gap-1">
-                {[{ value: "all", label: "All" }, { value: "none", label: "Not Assessed" }, { value: "low", label: "<50%" }, { value: "mid", label: "50-75%" }, { value: "high", label: ">75%" }].map(f => (
-                  <button
-                    key={f.value}
-                    onClick={() => setReadinessFilter(f.value)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${readinessFilter === f.value ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-accent'}`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
+            )}
 
-          {viewMode === "external" && (
-            <>
+            {viewMode === "external" && (
               <select value={extRoleFilter} onChange={e => setExtRoleFilter(e.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
                 <option value="all">All Departments</option>
                 {roles?.map(r => <option key={r.id} value={r.id}>{r.title}{r.department ? ` — ${r.department}` : ''}</option>)}
               </select>
-              <div className="flex gap-1">
-                {[
-                  { value: "all" as const, label: "All" },
-                  { value: "pending" as const, label: `Pending Review${pendingCount > 0 ? ` (${pendingCount})` : ""}` },
-                  { value: "flagged" as const, label: `Flagged${flaggedCount > 0 ? ` (${flaggedCount})` : ""}`, amber: true },
-                ].map(f => (
-                  <button
-                    key={f.value}
-                    onClick={() => setExtFilter(f.value)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                      extFilter === f.value
-                        ? (f as any).amber ? "bg-amber-500 text-white"
-                          : "bg-primary text-primary-foreground"
-                        : "bg-secondary text-muted-foreground hover:bg-accent"
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-            </>
+            )}
+          </div>
+
+          {viewMode === "internal" && (
+            <div className="flex gap-1">
+              {[{ value: "all", label: "All" }, { value: "none", label: "Not Assessed" }, { value: "low", label: "<50%" }, { value: "mid", label: "50-75%" }, { value: "high", label: ">75%" }].map(f => (
+                <button
+                  key={f.value}
+                  onClick={() => setReadinessFilter(f.value)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${readinessFilter === f.value ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-accent'}`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {viewMode === "external" && (
+            <div className="flex gap-1">
+              {[
+                { value: "all" as const, label: "All" },
+                { value: "pending" as const, label: `Pending Review${pendingCount > 0 ? ` (${pendingCount})` : ""}` },
+                { value: "flagged" as const, label: `Flagged${flaggedCount > 0 ? ` (${flaggedCount})` : ""}`, amber: true },
+              ].map(f => (
+                <button
+                  key={f.value}
+                  onClick={() => setExtFilter(f.value)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                    extFilter === f.value
+                      ? (f as any).amber ? "bg-amber-500 text-white"
+                        : "bg-primary text-primary-foreground"
+                      : "bg-secondary text-muted-foreground hover:bg-accent"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
           )}
         </div>
 
