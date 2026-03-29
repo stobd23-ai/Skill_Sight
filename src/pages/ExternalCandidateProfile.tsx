@@ -70,7 +70,7 @@ function AbsenceAnalysisSection({ analysis }: { analysis: { critical_gaps?: stri
             <div>
               <p className="text-[10px] font-semibold text-green-700 mb-0.5">✓ Well Evidenced</p>
               <ul className="space-y-0.5">{analysis.well_evidenced!.map((s: string, i: number) => (
-                <li key={i} className="text-[11px] text-green-700 flex items-start gap-1"><CheckCircle className="h-2.5 w-2.5 mt-0.5 shrink-0" />{s}</li>
+                <li key={i} className="text-[11px] text-green-700 flex items-start gap-1"><CheckCircle className="h-2.5 w-2.5 mt-0.5 shrink-0" />{formatSkillName(s)}</li>
               ))}</ul>
             </div>
           )}
