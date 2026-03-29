@@ -13,12 +13,12 @@ import { runFullAnalysis, detectRoleType } from "@/lib/algorithms";
 
 function useOpenRoles() {
   return useQuery({
-    queryKey: ["open_applications_public"],
+    queryKey: ["open_roles_public"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("open_applications")
-        .select("*, roles(*)")
-        .eq("is_accepting", true);
+        .from("roles")
+        .select("*")
+        .eq("hiring_status", "actively_hiring");
       if (error) throw error;
       return data;
     },
