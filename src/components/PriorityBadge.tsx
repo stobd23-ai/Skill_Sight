@@ -14,7 +14,7 @@ const priorityConfig: Record<Priority, { bg: string; text: string; label: string
 };
 
 export function PriorityBadge({ priority }: PriorityBadgeProps) {
-  const config = priorityConfig[priority];
+  const config = priorityConfig[priority] || priorityConfig.low;
 
   return (
     <span

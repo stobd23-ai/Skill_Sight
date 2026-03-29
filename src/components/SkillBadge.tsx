@@ -14,7 +14,7 @@ const proficiencyConfig = {
 };
 
 export function SkillBadge({ skill, proficiency, showLabel = true }: SkillBadgeProps) {
-  const config = proficiencyConfig[proficiency];
+  const config = proficiencyConfig[proficiency] || proficiencyConfig[0];
 
   return (
     <span
