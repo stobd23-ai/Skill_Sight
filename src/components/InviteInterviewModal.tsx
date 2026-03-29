@@ -58,7 +58,7 @@ export function InviteInterviewModal({ open, onOpenChange, employee, onSent }: P
         target_role_id: roleId,
         status: "pending",
         message: message.trim() || null,
-        preset_pack: presetPack,
+        preset_pack: presetPack === "custom" ? `custom:${customFocus.trim()}` : presetPack,
         expires_at: expiresAt.toISOString(),
       };
       
