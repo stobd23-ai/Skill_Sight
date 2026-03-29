@@ -21,7 +21,9 @@ import {
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
-import { formatSkillName } from "@/lib/utils";
+import { formatSkillName, parseRequiredSkills } from "@/lib/utils";
+import { computeCvSkillVector } from "@/lib/cvCoverageScore";
+import { mapInterviewSkillsToRoleKeys } from "@/lib/interviewSkillMapping";
 
 function markdownToHtml(md: string): string {
   return md
@@ -175,8 +177,35 @@ export default function ExternalCandidateProfile() {
   const momentumScore = results.momentumScore ?? results.momentumScoreVal;
   const momentumBreakdown = results.momentumBreakdown;
   const interviewCompleted = results.interviewCompleted === true || interview?.status === "completed";
-  // Use post-interview gap analysis if available
-  const gapAnalysis = results.gapAnalysis || results.gap;
+  const rawGapAnalysis = results.gapAnalysis || results.gap;
+
+  // Enrich gap analysis with CV-derived proficiency (fixes stored 0s)
+  const gapAnalysis = useMemo(() => {
+    if (!rawGapAnalysis?.criticalGaps) return rawGapAnalysis;
+    const cvText = (candidate as any).candidate_message || "";
+    const roleSkills = role?.required_skills;
+    if (!cvText || !roleSkills) return rawGapAnalysis;
+
+    const cvSkills = computeCvSkillVector(cvText, roleSkills);
+    const interviewSkills = (candidate.interview_skills || {}) as Record<string, any>;
+    const roleSkillNames = parseRequiredSkills(roleSkills).map(s => s.name);
+    const mappedInterview = mapInterviewSkillsToRoleKeys(interviewSkills, roleSkillNames);
+
+    // Merge CV + interview into one proficiency map
+    const merged: Record<string, number> = {};
+    Object.entries(cvSkills).forEach(([k, v]) => { merged[k] = Math.max(merged[k] || 0, v); });
+    Object.entries(mappedInterview).forEach(([k, v]) => { merged[k] = Math.max(merged[k] || 0, v); });
+
+    const enrichedGaps = rawGapAnalysis.criticalGaps
+      .map((g: any) => ({
+        ...g,
+        currentProficiency: Math.max(g.currentProficiency || 0, merged[g.skill] || 0),
+      }))
+      .filter((g: any) => g.currentProficiency < g.requiredProficiency);
+
+    return { ...rawGapAnalysis, criticalGaps: enrichedGaps };
+  }, [rawGapAnalysis, candidate, role]);
+
   const tfidfRarity = results.tfidfRarity || results.tfidf || {};
   const upskillingPaths = results.upskillingPaths || [];
   const transitionProfile = results.transitionProfile;

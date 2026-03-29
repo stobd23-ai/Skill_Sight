@@ -1,7 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 import { runFullAnalysis, detectRoleType } from "@/lib/algorithms";
-import { skillsToVector, skillsToWeights } from "@/lib/utils";
+import { skillsToVector, skillsToWeights, parseRequiredSkills } from "@/lib/utils";
 import { hybridWorthinessDecision } from "@/lib/verdictEngine";
+import { computeCvSkillVector } from "@/lib/cvCoverageScore";
+import { mapInterviewSkillsToRoleKeys } from "@/lib/interviewSkillMapping";
 
 interface SeedCandidate {
   name: string;
@@ -423,10 +425,23 @@ export async function seedDemoCandidates(
         continue;
       }
 
-      // Step 2: Run algorithms (same as /apply)
+      // Step 2: Run algorithms — build skill vector using role-matching keys
+      const parsedRoleSkills = parseRequiredSkills(role.required_skills);
+      const roleSkillNames = parsedRoleSkills.map(s => s.name);
+
+      // CV-based skill matching (uses alias table + depth analysis)
+      const cvSkillsVector = computeCvSkillVector(candidate.cvText, role.required_skills);
+
+      // parse-cv extracted skills mapped to role display names
+      const mappedExtractedSkills = mapInterviewSkillsToRoleKeys(parsed.extracted_skills || {}, roleSkillNames);
+
+      // Merge: take highest proficiency from either source
       const skillsVector: Record<string, number> = {};
-      Object.entries(parsed.extracted_skills || {}).forEach(([skill, data]: [string, any]) => {
-        skillsVector[skill] = data.proficiency;
+      Object.entries(cvSkillsVector).forEach(([k, v]) => {
+        skillsVector[k] = Math.max(skillsVector[k] || 0, v);
+      });
+      Object.entries(mappedExtractedSkills).forEach(([k, v]) => {
+        skillsVector[k] = Math.max(skillsVector[k] || 0, v);
       });
 
       const algorithmInput = {

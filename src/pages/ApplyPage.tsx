@@ -10,8 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Clock, Shield, CheckCircle, FileText, Loader2, AlertTriangle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { runFullAnalysis, detectRoleType } from "@/lib/algorithms";
-import { skillsToVector, skillsToWeights } from "@/lib/utils";
+import { skillsToVector, skillsToWeights, parseRequiredSkills } from "@/lib/utils";
 import { hybridWorthinessDecision, type HybridResult } from "@/lib/verdictEngine";
+import { computeCvSkillVector } from "@/lib/cvCoverageScore";
+import { mapInterviewSkillsToRoleKeys } from "@/lib/interviewSkillMapping";
 
 function useAllRoles() {
   return useQuery({
@@ -87,9 +89,16 @@ export default function ApplyPage() {
 
       // Phase 2: Score
       setPhase("scoring");
+      const parsedRoleSkills = parseRequiredSkills(selectedRole.required_skills);
+      const roleSkillNames = parsedRoleSkills.map(s => s.name);
+      const cvSkillsVector = computeCvSkillVector(cvText, selectedRole.required_skills);
+      const mappedExtractedSkills = mapInterviewSkillsToRoleKeys(parsed.extracted_skills || {}, roleSkillNames);
       const skillsVector: Record<string, number> = {};
-      Object.entries(parsed.extracted_skills || {}).forEach(([skill, data]: [string, any]) => {
-        skillsVector[skill] = data.proficiency;
+      Object.entries(cvSkillsVector).forEach(([k, v]) => {
+        skillsVector[k] = Math.max(skillsVector[k] || 0, v);
+      });
+      Object.entries(mappedExtractedSkills).forEach(([k, v]) => {
+        skillsVector[k] = Math.max(skillsVector[k] || 0, v);
       });
 
       const algorithmInput = {
