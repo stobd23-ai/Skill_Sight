@@ -397,8 +397,8 @@ export default function ExternalCandidateProfile() {
                 <FileText className="h-3 w-3 mr-1" />View Submitted CV
               </Button>
             )}
-            {/* Interview Pass Toggle */}
-            {cvPassed && hybridInfo?.verdict !== 'hard_reject' && candidate.status !== "rejected" && candidate.status !== "below_threshold" && (
+            {/* Interview Pass Toggle — only after AI interview completed with summary */}
+            {cvPassed && hybridInfo?.verdict !== 'hard_reject' && candidate.status !== "rejected" && candidate.status !== "below_threshold" && isCompleted && interview?.status === "completed" && (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-muted/30">
                 <span className="text-xs text-muted-foreground">In-Person Interview Passed:</span>
                 <Switch
@@ -408,6 +408,12 @@ export default function ExternalCandidateProfile() {
                 <span className={`text-xs font-medium ${interviewPassed ? "text-green-600" : "text-muted-foreground"}`}>
                   {interviewPassed ? "Yes" : "No"}
                 </span>
+              </div>
+            )}
+            {/* Show message if AI interview not yet completed */}
+            {cvPassed && hybridInfo?.verdict !== 'hard_reject' && candidate.status !== "rejected" && candidate.status !== "below_threshold" && !(isCompleted && interview?.status === "completed") && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-dashed border-muted-foreground/30 bg-muted/10">
+                <span className="text-xs text-muted-foreground italic">AI Interview must be completed before marking in-person interview</span>
               </div>
             )}
             {/* Promote to Employee */}
