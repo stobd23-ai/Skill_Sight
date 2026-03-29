@@ -323,7 +323,7 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <p className="text-[11px] text-muted-foreground/60 mt-1">{hints[tab].password}</p>
+              
             </div>
 
             {error && (
