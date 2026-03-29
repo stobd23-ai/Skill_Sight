@@ -852,33 +852,32 @@ export default function ExternalCandidateProfile() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* Manager Insights Dialog */}
       <Dialog open={insightsOpen} onOpenChange={setInsightsOpen}>
-        <DialogContent className="max-w-[520px]">
+        <DialogContent className="max-w-[440px]">
           <DialogHeader>
             <DialogTitle>In-Person Interview Insights</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">Share your observations from the in-person interview with {candidate.name}. These insights will be used by AI to generate their employee profile.</p>
-          <div className="space-y-3 max-h-[50vh] overflow-y-auto">
+          <p className="text-sm text-muted-foreground">Quick assessment of {candidate.name} from the in-person interview.</p>
+          <div className="space-y-3">
             <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cultural Fit & Team Dynamics</label>
-              <Textarea placeholder="How well would they integrate with the team? Any cultural alignment or concerns?" value={managerInsights.culturalFit} onChange={e => setManagerInsights(p => ({ ...p, culturalFit: e.target.value }))} rows={2} className="mt-1" />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Communication Style</label>
-              <Textarea placeholder="How did they communicate? Clear, articulate, confident, reserved?" value={managerInsights.communicationStyle} onChange={e => setManagerInsights(p => ({ ...p, communicationStyle: e.target.value }))} rows={2} className="mt-1" />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Leadership Potential</label>
-              <Textarea placeholder="Did they show initiative, problem-solving ability, or leadership qualities?" value={managerInsights.leadershipPotential} onChange={e => setManagerInsights(p => ({ ...p, leadershipPotential: e.target.value }))} rows={2} className="mt-1" />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Technical Depth Impression</label>
-              <Textarea placeholder="How well did they demonstrate technical knowledge during the conversation?" value={managerInsights.technicalDepth} onChange={e => setManagerInsights(p => ({ ...p, technicalDepth: e.target.value }))} rows={2} className="mt-1" />
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Key Strengths</label>
+              <Textarea placeholder="What stood out positively?" value={managerInsights.strengths} onChange={e => setManagerInsights(p => ({ ...p, strengths: e.target.value }))} rows={2} className="mt-1" />
             </div>
             <div>
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Concerns or Risks</label>
-              <Textarea placeholder="Any red flags, hesitations, or areas needing development?" value={managerInsights.concernsOrRisks} onChange={e => setManagerInsights(p => ({ ...p, concernsOrRisks: e.target.value }))} rows={2} className="mt-1" />
+              <Textarea placeholder="Any red flags or areas needing development?" value={managerInsights.concerns} onChange={e => setManagerInsights(p => ({ ...p, concerns: e.target.value }))} rows={2} className="mt-1" />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <p className="text-sm font-medium">Good fit for this role?</p>
+                <p className="text-xs text-muted-foreground">Based on your overall impression</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-medium ${managerInsights.goodFit ? 'text-emerald-600' : 'text-muted-foreground'}`}>
+                  {managerInsights.goodFit ? 'Yes' : 'No'}
+                </span>
+                <Switch checked={managerInsights.goodFit} onCheckedChange={v => setManagerInsights(p => ({ ...p, goodFit: v }))} />
+              </div>
             </div>
           </div>
           <DialogFooter>
