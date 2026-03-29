@@ -490,14 +490,12 @@ export default function ApplyPage() {
             <div className="space-y-3">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Which role are you applying for? *</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {openRoles?.map((app: any) => {
-                  const role = app.roles;
-                  if (!role) return null;
-                  const isSelected = selectedRoleId === app.role_id;
+                {openRoles?.map((role: any) => {
+                  const isSelected = selectedRoleId === role.id;
                   return (
                     <button
-                      key={app.id}
-                      onClick={() => setSelectedRoleId(app.role_id)}
+                      key={role.id}
+                      onClick={() => setSelectedRoleId(role.id)}
                       className={`p-4 rounded-lg border-2 text-left transition-all ${
                         isSelected
                           ? "border-primary bg-primary/5"
@@ -509,7 +507,7 @@ export default function ApplyPage() {
                         <Badge variant="secondary" className="text-[10px] mt-1">{role.department}</Badge>
                       )}
                       <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
-                        {app.public_description?.slice(0, 80) || role.description?.slice(0, 80) || ""}
+                        {role.description?.slice(0, 80) || ""}
                       </p>
                     </button>
                   );
