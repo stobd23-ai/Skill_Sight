@@ -483,6 +483,11 @@ export default function EmployeeList() {
                             View Full Assessment
                           </Button>
                         )}
+                        {(c.status === "invited" || c.status === "below_threshold" || c.status === "rejected") && (
+                          <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => navigate(`/external-candidate/${c.id}`)}>
+                            View Profile
+                          </Button>
+                        )}
                       </div>
                     </div>
                   );
