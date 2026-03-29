@@ -21,7 +21,9 @@ import {
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
-import { formatSkillName } from "@/lib/utils";
+import { formatSkillName, parseRequiredSkills } from "@/lib/utils";
+import { computeCvSkillVector } from "@/lib/cvCoverageScore";
+import { mapInterviewSkillsToRoleKeys } from "@/lib/interviewSkillMapping";
 
 function markdownToHtml(md: string): string {
   return md
