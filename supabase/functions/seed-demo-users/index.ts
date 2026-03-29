@@ -21,7 +21,7 @@ serve(async (req) => {
       .select("email")
       .in("email", [
         "manager@bmw-skillsight.com", "thomas.bauer@bmw-skillsight.com", "anna.keller@bmw-skillsight.com",
-        "jens.richter@bmw.de", "marcus.schmidt@bmw.de",
+        "jens.richter@bmw-skillsight.com", "marcus.schmidt@bmw.de",
         "klaus.hoffmann@bmw.de", "lena.fischer@bmw.de", "sarah.weber@bmw.de", "marie.dupont@bmw.de"
       ]);
 
