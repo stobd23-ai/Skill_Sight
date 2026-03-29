@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { useEmployees, useAllEmployeeSkills, useRoles, useAlgorithmResults } from "@/hooks/useData";
 import { cosineSimilarity, weightedGapScore, runAHP, detectRoleType, type AlgorithmInput, type SkillVector, type RoleType } from "@/lib/algorithms";
+import { skillsToVector, skillsToWeights } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ReadinessRing } from "@/components/ReadinessRing";
