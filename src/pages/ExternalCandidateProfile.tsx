@@ -591,24 +591,6 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function MomentumRow({ label, icon, value, evidence, color }: {
-  label: string; icon: React.ReactNode; value: number; evidence?: string; color: string;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center gap-2">
-        <span className="text-muted-foreground">{icon}</span>
-        <span className="text-sm font-medium flex-1">{label}</span>
-        <span className="font-mono text-sm font-semibold">{Math.round(value * 100)}%</span>
-      </div>
-      <div className="h-2 bg-secondary rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${value * 100}%`, backgroundColor: color }} />
-      </div>
-      {evidence && <p className="text-xs text-muted-foreground italic pl-6">{evidence}</p>}
-    </div>
-  );
-}
-
 function RawRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between py-1.5 px-2 rounded">
