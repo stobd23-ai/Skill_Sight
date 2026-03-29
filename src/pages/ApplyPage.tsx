@@ -98,6 +98,22 @@ function hybridWorthinessDecision(
   const algoWorthy = algoScore >= 0.35;
   const aiWorthy = aiJudgment?.ai_verdict === true;
 
+  // High-potential override: force FLAG minimum
+  if (isHighPotential && !algoWorthy) {
+    return {
+      worthy: false,
+      confidence: 'flagged',
+      method: 'flagged_ai_overrides',
+      worthyScore: Math.max(algoScore, 0.30),
+      reasoning: 'High-potential candidate: advanced credentials + production-scale experience + measurable impact. Missing domain-specific stack is learnable. Recommend interview.',
+      aiReasoning: aiJudgment?.ai_reasoning || '',
+      concerns: algoReasons,
+      keyStrengths: aiJudgment?.ai_key_strengths || [],
+      recommendedPreset: aiJudgment?.ai_recommended_preset || 'hidden_potential',
+      recruiterNote: aiJudgment?.ai_recruiter_note || '',
+    };
+  }
+
   // If no AI judgment available, fall back to algo-only
   if (!aiJudgment) {
     return {
@@ -116,13 +132,28 @@ function hybridWorthinessDecision(
     };
   }
 
+  // AI also has high_potential_override → force FLAG
+  if (aiJudgment?.high_potential_override && !algoWorthy) {
+    return {
+      worthy: false,
+      confidence: 'flagged',
+      method: 'flagged_ai_overrides',
+      worthyScore: Math.max(algoScore, 0.30),
+      reasoning: 'AI identified high-potential override: exceptional credentials and production impact despite missing domain keywords. Manager review recommended.',
+      aiReasoning: aiJudgment?.ai_reasoning || '',
+      concerns: algoReasons,
+      keyStrengths: aiJudgment?.ai_key_strengths || [],
+      recommendedPreset: aiJudgment?.ai_recommended_preset || 'hidden_potential',
+      recruiterNote: aiJudgment?.ai_recruiter_note || '',
+    };
+  }
+
   if (algoWorthy && aiWorthy) {
     const aiConf = aiJudgment?.ai_confidence;
     const finalConfidence = aiConf === 'high' ? 'high' 
       : aiConf === 'medium' ? 'medium'
       : 'flagged' as const;
     
-    // Low builder verb ratio overrides high confidence
     const builderRatio = aiJudgment?.builder_verb_ratio || 0.5;
     const adjustedConfidence = builderRatio < 0.4 ? 'flagged' : finalConfidence;
 
@@ -143,6 +174,21 @@ function hybridWorthinessDecision(
   }
 
   if (!algoWorthy && !aiWorthy) {
+    // Even both-reject gets overridden if high-potential
+    if (isHighPotential) {
+      return {
+        worthy: false,
+        confidence: 'flagged',
+        method: 'flagged_ai_overrides',
+        worthyScore: Math.max(algoScore, 0.25),
+        reasoning: 'High-potential candidate flagged despite both signals below threshold. Advanced credentials warrant manager review.',
+        aiReasoning: aiJudgment?.ai_reasoning || '',
+        concerns: [...algoReasons, ...(aiJudgment?.ai_concerns || [])],
+        keyStrengths: aiJudgment?.ai_key_strengths || [],
+        recommendedPreset: 'hidden_potential',
+        recruiterNote: aiJudgment?.ai_recruiter_note || '',
+      };
+    }
     return {
       worthy: false,
       confidence: 'high',
