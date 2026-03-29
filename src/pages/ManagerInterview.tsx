@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, UserCheck, Check, ArrowLeft, Star, Eye, AlertTriangle } from "lucide-react";
 import { usePipeline } from "@/contexts/PipelineContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Phase = "setup" | "interviewing" | "algorithms_running" | "complete";
 interface Message { role: "ai" | "user"; content: string; timestamp: Date }
@@ -18,9 +19,11 @@ export default function ManagerInterview() {
   const { data: employee, isLoading } = useEmployee(id);
   const { data: roles } = useRoles();
 
+  const { profile } = useAuth();
+
   const [phase, setPhase] = useState<Phase>("setup");
-  const [managerName, setManagerName] = useState("");
-  const [managerTitle, setManagerTitle] = useState("");
+  const [managerName, setManagerName] = useState(profile?.full_name || "");
+  const [managerTitle, setManagerTitle] = useState(profile?.role === "manager" ? "Manager" : "");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isAiTyping, setIsAiTyping] = useState(false);
