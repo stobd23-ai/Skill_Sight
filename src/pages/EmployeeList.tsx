@@ -496,8 +496,11 @@ export default function EmployeeList() {
                             View Full Assessment
                           </Button>
                         )}
-                        {c.status === "invited" && (
-                          <Button variant="outline" size="sm" className="flex-1 text-xs">
+                        {c.status === "invited" && c.access_code && (
+                          <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => {
+                            navigator.clipboard.writeText(c.access_code);
+                            toast.success(`Interview code: ${c.access_code} (copied to clipboard)`);
+                          }}>
                             View Code
                           </Button>
                         )}
