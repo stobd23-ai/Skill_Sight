@@ -13,12 +13,12 @@ import { runFullAnalysis, detectRoleType } from "@/lib/algorithms";
 
 function useOpenRoles() {
   return useQuery({
-    queryKey: ["open_applications_public"],
+    queryKey: ["open_roles_public"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("open_applications")
-        .select("*, roles(*)")
-        .eq("is_accepting", true);
+        .from("roles")
+        .select("*")
+        .eq("hiring_status", "actively_hiring");
       if (error) throw error;
       return data;
     },
@@ -257,13 +257,11 @@ export default function ApplyPage() {
 
   const selectedRole = useMemo(() => {
     if (!openRoles || !selectedRoleId) return null;
-    const app = openRoles.find((a: any) => a.role_id === selectedRoleId);
-    return app?.roles as any;
+    return openRoles.find((r: any) => r.id === selectedRoleId) || null;
   }, [openRoles, selectedRoleId]);
 
   const allRoles = useMemo(() => {
-    if (!openRoles) return [];
-    return openRoles.map((a: any) => a.roles).filter(Boolean);
+    return openRoles || [];
   }, [openRoles]);
 
   const canSubmit = name.trim() && email.trim() && selectedRoleId && cvText.trim().length >= 50 && consent && phase === "idle";
@@ -275,7 +273,7 @@ export default function ApplyPage() {
     try {
       // Phase 1: Parse CV
       setPhase("parsing");
-      const roleType = detectRoleType(selectedRole.required_skills || {}, selectedRole.strategic_weights || {});
+      const roleType = detectRoleType((selectedRole.required_skills || {}) as Record<string, number>, (selectedRole.strategic_weights || {}) as Record<string, number>);
 
       const parseResponse = await supabase.functions.invoke("parse-cv", {
         body: {
@@ -309,8 +307,8 @@ export default function ApplyPage() {
         targetRole: {
           id: selectedRoleId!,
           title: selectedRole.title,
-          requiredSkills: selectedRole.required_skills || {},
-          strategicWeights: selectedRole.strategic_weights || {},
+          requiredSkills: (selectedRole.required_skills || {}) as Record<string, number>,
+          strategicWeights: (selectedRole.strategic_weights || {}) as Record<string, number>,
         },
         allRoles: allRoles.map((r: any) => ({ requiredSkills: r.required_skills || {} })),
       };
@@ -492,14 +490,12 @@ export default function ApplyPage() {
             <div className="space-y-3">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Which role are you applying for? *</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {openRoles?.map((app: any) => {
-                  const role = app.roles;
-                  if (!role) return null;
-                  const isSelected = selectedRoleId === app.role_id;
+                {openRoles?.map((role: any) => {
+                  const isSelected = selectedRoleId === role.id;
                   return (
                     <button
-                      key={app.id}
-                      onClick={() => setSelectedRoleId(app.role_id)}
+                      key={role.id}
+                      onClick={() => setSelectedRoleId(role.id)}
                       className={`p-4 rounded-lg border-2 text-left transition-all ${
                         isSelected
                           ? "border-primary bg-primary/5"
@@ -511,7 +507,7 @@ export default function ApplyPage() {
                         <Badge variant="secondary" className="text-[10px] mt-1">{role.department}</Badge>
                       )}
                       <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
-                        {app.public_description?.slice(0, 80) || role.description?.slice(0, 80) || ""}
+                        {role.description?.slice(0, 80) || ""}
                       </p>
                     </button>
                   );

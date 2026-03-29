@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useEmployees, useAllEmployeeSkills, useAlgorithmResults, useRoles } from "@/hooks/useData";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Clock, Star, Zap, Plus, UserPlus, Users, CheckCircle, XCircle, AlertTriangle, Award } from "lucide-react";
+import { Search, Clock, Star, Zap, Plus, UserPlus, Users, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { AddExternalCandidateModal } from "@/components/AddExternalCandidateModal";
 import { ReadinessRing } from "@/components/ReadinessRing";
@@ -46,9 +46,10 @@ export default function EmployeeList() {
   const initialView = searchParams.get("tab") === "external" ? "external" : "internal";
   const [viewMode, setViewMode] = useState<"internal" | "external">(initialView);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [extFilter, setExtFilter] = useState<"all" | "pending" | "self" | "flagged" | "talent_pool">(
-    searchParams.get("filter") === "pending" ? "pending" : searchParams.get("filter") === "flagged" ? "flagged" : searchParams.get("filter") === "talent_pool" ? "talent_pool" : "all"
+  const [extFilter, setExtFilter] = useState<"all" | "pending" | "flagged">(
+    searchParams.get("filter") === "pending" ? "pending" : searchParams.get("filter") === "flagged" ? "flagged" : "all"
   );
+  const [extRoleFilter, setExtRoleFilter] = useState<string>("all");
   const [declineOpen, setDeclineOpen] = useState(false);
   const [declineTarget, setDeclineTarget] = useState<any>(null);
   const [declineNote, setDeclineNote] = useState("");
@@ -88,18 +89,17 @@ export default function EmployeeList() {
     let list = externalCandidates;
     if (extFilter === "pending") {
       list = list.filter((c: any) => c.submission_source === "candidate_self_submit" && c.manager_decision === "pending" && c.interview_worthy);
-    } else if (extFilter === "self") {
-      list = list.filter((c: any) => c.submission_source === "candidate_self_submit");
     } else if (extFilter === "flagged") {
       list = list.filter((c: any) => c.status === "flagged_review");
-    } else if (extFilter === "talent_pool") {
-      list = list.filter((c: any) => c.status === "talent_pool" || c.status === "proceeding");
+    }
+    if (extRoleFilter !== "all") {
+      list = list.filter((c: any) => c.role_id === extRoleFilter);
     }
     return list.filter(c => {
       if (!search) return true;
       return c.name?.toLowerCase().includes(search.toLowerCase());
     });
-  }, [externalCandidates, search, extFilter]);
+  }, [externalCandidates, search, extFilter, extRoleFilter]);
 
   const pendingCount = useMemo(() => {
     if (!externalCandidates) return 0;
@@ -111,10 +111,6 @@ export default function EmployeeList() {
     return externalCandidates.filter((c: any) => c.status === "flagged_review").length;
   }, [externalCandidates]);
 
-  const talentPoolCount = useMemo(() => {
-    if (!externalCandidates) return 0;
-    return externalCandidates.filter((c: any) => c.status === "talent_pool" || c.status === "proceeding").length;
-  }, [externalCandidates]);
 
   const handleApprove = async (candidate: any) => {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -190,7 +186,7 @@ export default function EmployeeList() {
     }
   };
 
-  const isTalentPool = (c: any) => c.status === "talent_pool" || c.status === "proceeding";
+  
 
   return (
     <div>
@@ -326,29 +322,39 @@ export default function EmployeeList() {
         {/* External candidates grid */}
         {viewMode === "external" && (
           <div className="space-y-4">
-            {/* Sub-filter tabs */}
-            <div className="flex gap-1">
-              {[
-                { value: "all" as const, label: "All" },
-                { value: "pending" as const, label: `Pending Review${pendingCount > 0 ? ` (${pendingCount})` : ""}` },
-                { value: "flagged" as const, label: `Flagged${flaggedCount > 0 ? ` (${flaggedCount})` : ""}`, amber: true },
-                { value: "self" as const, label: "Self-Submitted" },
-                { value: "talent_pool" as const, label: `⭐ Talent Pool${talentPoolCount > 0 ? ` (${talentPoolCount})` : ""}`, gold: true },
-              ].map(f => (
-                <button
-                  key={f.value}
-                  onClick={() => setExtFilter(f.value)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                    extFilter === f.value
-                      ? (f as any).amber ? "bg-amber-500 text-white"
-                        : (f as any).gold ? "bg-amber-500 text-white"
-                        : "bg-primary text-primary-foreground"
-                      : "bg-secondary text-muted-foreground hover:bg-accent"
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
+            {/* Sub-filter tabs + role dropdown */}
+            <div className="flex items-center gap-3">
+              <div className="flex gap-1">
+                {[
+                  { value: "all" as const, label: "All" },
+                  { value: "pending" as const, label: `Pending Review${pendingCount > 0 ? ` (${pendingCount})` : ""}` },
+                  { value: "flagged" as const, label: `Flagged${flaggedCount > 0 ? ` (${flaggedCount})` : ""}`, amber: true },
+                ].map(f => (
+                  <button
+                    key={f.value}
+                    onClick={() => setExtFilter(f.value)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                      extFilter === f.value
+                        ? (f as any).amber ? "bg-amber-500 text-white"
+                          : "bg-primary text-primary-foreground"
+                        : "bg-secondary text-muted-foreground hover:bg-accent"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+              <Select value={extRoleFilter} onValueChange={setExtRoleFilter}>
+                <SelectTrigger className="h-8 w-[200px] text-xs">
+                  <SelectValue placeholder="All Roles" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  {roles?.map(r => (
+                    <SelectItem key={r.id} value={r.id}>{r.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -368,7 +374,7 @@ export default function EmployeeList() {
                   const isPendingReview = isSelfSubmit && (c as any).manager_decision === "pending" && c.interview_worthy;
                   const isFlagged = c.status === "flagged_review";
                   const hybridInfo = isFlagged ? parseHybridInfo(c) : null;
-                  const isPool = isTalentPool(c);
+                  const isPool = c.status === "talent_pool" || c.status === "proceeding";
                   const algoResults = c.full_algorithm_results as any;
 
                   return (
@@ -380,13 +386,6 @@ export default function EmployeeList() {
                       style={isPool ? { borderLeftColor: '#f59e0b' } : undefined}
                       onClick={() => navigate(`/external-candidate/${c.id}`)}
                     >
-                      {/* Talent pool banner */}
-                      {isPool && (
-                        <div className="flex items-center gap-1.5 text-xs font-semibold mb-3 px-2 py-1 rounded-md" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                          <Award className="h-3.5 w-3.5" />
-                          Talent Pool — Interview Verified
-                        </div>
-                      )}
 
                       <div className="flex items-start gap-3">
                         <div className="w-11 h-11 rounded-full bg-purple-500 flex items-center justify-center text-sm font-bold text-primary-foreground shrink-0">
@@ -395,7 +394,6 @@ export default function EmployeeList() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="text-[15px] font-bold truncate">{c.name}</p>
-                            {isSelfSubmit && <Badge variant="outline" className="text-[9px] shrink-0">Self-submitted</Badge>}
                           </div>
                           <p className="text-[13px] text-muted-foreground truncate">{role?.title || "Unknown Role"}</p>
                           <div className="mt-1">{statusBadge(c.status || "invited")}</div>
