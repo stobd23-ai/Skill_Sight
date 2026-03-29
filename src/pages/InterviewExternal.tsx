@@ -267,35 +267,41 @@ export default function InterviewExternal() {
         completed_at: new Date().toISOString(),
       }).eq("id", candidate.interviewId);
 
-      // Step 6: Generate report
+      // Step 6: Generate report — ensure all fields are defined, never undefined
       let reportMarkdown = "";
       try {
+        const strengths = Object.entries(extractedSkills)
+          .filter(([, v]: [string, any]) => {
+            const conf = typeof v === "object" ? v?.confidence : null;
+            return conf === "high" || (typeof v === "number" ? v >= 3 : (v?.proficiency || 0) >= 3);
+          })
+          .map(([k]) => k);
+
+        const gaps = (updatedGapAnalysis.criticalGaps || []).map((g: any) => g.skill);
+
         const { data: reportData } = await supabase.functions.invoke("generate-report", {
           body: {
-            employeeName: candidate.name,
-            employeeTitle: "External Candidate",
-            roleName: candidate.roleTitle,
+            employeeName: candidate.name || "Unknown Candidate",
+            roleTitle: candidate.roleTitle || "Unknown Role",
             algorithmResults: {
-              cosine: fullResults.cosineSimilarity,
-              jaccard: { binary: fullResults.jaccardBinary, weighted: fullResults.jaccardWeighted },
-              gap: fullResults.gapAnalysis,
-              tfidf: fullResults.tfidfRarity,
-              paths: fullResults.upskillingPaths,
-              threeLayerScore: threeLayer.threeLayerScore,
-              technicalMatch,
-              capabilityMatch,
-              momentumScoreVal,
-              roleType,
+              cosineSimilarity: fullResults.cosineSimilarity,
+              jaccardBinary: fullResults.jaccardBinary,
+              jaccardWeighted: fullResults.jaccardWeighted,
+              overallReadiness: fullResults.overallReadiness,
+              finalReadiness: threeLayer.threeLayerScore,
+              managerAdjustment: 0,
             },
-            capabilityProfile: capabilityData?.capability_profile || {},
-            transitionProfile: capabilityData?.transition_profile || {},
-            gapClassification: capabilityData?.gap_classification || {},
-            behavioralStrengths: capabilityData?.behavioral_strengths || [],
-            momentumBreakdown: {
-              learningVelocity,
-              scopeTrajectory,
-              motivationAlignment,
-            },
+            gapAnalysis: updatedGapAnalysis,
+            tfidfRarity: fullResults.tfidfRarity,
+            upskillingPaths: fullResults.upskillingPaths,
+            threeLayerScore: threeLayer.threeLayerScore,
+            technicalMatch,
+            capabilityMatch,
+            momentumData: momentum || null,
+            roleType,
+            capabilityData: capabilityData || null,
+            strengths,
+            gaps,
           },
         });
         reportMarkdown = reportData?.reportMarkdown || reportData?.report_markdown || reportData?.report || "";
@@ -303,7 +309,14 @@ export default function InterviewExternal() {
         console.error("Report gen failed:", e);
       }
 
-      // Step 7: Save to external_candidates
+      // Step 7: Build evidence analysis from interview
+      const absenceAnalysis = {
+        well_evidenced: interviewEvidenced,
+        indirect_only: interviewIndirect,
+        critical_gaps: (updatedGapAnalysis.criticalGaps || []).map((g: any) => g.skill),
+      };
+
+      // Step 8: Save to external_candidates
       await supabase.from("external_candidates").update({
         status: "completed",
         interview_skills: extractedSkills as any,
@@ -311,10 +324,12 @@ export default function InterviewExternal() {
         full_algorithm_results: {
           cosine: fullResults.cosineSimilarity,
           jaccard: { binary: fullResults.jaccardBinary, weighted: fullResults.jaccardWeighted },
-          gap: fullResults.gapAnalysis,
+          gap: updatedGapAnalysis,
+          gapAnalysis: updatedGapAnalysis,
           tfidf: fullResults.tfidfRarity,
           technicalMatch,
           capabilityMatch,
+          momentumScore: momentumScoreVal,
           momentumScoreVal,
           threeLayerScore: threeLayer.threeLayerScore,
           roleType,
@@ -324,6 +339,9 @@ export default function InterviewExternal() {
           behavioralStrengths: capabilityData?.behavioral_strengths || [],
           momentumBreakdown: { learningVelocity, scopeTrajectory, motivationAlignment },
           reportMarkdown,
+          absenceAnalysis,
+          interviewCompleted: true,
+          scoreBreakdown: threeLayer.breakdown,
         } as any,
         full_three_layer_score: threeLayer.threeLayerScore,
       }).eq("id", candidate.id);
