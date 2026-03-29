@@ -146,7 +146,7 @@ export function hybridWorthinessDecision(
     verdict = 'recommend';
     verdictLabel = 'Strong Match — High Confidence';
     worthy = true;
-    worthyScore = Math.max(partialScore, 0.75);
+    worthyScore = partialScore;
     domainGapClassification = gap_severity === 'minor' ? 'no_significant_gaps' : 'trainable';
   }
   // ── FLAG (default middle bucket) ──
