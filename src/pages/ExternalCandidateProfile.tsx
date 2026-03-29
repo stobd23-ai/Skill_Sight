@@ -143,7 +143,8 @@ export default function ExternalCandidateProfile() {
     if (!candidate) return null;
     try {
       const data = JSON.parse(candidate.worthy_reasoning || '{}');
-      if (data.method) return data;
+      // Accept if it has any meaningful assessment data
+      if (data.method || data.verdict || data.reasoning || data.verdictLabel || data.confidence) return data;
       return null;
     } catch {
       return null;
