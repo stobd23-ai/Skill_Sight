@@ -279,6 +279,8 @@ export default function ExternalCandidateProfile() {
                     </div>
                   )}
                 </>
+              ) : candidate.worthy_score != null ? (
+                <ReadinessRing value={Math.round(candidate.worthy_score * 100)} size="sm" label="CV Score" />
               ) : (
                 <div className="flex items-center gap-3 text-muted-foreground">
                   <div className="w-12 h-12 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
