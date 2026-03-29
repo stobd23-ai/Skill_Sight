@@ -506,11 +506,31 @@ export default function EmployeeList() {
       />
 
       {codeModalCandidate && (
-        <AddExternalCandidateModal
-          open={!!codeModalCandidate}
-          onOpenChange={() => setCodeModalCandidate(null)}
-          onCreated={() => refetchExternal()}
-        />
+        <Dialog open={!!codeModalCandidate} onOpenChange={() => setCodeModalCandidate(null)}>
+          <DialogContent className="max-w-[440px]">
+            <div className="space-y-5 text-center">
+              <div className="flex items-center justify-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <span className="text-lg font-bold">Interview Code Generated</span>
+              </div>
+              <div className="space-y-1 text-sm">
+                <p><span className="text-muted-foreground">Candidate:</span> {codeModalCandidate.name}</p>
+                <p><span className="text-muted-foreground">Role:</span> {(codeModalCandidate.roles as any)?.title || "Unknown Role"}</p>
+                <p><span className="text-muted-foreground">Expires:</span> {new Date(codeModalCandidate.code_expires_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
+              </div>
+              <div className="flex justify-center gap-2">
+                {codeModalCandidate.access_code?.split("").map((d: string, i: number) => (
+                  <div key={i} className="w-[52px] h-[60px] border-2 border-border rounded-lg flex items-center justify-center text-[28px] font-mono font-bold">{d}</div>
+                ))}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Share this with the candidate:<br />
+                <span className="text-primary font-medium">{window.location.origin}/interview-access</span>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setCodeModalCandidate(null)}>Close</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Decline dialog */}
