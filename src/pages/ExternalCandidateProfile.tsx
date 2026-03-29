@@ -312,9 +312,13 @@ export default function ExternalCandidateProfile() {
               </>
             )}
             {candidate.status === "invited" && candidate.access_code && (
-              <Button variant="outline" size="sm" className="text-xs" onClick={() => { navigator.clipboard.writeText(candidate.access_code!); toast.success("Code copied"); }}>
-                <Copy className="h-3 w-3 mr-1" />Copy Code
-              </Button>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-muted/50">
+                <span className="text-xs text-muted-foreground">Interview Code:</span>
+                <span className="font-mono font-bold text-sm tracking-widest">{candidate.access_code}</span>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { navigator.clipboard.writeText(candidate.access_code!); toast.success("Code copied"); }}>
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
             )}
             {isCompleted && (
               <Button size="sm" className="text-xs" onClick={() => navigate(`/analysis-external/${candidate.id}`)}>
