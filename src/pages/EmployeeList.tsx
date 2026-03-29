@@ -237,14 +237,14 @@ export default function EmployeeList() {
             </div>
 
             {viewMode === "internal" && (
-              <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
+              <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-sm min-w-[200px]">
                 <option value="all">All Departments</option>
                 {departments.map(d => <option key={d} value={d!}>{d}</option>)}
               </select>
             )}
 
             {viewMode === "external" && (
-              <select value={extRoleFilter} onChange={e => setExtRoleFilter(e.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
+              <select value={extRoleFilter} onChange={e => setExtRoleFilter(e.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-sm min-w-[200px]">
                 <option value="all">All Departments</option>
                 {roles?.map(r => <option key={r.id} value={r.id}>{r.title}{r.department ? ` — ${r.department}` : ''}</option>)}
               </select>
