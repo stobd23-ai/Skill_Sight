@@ -95,6 +95,7 @@ export default function ExternalCandidateProfile() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [cvModalOpen, setCvModalOpen] = useState(false);
+  const [promoting, setPromoting] = useState(false);
 
   const { data: candidate, isLoading, refetch } = useQuery({
     queryKey: ["external_candidate_detail", id],
