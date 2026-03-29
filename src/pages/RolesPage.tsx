@@ -110,7 +110,7 @@ export default function RolesPage() {
 
         <div className="grid grid-cols-2 gap-4">
           {roles?.map(role => {
-            const reqSkills = Object.keys((role.required_skills || {}) as Record<string, number>);
+            const parsedSkills = parseRequiredSkills(role.required_skills);
             const assessedCount = allResults?.filter(r => r.role_id === role.id).length || 0;
             const status = (role as any).hiring_status || 'actively_hiring';
             const statusCfg = hiringStatusConfig[status] || hiringStatusConfig.actively_hiring;
@@ -131,15 +131,15 @@ export default function RolesPage() {
                     <p className="text-xs text-muted-foreground mb-2">{role.description?.substring(0, 80)}{(role.description?.length || 0) > 80 ? '…' : ''}</p>
                   )}
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
-                    <span>{reqSkills.length} required skills</span>
+                    <span>{parsedSkills.length} required skills</span>
                     <span>·</span>
                     <span>{assessedCount} employees assessed</span>
                   </div>
                   <div className="flex flex-wrap gap-1 mb-3">
-                    {reqSkills.slice(0, 5).map(s => (
-                      <Badge key={s} variant="outline" className="text-[10px]">{s.replace(/([A-Z])/g, ' $1').trim()}</Badge>
+                    {parsedSkills.slice(0, 5).map(s => (
+                      <Badge key={s.name} variant="outline" className="text-[10px]">{formatSkillName(s.name)}</Badge>
                     ))}
-                    {reqSkills.length > 5 && <Badge variant="secondary" className="text-[10px]">+{reqSkills.length - 5} more</Badge>}
+                    {parsedSkills.length > 5 && <Badge variant="secondary" className="text-[10px]">+{parsedSkills.length - 5} more</Badge>}
                   </div>
                   <div className="flex items-center gap-2">
                     <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => { setDetailRole(role); setDetailOpen(true); }}>
