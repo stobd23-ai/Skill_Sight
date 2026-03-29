@@ -11,14 +11,14 @@ import { ArrowLeft, Clock, Shield, CheckCircle, FileText, Loader2, AlertTriangle
 import { useQuery } from "@tanstack/react-query";
 import { runFullAnalysis, detectRoleType } from "@/lib/algorithms";
 
-function useOpenRoles() {
+function useAllRoles() {
   return useQuery({
-    queryKey: ["open_roles_public"],
+    queryKey: ["all_roles_public"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("roles")
         .select("*")
-        .eq("hiring_status", "actively_hiring");
+        .order("hiring_status");
       if (error) throw error;
       return data;
     },
@@ -236,7 +236,7 @@ type SubmitPhase = "idle" | "parsing" | "scoring" | "saving" | "done_worthy" | "
 
 export default function ApplyPage() {
   const [searchParams] = useSearchParams();
-  const { data: openRoles } = useOpenRoles();
+  const { data: openRoles } = useAllRoles();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -489,26 +489,41 @@ export default function ApplyPage() {
 
             <div className="space-y-3">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Which role are you applying for? *</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
                 {openRoles?.map((role: any) => {
                   const isSelected = selectedRoleId === role.id;
+                  const isHiring = role.hiring_status === "actively_hiring";
                   return (
                     <button
                       key={role.id}
                       onClick={() => setSelectedRoleId(role.id)}
-                      className={`p-4 rounded-lg border-2 text-left transition-all ${
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg border transition-all text-left ${
                         isSelected
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/40"
+                          ? "border-primary bg-primary/5 shadow-sm"
+                          : "border-border hover:border-primary/30 hover:bg-accent/30"
                       }`}
                     >
-                      <p className="text-sm font-semibold">{role.title}</p>
-                      {role.department && (
-                        <Badge variant="secondary" className="text-[10px] mt-1">{role.department}</Badge>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
-                        {role.description?.slice(0, 80) || ""}
-                      </p>
+                      {/* Radio indicator */}
+                      <div className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
+                        isSelected ? "border-primary" : "border-muted-foreground/40"
+                      }`}>
+                        {isSelected && <div className="w-2 h-2 rounded-full bg-primary" />}
+                      </div>
+
+                      {/* Role info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className={`text-sm font-semibold truncate ${isSelected ? "text-primary" : ""}`}>{role.title}</p>
+                          {isHiring && (
+                            <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-destructive/10 text-destructive border border-destructive/20">
+                              Hiring Now
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                          {role.department}{role.description ? ` · ${role.description.slice(0, 60)}` : ""}
+                        </p>
+                      </div>
                     </button>
                   );
                 })}
