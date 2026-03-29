@@ -17,8 +17,9 @@ import {
   ArrowLeft, ArrowRight, BarChart3, Shield,
   FileText, Sparkles, Mail, Eye, EyeOff, Quote, AlertTriangle,
   CheckCircle, XCircle, ChevronDown, ChevronUp, Star, Search,
-  Copy, Trash2,
+  Copy, Trash2, UserPlus, Loader2,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 function markdownToHtml(md: string): string {
   return md
@@ -94,6 +95,7 @@ export default function ExternalCandidateProfile() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [cvModalOpen, setCvModalOpen] = useState(false);
+  const [promoting, setPromoting] = useState(false);
 
   const { data: candidate, isLoading, refetch } = useQuery({
     queryKey: ["external_candidate_detail", id],
@@ -239,6 +241,34 @@ export default function ExternalCandidateProfile() {
     navigate("/employees?tab=external");
   };
 
+  const handleToggleInterviewPassed = async (passed: boolean) => {
+    await supabase.from("external_candidates").update({
+      interview_passed: passed,
+    } as any).eq("id", candidate.id);
+    refetch();
+    toast.success(passed ? "Interview marked as passed" : "Interview marked as not passed");
+  };
+
+  const handlePromote = async () => {
+    setPromoting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("promote-candidate", {
+        body: { candidateId: candidate.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`${candidate.name} has been promoted to internal employee!`);
+      navigate(`/employee/${data.employeeId}`);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to promote candidate");
+      setPromoting(false);
+    }
+  };
+
+  const interviewPassed = (candidate as any).interview_passed === true;
+  const cvPassed = candidate.interview_worthy === true || candidate.status === "completed" || candidate.status === "talent_pool" || candidate.status === "invited";
+  const canPromote = cvPassed && interviewPassed;
+
   const conversationHistory = interview?.conversation_history as any[] || [];
 
   return (
@@ -335,6 +365,32 @@ export default function ExternalCandidateProfile() {
               <Button variant="outline" size="sm" className="text-xs" onClick={() => setCvModalOpen(true)}>
                 <FileText className="h-3 w-3 mr-1" />View Submitted CV
               </Button>
+            )}
+            {/* Interview Pass Toggle */}
+            {cvPassed && hybridInfo?.verdict !== 'hard_reject' && candidate.status !== "rejected" && candidate.status !== "below_threshold" && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-muted/30">
+                <span className="text-xs text-muted-foreground">In-Person Interview Passed:</span>
+                <Switch
+                  checked={interviewPassed}
+                  onCheckedChange={handleToggleInterviewPassed}
+                />
+                <span className={`text-xs font-medium ${interviewPassed ? "text-green-600" : "text-muted-foreground"}`}>
+                  {interviewPassed ? "Yes" : "No"}
+                </span>
+              </div>
+            )}
+            {/* Promote to Employee */}
+            {canPromote && candidate.status !== "promoted" && (
+              <Button size="sm" className="text-xs bg-primary hover:bg-primary/90" onClick={handlePromote} disabled={promoting}>
+                {promoting ? (
+                  <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Generating Profile...</>
+                ) : (
+                  <><UserPlus className="h-3 w-3 mr-1" />Promote to Employee</>
+                )}
+              </Button>
+            )}
+            {candidate.status === "promoted" && (
+              <Badge className="bg-green-100 text-green-800 border-green-300 text-xs">✓ Promoted to Internal Employee</Badge>
             )}
           </div>
         </div>

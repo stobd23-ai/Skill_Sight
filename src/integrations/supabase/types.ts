@@ -351,6 +351,7 @@ export type Database = {
           id: string
           interview_id: string | null
           interview_notes: string | null
+          interview_passed: boolean | null
           interview_skills: Json | null
           interview_worthy: boolean | null
           manager_decision: string | null
@@ -379,6 +380,7 @@ export type Database = {
           id?: string
           interview_id?: string | null
           interview_notes?: string | null
+          interview_passed?: boolean | null
           interview_skills?: Json | null
           interview_worthy?: boolean | null
           manager_decision?: string | null
@@ -407,6 +409,7 @@ export type Database = {
           id?: string
           interview_id?: string | null
           interview_notes?: string | null
+          interview_passed?: boolean | null
           interview_skills?: Json | null
           interview_worthy?: boolean | null
           manager_decision?: string | null

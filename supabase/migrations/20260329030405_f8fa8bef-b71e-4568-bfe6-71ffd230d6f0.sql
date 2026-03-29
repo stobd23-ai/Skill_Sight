@@ -1,0 +1,1 @@
+ALTER TABLE external_candidates ADD COLUMN IF NOT EXISTS interview_passed boolean DEFAULT null;
