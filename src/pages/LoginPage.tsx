@@ -54,42 +54,50 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // prevent double-click
     setError("");
     setLoading(true);
     // Block auto-redirect while we validate
     roleCheckRef.current = true;
 
-    const { error: err } = await signIn(email, password);
-    if (err) {
-      setError("Invalid email or password. Please try again.");
-      setLoading(false);
-      roleCheckRef.current = false;
-      return;
-    }
-
-    // Check that the logged-in user's role matches the selected tab
-    const { data: { user: signedInUser } } = await supabase.auth.getUser();
-    if (signedInUser) {
-      const { data: prof } = await supabase
-        .from("user_profiles")
-        .select("role")
-        .eq("id", signedInUser.id)
-        .single();
-      if (prof && prof.role !== tab) {
-        await supabase.auth.signOut();
-        setError(
-          tab === "manager"
-            ? "This account is not a manager. Please switch to the Employee tab."
-            : "This account is not an employee. Please switch to the Manager tab."
-        );
+    try {
+      const { error: err } = await signIn(email, password);
+      if (err) {
+        setError("Invalid email or password. Please try again.");
         setLoading(false);
         roleCheckRef.current = false;
         return;
       }
+
+      // Check that the logged-in user's role matches the selected tab
+      const { data: { user: signedInUser } } = await supabase.auth.getUser();
+      if (signedInUser) {
+        const { data: prof } = await supabase
+          .from("user_profiles")
+          .select("role")
+          .eq("id", signedInUser.id)
+          .single();
+        if (prof && prof.role !== tab) {
+          await supabase.auth.signOut();
+          setError(
+            tab === "manager"
+              ? "This account is not a manager. Please switch to the Employee tab."
+              : "This account is not an employee. Please switch to the Manager tab."
+          );
+          setLoading(false);
+          roleCheckRef.current = false;
+          return;
+        }
+        // Role matches — navigate directly instead of relying on useEffect
+        roleCheckRef.current = false;
+        const destination = prof?.role === "manager" ? "/dashboard" : "/my-profile";
+        navigate(destination, { replace: true });
+      }
+    } catch {
+      setError("Something went wrong. Please try again.");
+      setLoading(false);
+      roleCheckRef.current = false;
     }
-    // Role matches — allow redirect
-    roleCheckRef.current = false;
-    setLoading(false);
   };
 
   const hints = {
