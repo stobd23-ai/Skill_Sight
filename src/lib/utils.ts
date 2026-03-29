@@ -31,8 +31,12 @@ export function formatSkillName(raw: string): string {
  */
 export function parseRequiredSkills(raw: any): { name: string; required_level: number; weight: number; priority?: string; note?: string }[] {
   if (!raw) return [];
+  // Handle JSON strings
+  if (typeof raw === 'string') {
+    try { raw = JSON.parse(raw); } catch { return []; }
+  }
   if (Array.isArray(raw)) {
-    return raw.map((s: any) => ({
+    return raw.filter((s: any) => s && typeof s === 'object' && s.name).map((s: any) => ({
       name: s.name || '',
       required_level: s.required_level ?? s.required ?? 2,
       weight: s.weight ?? 0.5,
@@ -40,6 +44,7 @@ export function parseRequiredSkills(raw: any): { name: string; required_level: n
       note: s.note,
     }));
   }
+  if (typeof raw !== 'object') return [];
   // Old object format
   return Object.entries(raw).map(([name, level]) => ({
     name,

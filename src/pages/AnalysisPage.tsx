@@ -137,13 +137,39 @@ export default function AnalysisPage() {
     const reqSkills = skillsToVector(targetRole.required_skills);
     const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
     const aliasMap: Record<string, string[]> = {
-      "Machine Learning / Deep Learning": ["Machine Learning", "Deep Learning"],
+      // AI Manufacturing
+      "Machine Learning / Deep Learning": ["Machine Learning", "Deep Learning", "Deep Learning / PyTorch"],
       "Computer Vision": ["Computer Vision / Perception", "Perception"],
       "Data Engineering / Pipelines": ["Data Engineering", "Pipelines", "Data Analysis", "Process Automation"],
       "Manufacturing Process Knowledge": ["Manufacturing Processes", "Battery Cell Production", "Lean Manufacturing", "Statistical Process Control"],
       "Edge AI / Embedded Deployment": ["Edge AI / Embedded Inference", "Embedded AI", "MLOps"],
       "Digital Twin / Simulation": ["Digital Twin", "Simulation", "Simulation Modeling"],
       "Statistics / Anomaly Detection": ["Statistics", "Anomaly Detection", "Statistical Process Control", "Data Analysis"],
+      // ADAS
+      "C++ / Embedded Systems": ["C++ Programming", "Embedded Systems", "C++"],
+      "Sensor Fusion": ["Multi-Modal Sensor Fusion", "Lidar", "Radar"],
+      "Computer Vision / Perception": ["Computer Vision", "Perception", "Object Detection"],
+      "Real-Time Systems": ["Real-Time", "Embedded Systems"],
+      "ROS / ROS2": ["ROS", "ROS2"],
+      "Deep Learning": ["Deep Learning / PyTorch", "Machine Learning", "PyTorch"],
+      "ISO 26262 / Functional Safety": ["Functional Safety", "ISO 26262"],
+      // EV Battery
+      "Battery Systems Engineering": ["Battery Systems", "EV Battery Systems"],
+      "Battery Management Systems (BMS)": ["BMS", "Battery Management"],
+      "Cell Chemistry / Electrochemistry": ["Cell Chemistry", "Electrochemistry"],
+      "Thermal Management": ["Battery Thermal Management", "Thermal"],
+      // Digital Transformation / IT
+      "Digital Strategy": ["Digital Transformation", "Strategy"],
+      "Stakeholder Management": ["Stakeholder Engagement", "Client Management"],
+      "Cross-Functional Leadership": ["Cross-Functional", "Team Leadership"],
+      "Change Management": ["Organizational Change", "Change"],
+      "Program / Portfolio Management": ["Project Management", "Portfolio Management", "Programme Management"],
+      "Agile / Scaled Agile": ["Agile", "SAFe", "Scrum"],
+      "Agile / SAFe Project Management": ["Agile", "SAFe", "Scrum", "Project Management"],
+      "IT Programme Delivery": ["IT Delivery", "Programme Delivery"],
+      "Risk & Escalation Management": ["Risk Management", "Escalation Management"],
+      "Budget & Resource Planning": ["Budget Control", "Resource Planning"],
+      "Technical Literacy (Software)": ["Technical Mentoring", "Software Literacy"],
     };
 
     const normalizedFromAnalysis = new Map<string, number>();
@@ -155,20 +181,24 @@ export default function AnalysisPage() {
       const analysisValue = normalizedFromAnalysis.get(skillKey);
 
       if (analysisValue !== undefined) {
-        return { skill: formatSkillName(skill), employee: analysisValue, required };
+        return { skill: formatSkillName(skill), employee: Math.min(analysisValue, 3), required };
       }
 
+      // Alias-based fallback (used when gap_analysis is null)
       const candidateNames = [skill, ...(aliasMap[skill] || [])];
-      const employeeValue = Math.max(
-        0,
-        ...(skills || []).flatMap((employeeSkill) => {
-          const employeeKey = normalize(employeeSkill.skill_name);
-          const matched = candidateNames.some((candidate) => {
-            const candidateKey = normalize(candidate);
-            return employeeKey === candidateKey || employeeKey.includes(candidateKey) || candidateKey.includes(employeeKey);
-          });
-          return matched ? [employeeSkill.proficiency || 0] : [];
-        })
+      const employeeValue = Math.min(
+        3,
+        Math.max(
+          0,
+          ...(skills || []).flatMap((employeeSkill) => {
+            const employeeKey = normalize(employeeSkill.skill_name);
+            const matched = candidateNames.some((candidate) => {
+              const candidateKey = normalize(candidate);
+              return employeeKey === candidateKey || employeeKey.includes(candidateKey) || candidateKey.includes(employeeKey);
+            });
+            return matched ? [employeeSkill.proficiency || 0] : [];
+          })
+        )
       );
 
       return { skill: formatSkillName(skill), employee: employeeValue, required };
