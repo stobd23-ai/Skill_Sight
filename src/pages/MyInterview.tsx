@@ -579,7 +579,7 @@ export default function MyInterview() {
                   {pack && (
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Focus Area</span>
-                      <span className="font-medium">{pack.label}</span>
+                      <span className="font-medium">{pack.name}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between text-sm">
