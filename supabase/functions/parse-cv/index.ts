@@ -6,6 +6,155 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// ── Skill alias mapping table ──
+const SKILL_ALIASES: Record<string, string[]> = {
+  "perception pipeline": ["sensor_fusion", "computer_vision"],
+  "perception pipelines": ["sensor_fusion", "computer_vision"],
+  "autonomous systems": ["adas_systems", "autonomous_driving"],
+  "autonomous driving": ["adas_systems", "autonomous_driving"],
+  "sensor fusion": ["sensor_fusion"],
+  "lidar": ["lidar_processing", "sensor_fusion"],
+  "radar": ["radar_processing", "sensor_fusion"],
+  "object detection": ["computer_vision", "perception"],
+  "real-time systems": ["embedded_systems", "real_time_processing"],
+  "real time systems": ["embedded_systems", "real_time_processing"],
+  "embedded hardware": ["embedded_systems"],
+  "embedded systems": ["embedded_systems"],
+  "localization": ["slam", "localization"],
+  "slam": ["slam", "localization"],
+  "planning": ["motion_planning"],
+  "motion planning": ["motion_planning"],
+  "deep learning": ["machine_learning", "deep_learning"],
+  "neural networks": ["deep_learning", "machine_learning"],
+  "cnn": ["deep_learning", "computer_vision"],
+  "transformer": ["deep_learning", "machine_learning"],
+  "reinforcement learning": ["machine_learning", "reinforcement_learning"],
+  "edge ai": ["edge_computing", "embedded_ai"],
+  "distributed processing": ["distributed_systems"],
+  "distributed systems": ["distributed_systems"],
+  "model inference": ["ml_deployment"],
+  "quantization": ["model_optimization"],
+  "pytorch": ["pytorch", "deep_learning"],
+  "tensorflow": ["tensorflow", "deep_learning"],
+  "ros": ["ros", "robotics_middleware"],
+  "ros2": ["ros", "robotics_middleware"],
+  "cuda": ["gpu_programming", "cuda"],
+  "kubernetes": ["kubernetes", "distributed_systems"],
+  "docker": ["containerization", "devops"],
+  "spark": ["distributed_systems", "data_pipelines"],
+  "c++": ["cpp"],
+  "cpp": ["cpp"],
+  "python": ["python"],
+  "adas": ["adas_systems"],
+  "advanced driver assistance": ["adas_systems"],
+  "computer vision": ["computer_vision"],
+  "machine learning": ["machine_learning"],
+  "ml": ["machine_learning"],
+  "autosar": ["autosar"],
+  "iso 26262": ["functional_safety"],
+  "functional safety": ["functional_safety"],
+  "battery management": ["battery_management_systems"],
+  "bms": ["battery_management_systems"],
+  "high voltage": ["high_voltage_systems"],
+  "thermal management": ["thermal_management"],
+  "electric drivetrain": ["electric_drivetrain"],
+  "e-drive": ["electric_drivetrain"],
+  "cad": ["cad_cae_tools"],
+  "catia": ["cad_cae_tools"],
+  "solidworks": ["cad_cae_tools"],
+  "fea": ["simulation_fea"],
+  "finite element": ["simulation_fea"],
+  "project management": ["project_management"],
+  "agile": ["agile_methodologies"],
+  "scrum": ["agile_methodologies"],
+  "ci/cd": ["ci_cd_devops"],
+  "devops": ["ci_cd_devops"],
+  "jenkins": ["ci_cd_devops"],
+  "github actions": ["ci_cd_devops"],
+  "testing": ["testing_validation"],
+  "validation": ["testing_validation"],
+  "leadership": ["leadership"],
+  "team lead": ["leadership"],
+  "people management": ["leadership"],
+  "data analysis": ["data_analysis"],
+  "data science": ["data_analysis", "machine_learning"],
+  "cloud": ["cloud_platforms"],
+  "aws": ["cloud_platforms"],
+  "azure": ["cloud_platforms"],
+  "gcp": ["cloud_platforms"],
+  "communication": ["communication_skills"],
+};
+
+// Also map normalized catalog names to snake_case keys used in role required_skills
+const CATALOG_TO_ROLE_KEY: Record<string, string> = {
+  "ADAS Systems": "adas_systems",
+  "Computer Vision": "ComputerVision",
+  "Sensor Fusion": "sensor_fusion",
+  "ROS/ROS2": "ROS",
+  "Deep Learning": "DeepLearning",
+  "Python": "Python",
+  "C/C++": "CppLanguage",
+  "Embedded Systems": "embedded_systems",
+  "AUTOSAR": "AUTOSAR",
+  "Functional Safety": "FunctionalSafety",
+  "Machine Learning": "MachineLearning",
+  "Leadership": "leadership",
+};
+
+function normalizeSkillsToRoleKeys(
+  skills: Array<{ name: string; proficiency: number; evidence: string }>,
+  roleRequirements: Record<string, number>
+): Record<string, { proficiency: number; evidence: string }> {
+  const result: Record<string, { proficiency: number; evidence: string }> = {};
+  const roleKeys = Object.keys(roleRequirements);
+  const roleKeysLower = roleKeys.map((k) => k.toLowerCase());
+
+  for (const skill of skills) {
+    const skillNameLower = skill.name.toLowerCase().trim();
+
+    // Direct match against role keys
+    for (let i = 0; i < roleKeys.length; i++) {
+      if (skillNameLower === roleKeysLower[i] || skillNameLower.includes(roleKeysLower[i]) || roleKeysLower[i].includes(skillNameLower)) {
+        const key = roleKeys[i];
+        if (!result[key] || result[key].proficiency < skill.proficiency) {
+          result[key] = { proficiency: skill.proficiency, evidence: skill.evidence };
+        }
+      }
+    }
+
+    // Alias expansion
+    const aliases = SKILL_ALIASES[skillNameLower];
+    if (aliases) {
+      for (const alias of aliases) {
+        const aliasLower = alias.toLowerCase();
+        for (let i = 0; i < roleKeys.length; i++) {
+          if (aliasLower === roleKeysLower[i] || roleKeysLower[i].includes(aliasLower) || aliasLower.includes(roleKeysLower[i])) {
+            const key = roleKeys[i];
+            if (!result[key] || result[key].proficiency < skill.proficiency) {
+              result[key] = { proficiency: skill.proficiency, evidence: skill.evidence };
+            }
+          }
+        }
+      }
+    }
+
+    // Catalog name mapping
+    const catalogKey = CATALOG_TO_ROLE_KEY[skill.name];
+    if (catalogKey) {
+      for (let i = 0; i < roleKeys.length; i++) {
+        if (catalogKey.toLowerCase() === roleKeysLower[i]) {
+          const key = roleKeys[i];
+          if (!result[key] || result[key].proficiency < skill.proficiency) {
+            result[key] = { proficiency: skill.proficiency, evidence: skill.evidence };
+          }
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -35,41 +184,65 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
         temperature: 0.1,
-        max_tokens: 1500,
+        max_tokens: 2500,
         system: `You are a CV parser for BMW talent acquisition. Extract skills, experience, and qualifications from CVs.
 
-SKILL NAME NORMALISATION — always map CV terminology to these catalog names before extraction:
+EXPERIENCE DURATION CALCULATION (CRITICAL):
+Calculate total_years_experience by identifying ALL work experience date ranges in the CV. For each role, compute the duration. Sum all durations. Return the total as a number. "Present" means 2026. Do not return the start year of the most recent role — return the TOTAL cumulative years across all roles. For example: "2021–Present" (5 years) + "2019–2021" (2 years) = 7 years total. Always return a number, never a string like "under 1 year."
+
+SEMANTIC SKILL EXTRACTION (CRITICAL):
+When extracting skills, map what the candidate DESCRIBES to their underlying technical competencies, not just the exact words. Examples:
+- "Led perception pipeline development" → sensor_fusion, computer_vision, real_time_processing
+- "Distributed processing with Spark and Kubernetes on 10M+ samples" → distributed_systems, data_pipelines, kubernetes, production_deployment
+- "Deployed models on embedded hardware" → embedded_systems, ml_deployment, edge_computing
+- "Reduced inference latency by 35%" → model_optimization, production_engineering
+- "Cross-functional team of 6 engineers" → leadership, project_management
+Always extract the underlying competency, not just the tool name.
+
+PRODUCTION vs RESEARCH CLASSIFICATION (CRITICAL):
+COUNTS AS PRODUCTION ENGINEERING regardless of industry:
+- Systems processing data at scale (1M+ samples, distributed compute)
+- Measurable latency, accuracy, or uptime improvements with specific numbers
+- Deployment on physical hardware (embedded, edge, robotics)
+- Cross-functional team coordination with real delivery timelines
+- CI/CD, containerization (Docker/Kubernetes), or distributed infrastructure
+
+COUNTS AS RESEARCH/ACADEMIC ONLY if:
+- Work was exclusively in simulation with no hardware deployment
+- No measurable real-world outcomes reported
+- Output was only papers with no implementation artifact
+
+Do not classify a candidate as "research only" if they show production signals from the list above, even if they work in a university lab or research group.
+
+SKILL NAME NORMALISATION — map CV terminology to catalog names:
 - "ADAS" / "advanced driver assistance" → "ADAS Systems"
 - "computer vision" / "perception" / "object detection" → "Computer Vision"
 - "lidar" / "radar" / "sensor fusion" → "Sensor Fusion"
 - "ROS" / "robot operating system" → "ROS/ROS2"
 - "deep learning" / "neural networks" / "CNN" / "transformer" → "Deep Learning"
-- "Python" / "python programming" → "Python"
+- "Python" → "Python"
 - "C++" / "cpp" → "C/C++"
-- "embedded" / "embedded systems" / "microcontroller" → "Embedded Systems"
-- "AUTOSAR" / "autosar" → "AUTOSAR"
+- "embedded" / "embedded systems" → "Embedded Systems"
+- "AUTOSAR" → "AUTOSAR"
 - "functional safety" / "ISO 26262" → "Functional Safety"
-- "battery" / "BMS" / "battery management" → "Battery Management Systems"
-- "high voltage" / "HV systems" → "High-Voltage Systems"
-- "thermal management" → "Thermal Management"
-- "electric drivetrain" / "e-drive" → "Electric Drivetrain"
-- "CAD" / "CATIA" / "NX" / "SolidWorks" → "CAD/CAE Tools"
-- "FEA" / "finite element" / "simulation" → "Simulation & FEA"
-- "project management" / "PM" → "Project Management"
-- "agile" / "scrum" / "kanban" → "Agile Methodologies"
 - "machine learning" / "ML" → "Machine Learning"
-- "data analysis" / "data science" → "Data Analysis"
-- "cloud" / "AWS" / "Azure" / "GCP" → "Cloud Platforms"
-- "CI/CD" / "DevOps" / "Jenkins" / "GitHub Actions" → "CI/CD & DevOps"
-- "testing" / "validation" / "V&V" → "Testing & Validation"
-- "communication" / "presentation" → "Communication Skills"
-- "leadership" / "team lead" / "people management" → "Leadership"
+- "perception pipeline" / "autonomous systems" → "Sensor Fusion", "Computer Vision"
+- "PyTorch" / "TensorFlow" → "Deep Learning"
+- "Kubernetes" / "Docker" → "Distributed Systems"
+- "edge AI" / "embedded AI" → "Embedded Systems", "Deep Learning"
+- "reinforcement learning" → "Machine Learning"
+- "CUDA" → "GPU Programming"
+- "leadership" / "team lead" → "Leadership"
 
 Return ONLY valid JSON:
 {
   "skills": [{"name": "normalized skill name", "proficiency": 1-5, "evidence": "brief evidence from CV"}],
-  "experience_years": number,
-  "education": "highest degree",
+  "total_years_experience": number,
+  "experience_breakdown": [{"role": "job title", "start_year": number, "end_year": number, "duration_years": number}],
+  "education": "highest degree and field",
+  "education_level": "phd" | "masters" | "bachelors" | "other",
+  "institution_tier": "top" | "mid" | "unknown",
+  "experience_type": "production" | "mixed" | "research",
   "summary": "2-3 sentence professional summary"
 }`,
         messages: [
@@ -84,9 +257,35 @@ Return ONLY valid JSON:
     const extractionData = await extractionResponse.json();
     const extractionContent = extractionData.content?.[0]?.text || "";
     const extractionMatch = extractionContent.match(/\{[\s\S]*\}/);
-    const parsed = extractionMatch ? JSON.parse(extractionMatch[0]) : { skills: [], summary: "Could not parse CV" };
+    const rawParsed = extractionMatch ? JSON.parse(extractionMatch[0]) : { skills: [], summary: "Could not parse CV" };
 
-    // ── Call 2: AI judgment (non-blocking) ──
+    // Normalize extracted skills against role requirements
+    const extractedSkills = normalizeSkillsToRoleKeys(
+      rawParsed.skills || [],
+      roleRequirements || {}
+    );
+
+    // Build experience profile
+    const totalYears = rawParsed.total_years_experience ?? rawParsed.experience_years ?? 0;
+    const experienceProfile = {
+      total_years: totalYears,
+      experience_breakdown: rawParsed.experience_breakdown || [],
+      education: rawParsed.education || "Unknown",
+      education_level: rawParsed.education_level || "unknown",
+      institution_tier: rawParsed.institution_tier || "unknown",
+      experience_type: rawParsed.experience_type || "unknown",
+      red_flags: [] as string[],
+    };
+
+    const parsed = {
+      skills: rawParsed.skills,
+      extracted_skills: extractedSkills,
+      experience_profile: experienceProfile,
+      summary: rawParsed.summary,
+      education: rawParsed.education,
+    };
+
+    // ── Call 2: AI judgment ──
     let aiJudgment = null;
     try {
       const judgmentResponse = await fetch("https://api.anthropic.com/v1/messages", {
@@ -99,97 +298,57 @@ Return ONLY valid JSON:
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           temperature: 0.1,
-          max_tokens: 1500,
-          system: `You are a senior BMW talent acquisition specialist with 15 years hiring technical engineers. You are rigorous, fair, and impossible to impress with company names or titles alone. You care about evidence of real work.
+          max_tokens: 2000,
+          system: `You are a senior BMW talent acquisition specialist. Rigorous, fair, evidence-focused.
 
-YOUR CORE PRINCIPLE:
-A strong candidate built things, measured results, and owned outcomes.
-A weak candidate was present while others built things.
-Company names and job titles are context, not evidence.
+CORE PRINCIPLE: A strong candidate built things, measured results, and owned outcomes.
 
 === STEP 1: VERB QUALITY ANALYSIS ===
-Before anything else, scan every bullet point and description in the CV.
-Classify each meaningful claim:
+Scan every bullet. Classify claims as BUILDER VERBS (built, designed, implemented, developed, led, owned, reduced by X%, achieved, deployed, optimized, engineered) vs PARTICIPANT VERBS (assisted, supported, contributed to, was involved in, familiar with, exposure to). Count ratio.
 
-BUILDER VERBS (genuine ownership evidence):
-built, designed, implemented, developed, created, architected, deployed, delivered,
-led, owned, reduced, improved [by X%], increased [by X%], achieved, launched,
-optimized, engineered, wrote, established, defined, drove, solved
+=== STEP 2: METRICS AND IMPACT ===
+Count measurable outcomes: percentages, scale numbers, team sizes, latency reductions.
 
-PARTICIPANT VERBS (involvement without ownership):
-assisted, supported, contributed to, worked on, helped, participated in,
-was involved in, collaborated on, was part of, joined, engaged with, exposure to,
-familiar with, knowledge of, understanding of
+=== STEP 3: ABSENCE ANALYSIS ===
+For each role requirement, ask: "Is there DIRECT evidence of ownership, indirect evidence, or nothing?"
 
-Count: how many claims use builder verbs vs participant verbs?
-If more than 50% of experience descriptions use participant verbs → this is a WEAK profile regardless of company names.
+=== STEP 4: SENIORITY CALIBRATION ===
+Does evidence support the claimed seniority level?
 
-=== STEP 2: METRICS AND IMPACT ANALYSIS ===
-Strong candidates prove impact with numbers.
-Scan for: percentages, time savings, accuracy improvements, latency reductions, team sizes, scale numbers.
+=== STEP 5: PRODUCTION vs RESEARCH ===
+COUNTS AS PRODUCTION regardless of employer:
+- Systems at scale (1M+ samples, distributed compute)
+- Measurable improvements with specific numbers
+- Physical hardware deployment (embedded, edge, robotics)
+- Cross-functional team delivery
+- CI/CD, containerization, distributed infrastructure
+Do NOT dismiss as "research" if production signals are present.
 
-No metrics anywhere in the CV → significant weakness for a senior role.
-1-2 metrics → acceptable for mid-level.
-3+ metrics with specific numbers → strong signal.
+=== STEP 6: MISSING SKILLS POLICY (CRITICAL) ===
+Missing automotive-specific stack items (AUTOSAR, ISO 26262, automotive production) should reduce worthiness score by 10–20 points but must NEVER be the sole reason for rejection. A candidate with strong domain-adjacent skills and 5+ years who is missing automotive stack items is a FLAG candidate, not a reject.
 
-=== STEP 3: ABSENCE ANALYSIS (CRITICAL) ===
-For each high-priority requirement of the target role, explicitly ask:
-"Is there direct evidence this person HAS DONE this, or just that they know the words?"
-
-Distinguish between:
-- Direct evidence: "deployed real-time object detection on embedded automotive hardware" → has done ADAS deployment
-- Indirect evidence: "familiar with ADAS concepts" or "worked on perception team" → has not demonstrated ownership
-- Missing: not mentioned at all → gap
-
-List what is ABSENT with the same rigor as what is present.
-A candidate who mentions many skills but has done none of them deeply is weaker than a candidate who mentions fewer skills but has deep ownership evidence.
-
-=== STEP 4: SENIORITY VS CLAIM CALIBRATION ===
-Does the claimed experience level match the evidence?
-Red flags:
-- Senior title but no evidence of leading, designing, or owning outcomes
-- Multiple "senior" roles but all descriptions use participant verbs
-- Large company names but only supportive role descriptions
-- Projects described at simulation or academic level for a production role
-
-=== STEP 5: HOLISTIC JUDGMENT ===
-Now make your decision combining all four analyses.
-
-APPROVE (worthy = true) when:
-- Builder verbs dominate and impact is measurable
-- Direct evidence of owning relevant outcomes
-- Absence analysis shows no critical gaps
-- Seniority matches evidence
-
-BORDERLINE — approve with low confidence when:
-- Mix of builder and participant verbs
-- Some metrics but inconsistent
-- 1-2 critical gaps but overall trajectory is right
-
-REJECT (worthy = false) when:
-- Participant verbs dominate
-- No measurable impact anywhere
-- Critical role requirements absent from actual evidence (not just vocabulary)
-- Claimed seniority clearly not supported by described work
+=== STEP 7: HIGH-POTENTIAL OVERRIDE (CRITICAL) ===
+If a candidate holds a PhD or Masters AND has 4+ years experience AND demonstrates measurable production-scale impact (quantified improvements, large-scale systems, team leadership), the minimum outcome must be FLAG (ai_verdict = true with ai_confidence = "medium") regardless of missing domain-specific keywords. The verdict should note: "High-potential candidate. Missing automotive-specific stack but core engineering capabilities are exceptional. Recommend interview."
 
 === OUTPUT ===
 Return ONLY valid JSON:
 {
-  "ai_verdict": true,
-  "ai_confidence": "high | medium | low",
-  "builder_verb_ratio": 0.0,
-  "metrics_count": 0,
-  "verb_quality_assessment": "one sentence on builder vs participant balance",
+  "ai_verdict": boolean,
+  "ai_confidence": "high" | "medium" | "low",
+  "builder_verb_ratio": 0.0-1.0,
+  "metrics_count": number,
+  "verb_quality_assessment": "one sentence",
   "absence_analysis": {
-    "critical_gaps": ["skill or requirement with no ownership evidence"],
-    "indirect_only": ["skills mentioned but only as exposure not ownership"],
-    "well_evidenced": ["skills with clear builder verb + impact evidence"]
+    "critical_gaps": ["skills with no ownership evidence"],
+    "indirect_only": ["skills mentioned as exposure only"],
+    "well_evidenced": ["skills with builder verb + impact evidence"]
   },
-  "ai_reasoning": "3-4 sentences: specific verb examples, specific metrics or lack thereof, specific absences — written like a rigorous recruiter, not a cheerleader",
-  "ai_key_strengths": ["specific evidenced strength — must reference actual CV content"],
-  "ai_concerns": ["specific concern — must reference actual CV content or absence"],
+  "high_potential_override": boolean,
+  "ai_reasoning": "3-4 sentences with specific examples",
+  "ai_key_strengths": ["specific evidenced strengths"],
+  "ai_concerns": ["specific concerns"],
   "ai_recommended_preset": "technical_depth | hidden_potential | leadership_signals | ev_transition | digital_ai | cross_functional",
-  "ai_recruiter_note": "one brutally honest sentence — would you personally fight to interview this person or are you just not rejecting them?"
+  "ai_recruiter_note": "one honest sentence"
 }`,
           messages: [
             {

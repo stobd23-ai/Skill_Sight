@@ -64,24 +64,55 @@ function hybridWorthinessDecision(
   const expYears = experienceProfile?.total_years || 0;
   const redFlags = experienceProfile?.red_flags?.length || 0;
 
+  // Score penalties instead of hard rejection gates
   let algoScore = partialScore;
   const algoReasons: string[] = [];
 
   if (effectiveCoverage < 0.20) {
     algoReasons.push(`Low skill coverage: ${Math.round(effectiveCoverage * 100)}%`);
-    algoScore *= 0.6;
+    algoScore *= 0.75; // Penalty, not rejection
   }
   if (expYears < 1) {
     algoReasons.push('Under 1 year experience');
-    algoScore *= 0.7;
+    algoScore *= 0.8;
   }
   if (redFlags >= 3) {
     algoReasons.push(`${redFlags} profile concerns`);
-    algoScore *= 0.75;
+    algoScore *= 0.85;
   }
 
-  const algoWorthy = algoScore >= 0.35 && algoReasons.length === 0;
+  // Minimum score floor: experienced candidates with domain-relevant skills get at least 0.20
+  if (expYears >= 3 && effectiveCoverage >= 0.40) {
+    algoScore = Math.max(algoScore, 0.20);
+  }
+
+  // High-potential override: advanced degree + experience + production impact → minimum FLAG
+  const isHighPotential =
+    (experienceProfile?.education_level === 'phd' || experienceProfile?.education_level === 'masters') &&
+    expYears >= 4 &&
+    (aiJudgment?.metrics_count >= 3 || false) &&
+    (aiJudgment?.builder_verb_ratio >= 0.5 || false) &&
+    effectiveCoverage >= 0.40;
+
+  // Algo worthy threshold - no longer requires zero reasons (reasons are informational)
+  const algoWorthy = algoScore >= 0.35;
   const aiWorthy = aiJudgment?.ai_verdict === true;
+
+  // High-potential override: force FLAG minimum
+  if (isHighPotential && !algoWorthy) {
+    return {
+      worthy: false,
+      confidence: 'flagged',
+      method: 'flagged_ai_overrides',
+      worthyScore: Math.max(algoScore, 0.30),
+      reasoning: 'High-potential candidate: advanced credentials + production-scale experience + measurable impact. Missing domain-specific stack is learnable. Recommend interview.',
+      aiReasoning: aiJudgment?.ai_reasoning || '',
+      concerns: algoReasons,
+      keyStrengths: aiJudgment?.ai_key_strengths || [],
+      recommendedPreset: aiJudgment?.ai_recommended_preset || 'hidden_potential',
+      recruiterNote: aiJudgment?.ai_recruiter_note || '',
+    };
+  }
 
   // If no AI judgment available, fall back to algo-only
   if (!aiJudgment) {
@@ -101,13 +132,28 @@ function hybridWorthinessDecision(
     };
   }
 
+  // AI also has high_potential_override → force FLAG
+  if (aiJudgment?.high_potential_override && !algoWorthy) {
+    return {
+      worthy: false,
+      confidence: 'flagged',
+      method: 'flagged_ai_overrides',
+      worthyScore: Math.max(algoScore, 0.30),
+      reasoning: 'AI identified high-potential override: exceptional credentials and production impact despite missing domain keywords. Manager review recommended.',
+      aiReasoning: aiJudgment?.ai_reasoning || '',
+      concerns: algoReasons,
+      keyStrengths: aiJudgment?.ai_key_strengths || [],
+      recommendedPreset: aiJudgment?.ai_recommended_preset || 'hidden_potential',
+      recruiterNote: aiJudgment?.ai_recruiter_note || '',
+    };
+  }
+
   if (algoWorthy && aiWorthy) {
     const aiConf = aiJudgment?.ai_confidence;
     const finalConfidence = aiConf === 'high' ? 'high' 
       : aiConf === 'medium' ? 'medium'
       : 'flagged' as const;
     
-    // Low builder verb ratio overrides high confidence
     const builderRatio = aiJudgment?.builder_verb_ratio || 0.5;
     const adjustedConfidence = builderRatio < 0.4 ? 'flagged' : finalConfidence;
 
@@ -128,6 +174,21 @@ function hybridWorthinessDecision(
   }
 
   if (!algoWorthy && !aiWorthy) {
+    // Even both-reject gets overridden if high-potential
+    if (isHighPotential) {
+      return {
+        worthy: false,
+        confidence: 'flagged',
+        method: 'flagged_ai_overrides',
+        worthyScore: Math.max(algoScore, 0.25),
+        reasoning: 'High-potential candidate flagged despite both signals below threshold. Advanced credentials warrant manager review.',
+        aiReasoning: aiJudgment?.ai_reasoning || '',
+        concerns: [...algoReasons, ...(aiJudgment?.ai_concerns || [])],
+        keyStrengths: aiJudgment?.ai_key_strengths || [],
+        recommendedPreset: 'hidden_potential',
+        recruiterNote: aiJudgment?.ai_recruiter_note || '',
+      };
+    }
     return {
       worthy: false,
       confidence: 'high',
