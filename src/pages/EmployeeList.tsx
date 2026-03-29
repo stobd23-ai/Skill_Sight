@@ -276,6 +276,7 @@ export default function EmployeeList() {
                   className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                     extFilter === f.value
                       ? (f as any).amber ? "bg-amber-500 text-white"
+                        : (f as any).red ? "bg-destructive text-destructive-foreground"
                         : "bg-primary text-primary-foreground"
                       : "bg-secondary text-muted-foreground hover:bg-accent"
                   }`}
