@@ -173,6 +173,7 @@ export default function EmployeeList() {
       flagged_review: { label: "⚠ Needs Review", variant: "outline", className: "border-amber-500 text-amber-700 bg-amber-50" },
       talent_pool: { label: "⭐ Talent Pool", variant: "default", className: "bg-amber-500 text-white border-amber-500" },
       proceeding: { label: "🚀 Proceeding", variant: "default", className: "bg-green-600 text-white border-green-600" },
+      promoted: { label: "✓ Promoted", variant: "default", className: "bg-primary text-primary-foreground" },
     };
     const s = map[status] || { label: status, variant: "secondary" as const };
     return <Badge variant={s.variant} className={`text-[10px] ${s.className || ''}`}>{s.label}</Badge>;
