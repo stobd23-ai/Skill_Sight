@@ -62,9 +62,11 @@ export default function RolesPage() {
   const openEdit = (role: any) => {
     setEditId(role.id); setTitle(role.title); setDepartment(role.department || ""); setDescription(role.description || "");
     setHeadcount(role.headcount_needed || 1); setHiringStatus((role as any).hiring_status || 'actively_hiring');
-    const req = (role.required_skills || {}) as Record<string, number>;
-    const w = (role.strategic_weights || {}) as Record<string, number>;
-    setSkillReqs(Object.entries(req).map(([name, required]) => ({ name, required, weight: w[name] || 0.5 })));
+    const parsed = parseRequiredSkills(role.required_skills);
+    const weights = skillsToWeights(role.required_skills);
+    // For old format, try strategic_weights
+    const sw = (role.strategic_weights || {}) as Record<string, number>;
+    setSkillReqs(parsed.map(s => ({ name: s.name, required: s.required_level, weight: s.weight || sw[s.name] || 0.5 })));
     setEditOpen(true);
   };
 
