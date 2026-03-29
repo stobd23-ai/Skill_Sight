@@ -450,7 +450,7 @@ export default function ExternalCandidateProfile() {
               </div>
             )}
             {/* Show message if AI interview not yet completed */}
-            {cvPassed && hybridInfo?.verdict !== 'hard_reject' && candidate.status !== "rejected" && candidate.status !== "below_threshold" && !(isCompleted && interview?.status === "completed") && (
+            {cvPassed && hybridInfo?.verdict !== 'hard_reject' && candidate.status !== "rejected" && candidate.status !== "below_threshold" && interview?.status !== "completed" && (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-dashed border-muted-foreground/30 bg-muted/10">
                 <span className="text-xs text-muted-foreground italic">AI Interview must be completed before marking in-person interview</span>
               </div>
