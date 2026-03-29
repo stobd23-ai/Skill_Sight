@@ -15,7 +15,7 @@ import EmployeeProfile from "./pages/EmployeeProfile";
 import EmployeeInterview from "./pages/EmployeeInterview";
 import ManagerInterview from "./pages/ManagerInterview";
 import AnalysisPage from "./pages/AnalysisPage";
-import StrategyHub from "./pages/StrategyHub";
+
 import InternalReorg from "./pages/InternalReorg";
 import SuccessionBoard from "./pages/SuccessionBoard";
 import RolesPage from "./pages/RolesPage";
