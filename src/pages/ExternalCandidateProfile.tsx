@@ -172,15 +172,20 @@ export default function ExternalCandidateProfile() {
   const score = candidate.full_three_layer_score != null ? Math.round(candidate.full_three_layer_score * 100) : null;
   const technicalMatch = results.technicalMatch;
   const capabilityMatch = results.capabilityMatch;
-  const momentumScore = results.momentumScore;
+  const momentumScore = results.momentumScore ?? results.momentumScoreVal;
   const momentumBreakdown = results.momentumBreakdown;
-  const gapAnalysis = results.gap || results.gapAnalysis;
-  const tfidfRarity = results.tfidfRarity || {};
+  const interviewCompleted = results.interviewCompleted === true || interview?.status === "completed";
+  // Use post-interview gap analysis if available
+  const gapAnalysis = results.gapAnalysis || results.gap;
+  const tfidfRarity = results.tfidfRarity || results.tfidf || {};
   const upskillingPaths = results.upskillingPaths || [];
   const transitionProfile = results.transitionProfile;
   const scoreBreakdown = results.scoreBreakdown;
   const report = results.reportMarkdown;
+  const absenceAnalysis = results.absenceAnalysis;
   const interviewSkills = (candidate.interview_skills || {}) as any;
+  const isCompleted = candidate.status === "completed" || candidate.status === "talent_pool";
+  const hasAssessment = !!(hybridInfo || candidate.worthy_score != null || technicalMatch != null);
   const isCompleted = candidate.status === "completed";
   const hasAssessment = !!(hybridInfo || candidate.worthy_score != null || technicalMatch != null);
   const initials = candidate.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
