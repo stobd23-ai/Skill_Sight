@@ -331,6 +331,11 @@ export default function ExternalCandidateProfile() {
                 <Trash2 className="h-3 w-3 mr-1" />Delete Candidate
               </Button>
             )}
+            {(candidate as any).candidate_message && (
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => setCvModalOpen(true)}>
+                <FileText className="h-3 w-3 mr-1" />View Submitted CV
+              </Button>
+            )}
           </div>
         </div>
 
