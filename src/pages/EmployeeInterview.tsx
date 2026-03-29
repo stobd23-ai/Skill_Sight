@@ -51,7 +51,8 @@ export default function EmployeeInterview() {
     setIsAiTyping(true);
 
     try {
-      const targetSkills = Object.keys(selectedRole.required_skills as Record<string, number> || {});
+      const parsedSkills = parseRequiredSkills(selectedRole.required_skills as any);
+      const targetSkills = parsedSkills.map(s => s.name);
       const { data, error } = await supabase.functions.invoke("interview-chat", {
         body: {
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
