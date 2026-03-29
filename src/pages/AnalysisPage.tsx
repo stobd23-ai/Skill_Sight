@@ -103,9 +103,24 @@ export default function AnalysisPage() {
     return localResults ? Math.round(localResults.overallReadiness * 100) : 0;
   }, [threeLayerScore, latestResult, localResults, momentumScore, technicalMatch, capabilityMatch]);
 
-  const gapAnalysis = latestResult?.gap_analysis
-    ? latestResult.gap_analysis as unknown as { criticalGaps: Array<{ skill: string; currentProficiency: number; requiredProficiency: number; deficit: number; strategicWeight: number; weightedGap: number; priority: string }>; surplusSkills: Array<{ skill: string; current: number; required: number; surplus: number }>; interviewSurplus?: Array<{ skill: string; type: string; rating: string; evidence: string; relevance: string }>; normalizedGapScore: number; readinessPercent: number }
-    : localResults?.gapAnalysis || null;
+  const gapAnalysis = useMemo(() => {
+    const raw = (latestResult?.gap_analysis || localResults?.gapAnalysis) as any;
+    if (!raw) return null;
+
+    return {
+      criticalGaps: raw.criticalGaps || raw.gaps || [],
+      surplusSkills: raw.surplusSkills || raw.surpluses || [],
+      interviewSurplus: raw.interviewSurplus || raw.interview_surplus || [],
+      normalizedGapScore: raw.normalizedGapScore ?? raw.normalized_gap_score ?? 0,
+      readinessPercent: raw.readinessPercent ?? raw.readiness_percent ?? 0,
+    } as {
+      criticalGaps: Array<{ skill: string; currentProficiency: number; requiredProficiency: number; deficit: number; strategicWeight: number; weightedGap: number; priority: string }>;
+      surplusSkills: Array<{ skill: string; current: number; required: number; surplus: number }>;
+      interviewSurplus: Array<{ skill: string; type: string; rating: string; evidence: string; relevance: string }>;
+      normalizedGapScore: number;
+      readinessPercent: number;
+    };
+  }, [latestResult, localResults]);
 
   const tfidfRarity = (latestResult?.tfidf_rarity || localResults?.tfidfRarity || {}) as Record<string, number>;
   const upskillingPaths = (latestResult?.upskilling_paths || localResults?.upskillingPaths || []) as Array<{ targetSkill: string; path: string[]; totalWeeks: number; startingFrom: string }>;
@@ -117,20 +132,48 @@ export default function AnalysisPage() {
   const managerAdj = latestResult?.manager_readiness_adjustment ?? 0;
 
   const radarData = useMemo(() => {
-    if (!targetRole?.required_skills || !skills) return [];
+    if (!targetRole?.required_skills) return [];
+
     const reqSkills = skillsToVector(targetRole.required_skills);
     const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const aliasMap: Record<string, string[]> = {
+      "Machine Learning / Deep Learning": ["Machine Learning", "Deep Learning"],
+      "Computer Vision": ["Computer Vision / Perception", "Perception"],
+      "Data Engineering / Pipelines": ["Data Engineering", "Pipelines", "Data Analysis", "Process Automation"],
+      "Manufacturing Process Knowledge": ["Manufacturing Processes", "Battery Cell Production", "Lean Manufacturing", "Statistical Process Control"],
+      "Edge AI / Embedded Deployment": ["Edge AI / Embedded Inference", "Embedded AI", "MLOps"],
+      "Digital Twin / Simulation": ["Digital Twin", "Simulation", "Simulation Modeling"],
+      "Statistics / Anomaly Detection": ["Statistics", "Anomaly Detection", "Statistical Process Control", "Data Analysis"],
+    };
+
+    const normalizedFromAnalysis = new Map<string, number>();
+    gapAnalysis?.criticalGaps.forEach((gap) => normalizedFromAnalysis.set(normalize(gap.skill), gap.currentProficiency || 0));
+    gapAnalysis?.surplusSkills.forEach((surplus) => normalizedFromAnalysis.set(normalize(surplus.skill), surplus.current || 0));
+
     return Object.entries(reqSkills).map(([skill, required]) => {
-      const normSkill = normalize(skill);
-      const empSkill = skills.find(s => {
-        const normEmp = normalize(s.skill_name);
-        return normEmp === normSkill
-          || normSkill.includes(normEmp)
-          || normEmp.includes(normSkill);
-      });
-      return { skill: formatSkillName(skill), employee: empSkill?.proficiency || 0, required };
+      const skillKey = normalize(skill);
+      const analysisValue = normalizedFromAnalysis.get(skillKey);
+
+      if (analysisValue !== undefined) {
+        return { skill: formatSkillName(skill), employee: analysisValue, required };
+      }
+
+      const candidateNames = [skill, ...(aliasMap[skill] || [])];
+      const employeeValue = Math.max(
+        0,
+        ...(skills || []).flatMap((employeeSkill) => {
+          const employeeKey = normalize(employeeSkill.skill_name);
+          const matched = candidateNames.some((candidate) => {
+            const candidateKey = normalize(candidate);
+            return employeeKey === candidateKey || employeeKey.includes(candidateKey) || candidateKey.includes(employeeKey);
+          });
+          return matched ? [employeeSkill.proficiency || 0] : [];
+        })
+      );
+
+      return { skill: formatSkillName(skill), employee: employeeValue, required };
     });
-  }, [targetRole, skills]);
+  }, [targetRole, skills, gapAnalysis]);
 
   // Extract interview-discovered capabilities from completed interview
   const interviewSurplus = useMemo(() => {
