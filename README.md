@@ -44,7 +44,7 @@ Employee login:
 **Login:** rachel.kim@bmw-skillsight.com  
 **Password:** SkillSight2026!
 
-More employee logins are automaticly on the promotion of an external candidate to an official employee and follow the same formula as the already existing employees:  
+More employee logins are automaticly created on the promotion of an external candidate to an official employee and follow the same formula as the already existing employees:  
 first_name + . + last_name + @bmw-skillsight.com  
 
 8 pre-assessed external candidates are loaded across all five roles available in the demo. The full internal employee pipeline with interview data is ready. The seed candidates cover the full decision range: strong matches, flagged reviews, and hard rejects. All ready for immediate demonstration.
