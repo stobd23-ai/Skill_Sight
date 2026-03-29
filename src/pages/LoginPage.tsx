@@ -352,9 +352,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-xs text-muted-foreground/50 text-center mt-4">
-            Demo accounts are pre-loaded. Use the hints above.
-          </p>
+              
 
           {/* Divider with "or" */}
           <div className="relative flex items-center my-5">
