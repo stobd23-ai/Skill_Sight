@@ -17,9 +17,9 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
 import {
-  ArrowLeft, Download, RefreshCw, ArrowRight, Sparkles, Target,
-  BarChart3, Route, Star, AlertTriangle, Shield, ChevronDown, ChevronUp,
-  Zap, TrendingUp, Brain, Heart, Search, ShieldAlert,
+  ArrowLeft, Download, RefreshCw, ArrowRight, Sparkles,
+  BarChart3, Star, AlertTriangle, Shield, ChevronDown, ChevronUp,
+  Search, ShieldAlert,
 } from "lucide-react";
 
 export default function AnalysisPage() {
