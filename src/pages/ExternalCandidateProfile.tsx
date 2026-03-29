@@ -340,14 +340,21 @@ export default function ExternalCandidateProfile() {
                 <>
                   <ReadinessRing value={Math.round(technicalMatch * 100)} size="sm" label="Technical" />
                   <ReadinessRing value={Math.round((capabilityMatch || 0) * 100)} size="sm" label="Capability" />
-                  {isCompleted && momentumScore != null && momentumScore > 0 ? (
+                  {interviewCompleted && momentumScore != null && momentumScore > 0 ? (
                     <ReadinessRing value={Math.round(momentumScore * 100)} size="sm" label="Momentum" />
+                  ) : interviewCompleted ? (
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="w-12 h-12 rounded-full border-2 border-muted-foreground/30 flex items-center justify-center bg-muted/30">
+                        <span className="text-[10px] text-muted-foreground font-medium">N/A</span>
+                      </div>
+                      <span className="text-[11px] text-muted-foreground">Momentum</span>
+                    </div>
                   ) : (
                     <div className="flex flex-col items-center gap-1">
                       <div className="w-12 h-12 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
                         <span className="text-[10px] text-muted-foreground">—</span>
                       </div>
-                      <span className="text-[11px] text-muted-foreground italic">Pending</span>
+                      <span className="text-[11px] text-muted-foreground italic">Interview needed</span>
                     </div>
                   )}
                 </>
