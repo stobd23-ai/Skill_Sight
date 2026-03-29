@@ -53,10 +53,19 @@ export interface FullResults {
 export type RoleType = 'emerging_tech' | 'leadership' | 'technical_specialist' | 'cross_functional' | 'manufacturing'
 
 export function detectRoleType(requiredSkills: Record<string, number>, strategicWeights: Record<string, number>): RoleType {
-  const evSkills = ['EVBatterySystems', 'BatteryThermalMgmt', 'GenSixArchitecture', 'CellChemistry', 'AUTOSAR', 'ADAS', 'FunctionalSafety']
-  const leadershipSkills = ['TeamLeadership', 'StrategicPlanning', 'StakeholderManagement', 'CrossFunctional']
-  const manufacturingSkills = ['ManufacturingProcesses', 'DigitalTwin', 'AQIXQualityAI', 'RoboticsIntegration']
-  const dataSkills = ['MachineLearning', 'DeepLearning', 'DataEngineering', 'MLOps', 'ComputerVision', 'NLP']
+  // If role_type is explicitly set in strategic_weights, use it
+  const explicit = (strategicWeights as any)?.role_type;
+  if (explicit && ['emerging_tech', 'leadership', 'technical_specialist', 'cross_functional', 'manufacturing'].includes(explicit)) {
+    return explicit as RoleType;
+  }
+
+  const evSkills = ['EVBatterySystems', 'BatteryThermalMgmt', 'GenSixArchitecture', 'CellChemistry', 'AUTOSAR', 'ADAS', 'FunctionalSafety',
+    'Battery Systems Engineering', 'Thermal Management', 'Sensor Fusion', 'C++ / Embedded Systems']
+  const leadershipSkills = ['TeamLeadership', 'StrategicPlanning', 'StakeholderManagement', 'CrossFunctional',
+    'Digital Strategy', 'Stakeholder Management', 'Cross-Functional Leadership', 'Change Management']
+  const manufacturingSkills = ['ManufacturingProcesses', 'DigitalTwin', 'RoboticsIntegration', 'Manufacturing Process Knowledge']
+  const dataSkills = ['MachineLearning', 'DeepLearning', 'DataEngineering', 'MLOps', 'ComputerVision', 'NLP',
+    'Machine Learning / Deep Learning', 'Computer Vision', 'Python', 'Deep Learning']
 
   const skillNames = Object.keys(requiredSkills)
   const evCount = skillNames.filter(s => evSkills.includes(s)).length
@@ -65,7 +74,8 @@ export function detectRoleType(requiredSkills: Record<string, number>, strategic
   const dataCount = skillNames.filter(s => dataSkills.includes(s)).length
 
   const topWeightedSkills = Object.entries(strategicWeights)
-    .sort(([, a], [, b]) => b - a)
+    .filter(([k]) => k !== 'role_type')
+    .sort(([, a], [, b]) => (b as number) - (a as number))
     .slice(0, 3)
     .map(([k]) => k)
   const leadershipDominated = topWeightedSkills.length > 0 && topWeightedSkills.every(s => leadershipSkills.includes(s))
