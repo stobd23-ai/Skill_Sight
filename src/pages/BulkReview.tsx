@@ -116,6 +116,7 @@ export default function BulkReview() {
         keyStrengths: r.keyStrengths,
         aiReasoning: r.aiReasoning || r.reasoning,
         domainGaps: r.domain_gap_classification,
+        cvText: c.candidate_message || "",
       };
     });
     navigator.clipboard.writeText(JSON.stringify(data, null, 2));
