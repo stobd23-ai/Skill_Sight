@@ -45,22 +45,13 @@ function VerdictBadge({ verdict }: { verdict: string }) {
   return <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800 hover:bg-amber-200">Needs Review</Badge>;
 }
 
-function CollapsibleCV({ text }: { text: string }) {
-  const [open, setOpen] = useState(false);
+function CVBlock({ text }: { text: string }) {
   return (
     <div>
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-      >
-        {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-        CV Text
-      </button>
-      {open && (
-        <pre className="mt-2 p-3 bg-muted rounded text-xs font-mono whitespace-pre-wrap max-h-[300px] overflow-y-auto">
-          {text}
-        </pre>
-      )}
+      <p className="text-xs font-medium text-muted-foreground mb-1">CV Text:</p>
+      <pre className="p-3 bg-muted rounded text-xs font-mono whitespace-pre-wrap max-h-[300px] overflow-y-auto">
+        {text}
+      </pre>
     </div>
   );
 }
