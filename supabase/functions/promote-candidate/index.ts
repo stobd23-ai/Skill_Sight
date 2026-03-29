@@ -139,12 +139,18 @@ If the manager noted concerns, factor those into lower scores where appropriate.
     const profile = JSON.parse(jsonMatch[0]);
     const initials = candidate.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
+    // Generate employee email: firstname.lastname@bmw-skillsight.com
+    const nameParts = candidate.name.toLowerCase().replace(/[^a-z\s'-]/g, "").split(/\s+/).filter(Boolean);
+    const employeeEmail = nameParts.length >= 2
+      ? `${nameParts[0]}.${nameParts[nameParts.length - 1]}@bmw-skillsight.com`
+      : `${nameParts[0] || "employee"}@bmw-skillsight.com`;
+
     // Create the employee record
     const { data: newEmployee, error: insertErr } = await supabase
       .from("employees")
       .insert({
         name: candidate.name,
-        email: candidate.email || candidate.candidate_email || null,
+        email: employeeEmail,
         job_title: profile.job_title || role?.title || "New Hire",
         department: profile.department || role?.department || "Unassigned",
         tenure_years: 0,
@@ -162,6 +168,28 @@ If the manager noted concerns, factor those into lower scores where appropriate.
       console.error("Insert error:", insertErr);
       return new Response(JSON.stringify({ error: "Failed to create employee" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Create auth account for the new employee
+    const defaultPassword = "SkillSight2026!";
+    const { data: authUser, error: authErr } = await supabase.auth.admin.createUser({
+      email: employeeEmail,
+      password: defaultPassword,
+      email_confirm: true,
+    });
+
+    if (authErr) {
+      console.error("Auth account creation error:", authErr);
+      // Don't fail the promotion — employee is created, auth is a bonus
+    } else if (authUser?.user) {
+      // Create user_profile linking auth user to employee
+      await supabase.from("user_profiles").insert({
+        id: authUser.user.id,
+        email: employeeEmail,
+        role: "employee",
+        employee_id: newEmployee.id,
+        full_name: candidate.name,
       });
     }
 
