@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useEmployees, useAllEmployeeSkills, useAlgorithmResults, useRoles } from "@/hooks/useData";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Clock, Star, Zap, Plus, UserPlus, Users, CheckCircle, XCircle, AlertTriangle, Loader2, Trash2, Database } from "lucide-react";
+import { Search, Clock, Star, Zap, UserPlus, Users, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { AddExternalCandidateModal } from "@/components/AddExternalCandidateModal";
 import { ReadinessRing } from "@/components/ReadinessRing";
