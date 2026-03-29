@@ -186,8 +186,6 @@ export default function ExternalCandidateProfile() {
   const interviewSkills = (candidate.interview_skills || {}) as any;
   const isCompleted = candidate.status === "completed" || candidate.status === "talent_pool";
   const hasAssessment = !!(hybridInfo || candidate.worthy_score != null || technicalMatch != null);
-  const isCompleted = candidate.status === "completed";
-  const hasAssessment = !!(hybridInfo || candidate.worthy_score != null || technicalMatch != null);
   const initials = candidate.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
   const sourceBadge = () => {
