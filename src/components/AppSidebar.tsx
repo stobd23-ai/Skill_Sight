@@ -4,6 +4,7 @@ import {
   Shuffle,
   Network,
   Briefcase,
+  Bug,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import bmwLogo from "@/assets/bmw_logo.svg";
@@ -95,6 +96,27 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         ))}
+
+        {/* Debug */}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/bulk-review")}>
+                  <NavLink to="/bulk-review" end={false} className="transition-colors duration-150" activeClassName="bg-bmw-blue/[0.06] text-bmw-blue font-medium">
+                    <Bug className="h-4 w-4 shrink-0" />
+                    {!collapsed && (
+                      <span className="flex items-center gap-1.5 text-[13px]">
+                        Bulk Review
+                        <span className="text-[9px] font-mono text-muted-foreground bg-muted px-1 rounded">debug</span>
+                      </span>
+                    )}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
         {/* Footer */}
         {!collapsed && (
