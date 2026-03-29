@@ -155,20 +155,24 @@ export default function AnalysisPage() {
       const analysisValue = normalizedFromAnalysis.get(skillKey);
 
       if (analysisValue !== undefined) {
-        return { skill: formatSkillName(skill), employee: analysisValue, required };
+        return { skill: formatSkillName(skill), employee: Math.min(analysisValue, 3), required };
       }
 
+      // Alias-based fallback (used when gap_analysis is null)
       const candidateNames = [skill, ...(aliasMap[skill] || [])];
-      const employeeValue = Math.max(
-        0,
-        ...(skills || []).flatMap((employeeSkill) => {
-          const employeeKey = normalize(employeeSkill.skill_name);
-          const matched = candidateNames.some((candidate) => {
-            const candidateKey = normalize(candidate);
-            return employeeKey === candidateKey || employeeKey.includes(candidateKey) || candidateKey.includes(employeeKey);
-          });
-          return matched ? [employeeSkill.proficiency || 0] : [];
-        })
+      const employeeValue = Math.min(
+        3,
+        Math.max(
+          0,
+          ...(skills || []).flatMap((employeeSkill) => {
+            const employeeKey = normalize(employeeSkill.skill_name);
+            const matched = candidateNames.some((candidate) => {
+              const candidateKey = normalize(candidate);
+              return employeeKey === candidateKey || employeeKey.includes(candidateKey) || candidateKey.includes(employeeKey);
+            });
+            return matched ? [employeeSkill.proficiency || 0] : [];
+          })
+        )
       );
 
       return { skill: formatSkillName(skill), employee: employeeValue, required };
