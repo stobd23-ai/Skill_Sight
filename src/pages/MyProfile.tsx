@@ -66,7 +66,7 @@ export default function MyProfile() {
     { name: "HR Data", done: true },
     { name: "My Interview", done: completedEmployee, inProgress: interviewInProgress || !!pendingInvite },
     { name: "Manager Review", done: completedManager },
-    { name: "Analysis", done: !!latestResult },
+    { name: "Analysis", done: !!latestResult && completedEmployee && completedManager },
     { name: "Results Ready", done: !!latestResult && completedManager },
   ];
 
