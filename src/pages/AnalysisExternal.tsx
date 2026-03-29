@@ -193,7 +193,7 @@ export default function AnalysisExternal() {
                   <p className="text-muted-foreground text-xs mb-2">Surplus Skills</p>
                   {results.gap.surplusSkills?.slice(0, 5).map((s: any) => (
                     <div key={s.skill} className="flex justify-between py-1 border-b border-border last:border-0">
-                      <span className="text-xs">{s.skill}</span>
+                      <span className="text-xs">{formatSkillName(s.skill)}</span>
                       <span className="text-xs text-green-600 font-mono">+{s.surplus}</span>
                     </div>
                   ))}

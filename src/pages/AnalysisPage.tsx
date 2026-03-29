@@ -432,7 +432,7 @@ export default function AnalysisPage() {
                     )) : <p className="text-xs text-muted-foreground">No critical gaps identified</p>}
                     {minor.length > 0 && (
                       <p className="text-[10px] text-muted-foreground pt-1 border-t border-border">
-                        + {minor.length} minor gap{minor.length > 1 ? 's' : ''} ({minor.map((g: any) => formatSkillName(formatSkillName(g.skill)).join(', ')})
+                        + {minor.length} minor gap{minor.length > 1 ? 's' : ''} ({minor.map((g: any) => formatSkillName(g.skill)).join(', ')})
                       </p>
                     )}
                   </div>
