@@ -15,10 +15,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
-  ArrowLeft, ArrowRight, UserPlus, Target, Zap, Brain, BarChart3, Shield, TrendingUp,
-  FileText, Sparkles, ExternalLink, Mail, Eye, EyeOff, Quote, AlertTriangle,
-  CheckCircle, XCircle, ChevronDown, ChevronUp, Star, Heart, Route, Search, ShieldAlert,
-  Copy, RefreshCw, Trash2,
+  ArrowLeft, ArrowRight, BarChart3, Shield,
+  FileText, Sparkles, Mail, Eye, EyeOff, Quote, AlertTriangle,
+  CheckCircle, XCircle, ChevronDown, ChevronUp, Star, Search,
+  Copy, Trash2,
 } from "lucide-react";
 
 function markdownToHtml(md: string): string {
