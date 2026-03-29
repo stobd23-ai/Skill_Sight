@@ -231,8 +231,8 @@ export default function LoginPage() {
       <div className="w-full md:w-1/2 bg-[#1c69d3] flex flex-col items-center justify-center p-8 md:p-12 text-white relative min-h-[280px] md:min-h-screen">
         <div className="max-w-md w-full flex flex-col items-start gap-6">
           <div>
-            <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center mb-4">
-              <span className="text-lg font-bold text-white">BMW</span>
+            <div className="w-14 h-14 rounded-xl overflow-hidden mb-4">
+              <img src={bmwLogo} alt="BMW" className="w-full h-full object-cover" />
             </div>
             <h1 className="text-4xl font-bold tracking-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
               SkillSight
