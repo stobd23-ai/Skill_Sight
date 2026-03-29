@@ -67,7 +67,49 @@ function hybridWorthinessDecision(
   const expYears = experienceProfile?.total_years || 0;
   const redFlags = experienceProfile?.red_flags?.length || 0;
   const seniorityCheck = experienceProfile?.seniority_check || "not_applicable";
-  const domainGapClass = aiJudgment?.domain_gap_classification || "mixed";
+  let domainGapClass = aiJudgment?.domain_gap_classification || "mixed";
+
+  // ── HARD_REJECT pre-filter ──
+  const bvrRaw = experienceProfile?.builder_verb_ratio ?? aiJudgment?.builder_verb_ratio ?? null;
+  const metricsTotal = (aiJudgment?.strong_metrics_count || 0) + (aiJudgment?.medium_metrics_count || 0);
+  const wellEvidenced = aiJudgment?.absence_analysis?.well_evidenced || [];
+  const hasHighDepth = (aiJudgment?.absence_analysis?.well_evidenced || []).length > 0 ||
+    Object.values(safeSkills).some((s: any) => s?.depth === 'HIGH');
+
+  // Check if all experience is internship-level
+  const expBreakdown = experienceProfile?.experience_breakdown || [];
+  const allInternship = expBreakdown.length > 0 && expBreakdown.every((e: any) =>
+    /intern/i.test(e.role_title || '')
+  );
+
+  const isHardReject =
+    (bvrRaw != null && bvrRaw < 0.30) &&
+    metricsTotal === 0 &&
+    (expYears < 3 && (allInternship || expBreakdown.length === 0)) &&
+    wellEvidenced.length === 0 &&
+    !hasHighDepth;
+
+  if (isHardReject) {
+    return {
+      worthy: false,
+      confidence: 'high',
+      verdict: 'hard_reject',
+      verdictLabel: '✕ Below Threshold — Hard Reject',
+      worthyScore: Math.min(partialScore, 0.10),
+      reasoning: 'Candidate does not meet minimum signal threshold. Builder verb ratio below 30%, zero measurable impacts, no well-evidenced skills, and insufficient professional experience.',
+      aiReasoning: aiJudgment?.ai_reasoning || '',
+      concerns: [
+        `Builder verb ratio: ${Math.round((bvrRaw || 0) * 100)}%`,
+        'Zero measurable impacts found',
+        `${expYears < 1 ? 'Under 1 year' : expYears + ' years'} experience (internship-level only)`,
+      ],
+      keyStrengths: [],
+      recommendedPreset: 'technical_depth',
+      recruiterNote: 'Does not meet minimum evidence threshold for interview consideration.',
+      domainGapClassification: 'critical',
+      seniorityCheck,
+    };
+  }
 
   // Score with penalties
   let algoScore = partialScore;
@@ -126,21 +168,38 @@ function hybridWorthinessDecision(
     reasoning: string,
     score: number,
     confidence: 'high' | 'mixed_signals' | 'low'
-  ): HybridResult => ({
-    worthy,
-    confidence,
-    verdict: worthy ? 'recommend' : (confidence === 'mixed_signals' || confidence === 'low' ? 'flag' : 'reject'),
-    verdictLabel,
-    worthyScore: score,
-    reasoning: reasoning,
-    aiReasoning: aiJudgment?.ai_reasoning || '',
-    concerns: [...algoReasons, ...(aiJudgment?.ai_concerns || [])].slice(0, 3),
-    keyStrengths: (aiJudgment?.ai_key_strengths || []).slice(0, 3),
-    recommendedPreset: aiJudgment?.ai_recommended_preset || 'technical_depth',
-    recruiterNote: aiJudgment?.ai_recruiter_note || '',
-    domainGapClassification: domainGapClass,
-    seniorityCheck,
-  });
+  ): HybridResult => {
+    let verdict = worthy ? 'recommend' : (confidence === 'mixed_signals' || confidence === 'low' ? 'flag' : 'reject');
+    let finalDomainGap = domainGapClass;
+
+    // ── Verdict / domain_gaps consistency enforcement ──
+    // If domain_gaps = "critical" → verdict must be reject or hard_reject, never flag or recommend
+    if (finalDomainGap === 'critical' && (verdict === 'flag' || verdict === 'recommend')) {
+      verdict = 'reject';
+      worthy = false;
+    }
+    // If verdict = "flag" → domain_gaps must be "trainable", never "critical"
+    if (verdict === 'flag' && finalDomainGap === 'critical') {
+      verdict = 'reject';
+      worthy = false;
+    }
+
+    return {
+      worthy,
+      confidence,
+      verdict,
+      verdictLabel,
+      worthyScore: score,
+      reasoning: reasoning,
+      aiReasoning: aiJudgment?.ai_reasoning || '',
+      concerns: [...algoReasons, ...(aiJudgment?.ai_concerns || [])].slice(0, 3),
+      keyStrengths: (aiJudgment?.ai_key_strengths || []).slice(0, 3),
+      recommendedPreset: aiJudgment?.ai_recommended_preset || 'technical_depth',
+      recruiterNote: aiJudgment?.ai_recruiter_note || '',
+      domainGapClassification: finalDomainGap,
+      seniorityCheck,
+    };
+  };
 
   // High-potential override → FLAG
   if (isHighPotential && !algoWorthy) {
@@ -325,7 +384,9 @@ export default function ApplyPage() {
 
       // Determine status
       let candidateStatus: string;
-      if (hybrid.verdict === 'flag') {
+      if (hybrid.verdict === 'hard_reject') {
+        candidateStatus = 'below_threshold';
+      } else if (hybrid.verdict === 'flag') {
         candidateStatus = 'flagged_review';
       } else if (hybrid.worthy) {
         candidateStatus = 'pending_manager_review';

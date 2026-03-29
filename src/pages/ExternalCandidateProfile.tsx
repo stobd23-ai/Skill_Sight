@@ -180,6 +180,12 @@ export default function ExternalCandidateProfile() {
   };
 
   const statusBadge = () => {
+    // Check for hard_reject verdict in hybridInfo
+    const isHardReject = hybridInfo?.verdict === 'hard_reject';
+    if (isHardReject) {
+      return <Badge variant="secondary" className="text-[10px] bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400">Declined</Badge>;
+    }
+
     const map: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className?: string }> = {
       pending_manager_review: { label: "Pending Review", variant: "outline" },
       below_threshold: { label: "Below Threshold", variant: "destructive" },
@@ -295,7 +301,7 @@ export default function ExternalCandidateProfile() {
 
           {/* Action buttons */}
           <div className="flex flex-wrap gap-2 mt-4">
-             {(candidate.status === "pending_manager_review" || candidate.status === "flagged_review" || ((candidate as any).submission_source === "candidate_self_submit" && (candidate as any).manager_decision === "pending" && candidate.interview_worthy)) && (
+             {hybridInfo?.verdict !== 'hard_reject' && (candidate.status === "pending_manager_review" || candidate.status === "flagged_review" || ((candidate as any).submission_source === "candidate_self_submit" && (candidate as any).manager_decision === "pending" && candidate.interview_worthy)) && (
               <>
                 <Button size="sm" className="bg-green-600 hover:bg-green-700 text-xs" onClick={handleApprove}>
                   <CheckCircle className="h-3 w-3 mr-1" />Approve for Interview
@@ -341,13 +347,14 @@ export default function ExternalCandidateProfile() {
           const keyStrengths = hybridInfo.keyStrengths || hybridInfo.key_strengths || [];
 
           const isPositive = hybridInfo.verdict === 'recommend' || candidate.interview_worthy;
-          const isFlag = hybridInfo.verdict === 'flag' || confidence === 'mixed_signals' || confidence === 'low';
+          const isHardReject = hybridInfo.verdict === 'hard_reject';
+          const isFlag = !isHardReject && (hybridInfo.verdict === 'flag' || confidence === 'mixed_signals' || confidence === 'low');
 
           const borderClass = isPositive ? 'border-green-400 border-2' : isFlag ? 'border-amber-400 border-2' : 'border-destructive border-2';
           const iconColor = isPositive ? 'text-green-600' : isFlag ? 'text-amber-600' : 'text-destructive';
           const Icon = isPositive ? CheckCircle : isFlag ? AlertTriangle : XCircle;
           const titleColor = isPositive ? 'text-green-700' : isFlag ? 'text-amber-700' : 'text-destructive';
-          const agreementLabel = confidence === 'high' ? 'Both algorithmic and AI assessment agree.' : confidence === 'low' ? 'Assessment signals are weak or insufficient.' : 'Algorithmic and AI assessments show mixed signals.';
+          const agreementLabel = isHardReject ? 'Candidate does not meet minimum signal threshold.' : confidence === 'high' ? 'Both algorithmic and AI assessment agree.' : confidence === 'low' ? 'Assessment signals are weak or insufficient.' : 'Algorithmic and AI assessments show mixed signals.';
 
           // Derive ownership percentages from either object or decimal ratio
           const builderPct = ownershipRaw?.builder_pct ?? ownershipRaw?.builder ?? (builderVerbRatio != null ? Math.round(builderVerbRatio * 100) : null);
