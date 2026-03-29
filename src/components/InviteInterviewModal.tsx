@@ -21,7 +21,8 @@ interface Props {
 
 export function InviteInterviewModal({ open, onOpenChange, employee, onSent }: Props) {
   const { profile } = useAuth();
-  const { data: roles } = useRoles();
+  const { data: allRoles } = useRoles();
+  const roles = allRoles?.filter(r => r.is_open && r.hiring_status !== "stable");
   const [roleId, setRoleId] = useState("");
   const [presetPack, setPresetPack] = useState("");
   const [message, setMessage] = useState("");
