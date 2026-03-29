@@ -600,9 +600,13 @@ export default function AnalysisPage() {
               <div className="prose prose-xs max-w-none prose-headings:text-foreground prose-headings:text-sm prose-headings:mt-3 prose-headings:mb-1 prose-p:text-foreground/80 prose-p:text-xs prose-p:mb-1.5 prose-p:leading-relaxed prose-strong:text-foreground prose-li:text-foreground/80 prose-li:text-xs prose-li:my-0.5" dangerouslySetInnerHTML={{ __html: markdownToHtml(report.replace(/### Risk Factors[\s\S]*?(?=\n### |\n## |$)/, '').replace(/### 90-Day Action Plan[\s\S]*?(?=\n### |\n## |$)/, '').replace(/### 6-Month Roadmap[\s\S]*?(?=\n### |\n## |$)/, '').replace(/### Recommended Development Timeline[\s\S]*?(?=\n### |\n## |$)/, '')) }} />
             ) : (
               <div className="text-center py-6">
-                <p className="text-xs text-muted-foreground mb-3">Generate AI assessment report</p>
-                <Button size="sm" onClick={generateReport} className="bg-primary text-primary-foreground text-xs h-7">
-                  Generate Report
+                <p className="text-xs text-muted-foreground mb-3">
+                  {(!employeeInterview && !managerInterview) 
+                    ? "An interview must be completed before generating an assessment report."
+                    : "Generate AI assessment report"}
+                </p>
+                <Button size="sm" onClick={generateReport} disabled={!employeeInterview && !managerInterview} className="bg-primary text-primary-foreground text-xs h-7">
+                  {(!employeeInterview && !managerInterview) ? "Interview Required" : "Generate Report"}
                 </Button>
               </div>
             )}

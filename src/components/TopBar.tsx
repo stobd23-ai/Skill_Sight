@@ -62,7 +62,7 @@ export function TopBar() {
       <div className="flex items-center gap-2">
         {canGoBack && (
           <button
-            onClick={() => navigate(-1)}
+            onClick={handleBack}
             className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
