@@ -469,7 +469,7 @@ export default function EmployeeList() {
                               onClick={() => { setProceedTarget(c); setProceedOpen(true); }}>
                               Make Offer / Proceed
                             </Button>
-                            <Button variant="outline" size="sm" className="text-xs text-primary border-primary/30"
+                            <Button variant="outline" size="sm" className="flex-1 text-xs text-primary border-primary/30"
                               onClick={() => { setSuccessionTarget(c); setSuccessionOpen(true); }}>
                               Add to Succession
                             </Button>
@@ -483,9 +483,9 @@ export default function EmployeeList() {
                         {isFlagged && (
                           <>
                             <Button size="sm" className="flex-1 text-xs bg-green-600 hover:bg-green-700" onClick={() => handleApprove(c)}>
-                              <CheckCircle className="w-3 h-3 mr-1" />Approve — Send Code
+                              <CheckCircle className="w-3 h-3 mr-1" />Approve
                             </Button>
-                            <Button variant="outline" size="sm" className="text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => { setDeclineTarget(c); setDeclineOpen(true); }}>
+                            <Button variant="outline" size="sm" className="flex-1 text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => { setDeclineTarget(c); setDeclineOpen(true); }}>
                               <XCircle className="w-3 h-3 mr-1" />Reject
                             </Button>
                           </>
@@ -493,9 +493,9 @@ export default function EmployeeList() {
                         {isPendingReview && !isFlagged && (
                           <>
                             <Button size="sm" className="flex-1 text-xs bg-green-600 hover:bg-green-700" onClick={() => handleApprove(c)}>
-                              <CheckCircle className="w-3 h-3 mr-1" />Send Interview Code
+                              <CheckCircle className="w-3 h-3 mr-1" />Approve
                             </Button>
-                            <Button variant="outline" size="sm" className="text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => { setDeclineTarget(c); setDeclineOpen(true); }}>
+                            <Button variant="outline" size="sm" className="flex-1 text-xs text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => { setDeclineTarget(c); setDeclineOpen(true); }}>
                               <XCircle className="w-3 h-3 mr-1" />Decline
                             </Button>
                           </>
