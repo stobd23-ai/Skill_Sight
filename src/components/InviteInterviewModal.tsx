@@ -35,7 +35,7 @@ export function InviteInterviewModal({ open, onOpenChange, employee, onSent }: P
   const selectedRole = roles?.find(r => r.id === roleId);
 
   const handleSend = async () => {
-    if (!roleId || !presetPack) return;
+    if (!roleId || !presetPack || (presetPack === "custom" && !customFocus.trim())) return;
     setSending(true);
     try {
       // Create interview record
