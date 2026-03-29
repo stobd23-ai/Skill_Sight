@@ -553,19 +553,62 @@ export default function MyInterview() {
   }
 
   if (!activeInterview) {
+    const inviteRole = pendingInvite ? roles?.find(r => r.id === pendingInvite.target_role_id) : null;
     return (
       <div className="flex items-center justify-center h-[calc(100vh-48px)]">
         <div className="max-w-lg w-full space-y-6 p-6">
-          <Card>
-            <CardContent className="p-8 text-center">
-              <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-lg font-bold mb-2">No Active Interview</h2>
-              <p className="text-sm text-muted-foreground">
-                Your manager will invite you to complete your career discovery interview.
-                You'll receive access here when it's ready.
-              </p>
-            </CardContent>
-          </Card>
+          {pendingInvite ? (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="p-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Mail className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold">Interview Invitation</h2>
+                    <p className="text-xs text-muted-foreground">From {pendingInvite.invited_by_manager}</p>
+                  </div>
+                </div>
+                <div className="space-y-3 mb-5">
+                  {inviteRole && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Target Role</span>
+                      <span className="font-medium">{inviteRole.title}</span>
+                    </div>
+                  )}
+                  {pack && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Focus Area</span>
+                      <span className="font-medium">{pack.label}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Expires in</span>
+                    <span className="font-medium">{daysUntilExpiry} day{daysUntilExpiry !== 1 ? 's' : ''}</span>
+                  </div>
+                  {pendingInvite.message && (
+                    <div className="mt-2 p-3 rounded-lg bg-background border text-sm italic text-muted-foreground">
+                      "{pendingInvite.message}"
+                    </div>
+                  )}
+                </div>
+                <Button className="w-full" size="lg" onClick={handleAcceptFromInterview}>
+                  <Sparkles className="h-4 w-4 mr-2" /> Accept & Start Interview
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h2 className="text-lg font-bold mb-2">No Active Interview</h2>
+                <p className="text-sm text-muted-foreground">
+                  Your manager will invite you to complete your career discovery interview.
+                  You'll receive access here when it's ready.
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {completedInterviews.length > 0 && (
             <div>
