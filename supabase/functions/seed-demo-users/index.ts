@@ -15,27 +15,28 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const allEmployees = [
-      { name: "Dr. Marcus Weber", email: "manager@bmw-skillsight.com", role: "manager" },
-      { name: "Thomas Bauer", email: "thomas.bauer@bmw-skillsight.com", role: "employee" },
-      { name: "Anna Keller", email: "anna.keller@bmw-skillsight.com", role: "employee" },
-      { name: "Marcus Schmidt", email: "marcus.schmidt@bmw-skillsight.com", role: "employee" },
-      { name: "Jens Richter", email: "jens.richter@bmw-skillsight.com", role: "employee" },
-      { name: "Rachel Kim", email: "rachel.kim@bmw-skillsight.com", role: "employee" },
-      { name: "Sophia Wagner", email: "sophia.wagner@bmw-skillsight.com", role: "employee" },
-      { name: "Felix Braun", email: "felix.braun@bmw-skillsight.com", role: "employee" },
-      { name: "Amara Diallo", email: "amara.diallo@bmw-skillsight.com", role: "employee" },
-      { name: "Lars Hoffmann", email: "lars.hoffmann@bmw-skillsight.com", role: "employee" },
-      { name: "Yuki Tanaka", email: "yuki.tanaka@bmw-skillsight.com", role: "employee" },
-      { name: "Marcus Bauer", email: "marcus.bauer@bmw-skillsight.com", role: "employee" },
-      { name: "Clara Müller", email: "clara.muller@bmw-skillsight.com", role: "employee" },
-      { name: "Klaus Hoffmann", email: "klaus.hoffmann@bmw-skillsight.com", role: "employee" },
-      { name: "Lena Fischer", email: "lena.fischer@bmw-skillsight.com", role: "employee" },
-      { name: "Sarah Weber", email: "sarah.weber@bmw-skillsight.com", role: "employee" },
-      { name: "Marie Dupont", email: "marie.dupont@bmw-skillsight.com", role: "employee" },
+    // Only create logins for the manager + employees that exist in the employees table
+    const managerAccount = { name: "Dr. Marcus Weber", email: "manager@bmw-skillsight.com", role: "manager" };
+
+    // Fetch all employees from DB
+    const { data: allEmployees } = await supabaseAdmin
+      .from("employees")
+      .select("id, name, email")
+      .order("name");
+
+    const employeeAccounts = (allEmployees || []).map(emp => ({
+      name: emp.name,
+      email: (emp.email || "").replace("@bmw.com", "@bmw-skillsight.com"),
+      role: "employee",
+      employee_id: emp.id,
+    }));
+
+    const allAccounts = [
+      { ...managerAccount, employee_id: null as string | null },
+      ...employeeAccounts,
     ];
 
-    const emails = allEmployees.map(e => e.email);
+    const emails = allAccounts.map(e => e.email);
     const { data: existing } = await supabaseAdmin
       .from("user_profiles")
       .select("email")
@@ -44,43 +45,43 @@ serve(async (req) => {
     const existingEmails = new Set(existing?.map(e => e.email) || []);
     const results: string[] = [];
 
-    for (const emp of allEmployees) {
-      if (existingEmails.has(emp.email)) {
-        results.push(`${emp.name} already exists`);
+    // Also ban/delete orphaned accounts (profiles with no employee_id that aren't managers)
+    const { data: orphans } = await supabaseAdmin
+      .from("user_profiles")
+      .select("id, email")
+      .is("employee_id", null)
+      .neq("role", "manager");
+
+    for (const orphan of (orphans || [])) {
+      await supabaseAdmin.auth.admin.deleteUser(orphan.id);
+      await supabaseAdmin.from("user_profiles").delete().eq("id", orphan.id);
+      results.push(`Deleted orphan: ${orphan.email}`);
+    }
+
+    for (const acc of allAccounts) {
+      if (existingEmails.has(acc.email)) {
+        results.push(`${acc.name} already exists`);
         continue;
       }
 
-      // Look up employee_id by name (skip for manager)
-      let employeeId: string | null = null;
-      if (emp.role !== "manager") {
-        const { data: empRecord } = await supabaseAdmin
-          .from("employees")
-          .select("id")
-          .eq("name", emp.name)
-          .limit(1)
-          .single();
-        employeeId = empRecord?.id || null;
-      }
-
       const { data: newUser, error: createErr } = await supabaseAdmin.auth.admin.createUser({
-        email: emp.email,
+        email: acc.email,
         password: "SkillSight2026!",
         email_confirm: true,
-        user_metadata: { full_name: emp.name },
+        user_metadata: { full_name: acc.name },
       });
 
       if (createErr) {
-        console.error(`${emp.name} creation error:`, createErr);
-        results.push(`${emp.name} error: ${createErr.message}`);
+        results.push(`${acc.name} error: ${createErr.message}`);
       } else if (newUser?.user) {
         await supabaseAdmin.from("user_profiles").insert({
           id: newUser.user.id,
-          email: emp.email,
-          role: emp.role,
-          employee_id: employeeId,
-          full_name: emp.name,
+          email: acc.email,
+          role: acc.role,
+          employee_id: acc.employee_id,
+          full_name: acc.name,
         });
-        results.push(`${emp.name} created (${emp.email})`);
+        results.push(`${acc.name} created (${acc.email})`);
       }
     }
 
