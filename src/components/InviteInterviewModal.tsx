@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { PRESET_PACKS } from "@/lib/presetPacks";
@@ -9,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRoles } from "@/hooks/useData";
 import { toast } from "@/hooks/use-toast";
-import { Mail, Info, Clock } from "lucide-react";
+import { Mail, Info, Clock, PenLine } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Props {
@@ -25,6 +26,7 @@ export function InviteInterviewModal({ open, onOpenChange, employee, onSent }: P
   const roles = allRoles?.filter(r => r.is_open && r.hiring_status !== "stable");
   const [roleId, setRoleId] = useState("");
   const [presetPack, setPresetPack] = useState("");
+  const [customFocus, setCustomFocus] = useState("");
   const [message, setMessage] = useState("");
   const [expiresIn, setExpiresIn] = useState("7");
   const [sending, setSending] = useState(false);
@@ -33,7 +35,7 @@ export function InviteInterviewModal({ open, onOpenChange, employee, onSent }: P
   const selectedRole = roles?.find(r => r.id === roleId);
 
   const handleSend = async () => {
-    if (!roleId || !presetPack) return;
+    if (!roleId || !presetPack || (presetPack === "custom" && !customFocus.trim())) return;
     setSending(true);
     try {
       // Create interview record
@@ -56,7 +58,7 @@ export function InviteInterviewModal({ open, onOpenChange, employee, onSent }: P
         target_role_id: roleId,
         status: "pending",
         message: message.trim() || null,
-        preset_pack: presetPack,
+        preset_pack: presetPack === "custom" ? `custom:${customFocus.trim()}` : presetPack,
         expires_at: expiresAt.toISOString(),
       };
       
@@ -133,10 +135,24 @@ export function InviteInterviewModal({ open, onOpenChange, employee, onSent }: P
                   </button>
                 );
               })}
+              <button
+                onClick={() => { setPresetPack("custom"); setCustomFocus(""); }}
+                className={`text-left p-2 rounded-md border transition-all ${presetPack === "custom" ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border hover:border-primary/30"}`}
+              >
+                <PenLine className={`h-4 w-4 mb-1 ${presetPack === "custom" ? "text-primary" : "text-muted-foreground"}`} />
+                <p className="text-[11px] font-semibold leading-tight">Other</p>
+              </button>
             </div>
+            {presetPack === "custom" && (
+              <Input
+                value={customFocus}
+                onChange={e => setCustomFocus(e.target.value)}
+                placeholder="e.g. Cross-functional collaboration"
+                className="h-8 text-xs mt-1.5"
+                maxLength={100}
+              />
+            )}
           </div>
-
-          {/* Message + Expiry inline */}
           <div className="flex gap-3">
             <div className="space-y-1 flex-1">
               <label className="text-[12px] font-medium">Message <span className="text-muted-foreground font-normal">(optional)</span></label>
@@ -167,7 +183,7 @@ export function InviteInterviewModal({ open, onOpenChange, employee, onSent }: P
           {/* Actions */}
           <div className="flex gap-2 pt-1">
             <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="flex-1">Cancel</Button>
-            <Button size="sm" onClick={handleSend} disabled={!roleId || !presetPack || sending} className="flex-1">
+            <Button size="sm" onClick={handleSend} disabled={!roleId || !presetPack || (presetPack === "custom" && !customFocus.trim()) || sending} className="flex-1">
               {sending ? "Sending..." : "Send Invitation"}
             </Button>
           </div>
