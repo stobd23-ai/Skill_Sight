@@ -180,11 +180,11 @@ export default function InterviewExternal() {
         empSkills[k] = typeof v === "number" ? v : v?.proficiency || 0;
       });
 
-      const reqSkills = (candidate.requiredSkills || {}) as SkillVector;
-      const stratWeights = (candidate.strategicWeights || {}) as SkillVector;
+      const reqSkills = skillsToVector(candidate.requiredSkills);
+      const stratWeights = skillsToWeights(candidate.requiredSkills);
       const roleType: RoleType = detectRoleType(
         reqSkills as Record<string, number>,
-        stratWeights as Record<string, number>
+        { ...stratWeights, ...(candidate.strategicWeights || {}) } as Record<string, number>
       );
 
       const algorithmInput: AlgorithmInput = {
