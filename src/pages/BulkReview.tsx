@@ -178,7 +178,7 @@ export default function BulkReview() {
               </div>
 
               {/* CV Text */}
-              {c.candidate_message && <CollapsibleCV text={c.candidate_message} />}
+              {c.candidate_message && <CVBlock text={c.candidate_message} />}
 
               {/* AI Reasoning */}
               {(r.aiReasoning || r.reasoning) && (
