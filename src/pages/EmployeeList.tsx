@@ -311,12 +311,36 @@ export default function EmployeeList() {
           )}
         </div>
 
-        <p className="text-xs text-muted-foreground">
-          {viewMode === "internal"
-            ? `Showing ${filtered.length} of ${employees?.length || 0} employees`
-            : `Showing ${filteredExternal.length} external candidates`
-          }
-        </p>
+        {/* Seed progress bar */}
+        {seeding && seedProgress && (
+          <div className="card-skillsight p-4 flex items-center gap-3">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <span className="text-sm font-medium">
+              Processing {seedProgress.currentName} ({seedProgress.current} of {seedProgress.total})...
+            </span>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
+            {viewMode === "internal"
+              ? `Showing ${filtered.length} of ${employees?.length || 0} employees`
+              : `Showing ${filteredExternal.length} external candidates`
+            }
+          </p>
+          {viewMode === "external" && (
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleSeed} disabled={seeding || clearing}>
+                {seeding ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Database className="h-3 w-3 mr-1" />}
+                Seed 15 Demo Candidates
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleClear} disabled={seeding || clearing} className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                {clearing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Trash2 className="h-3 w-3 mr-1" />}
+                Clear Demo Candidates
+              </Button>
+            </div>
+          )}
+        </div>
 
         {/* Internal employees grid */}
         {viewMode === "internal" && (
