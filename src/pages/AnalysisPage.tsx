@@ -736,33 +736,6 @@ function ScoreWithFactors({
   );
 }
 
-// ─── Helper Components ──────────────────────────────────────────────
-
-function MomentumRow({ label, icon, value, evidence, signals, color }: {
-  label: string; icon: React.ReactNode; value: number;
-  evidence?: string; signals?: string[]; color: string;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center gap-2">
-        <span className="text-muted-foreground">{icon}</span>
-        <span className="text-sm font-medium flex-1">{label}</span>
-        <span className="font-mono text-sm font-semibold">{Math.round(value * 100)}%</span>
-      </div>
-      <div className="h-2 bg-secondary rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${value * 100}%`, backgroundColor: color }} />
-      </div>
-      {evidence && <p className="text-xs text-muted-foreground italic pl-6">{evidence}</p>}
-      {signals?.length ? (
-        <div className="flex flex-wrap gap-1 pl-6">
-          {signals.map((s, i) => (
-            <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{s}</span>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
 
 function MetricCard({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
   return (
