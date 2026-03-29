@@ -18,7 +18,7 @@ const routeNames: Record<string, string> = {
   "/reorg": "Organization",
   "/succession": "Succession Board",
   "/roles": "Roles Manager",
-  "/strategy": "Strategy Hub",
+  
   "/my-profile": "My Profile",
   "/my-interview": "My Interview",
   "/my-analysis": "My Results",

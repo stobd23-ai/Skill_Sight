@@ -15,7 +15,7 @@ import EmployeeProfile from "./pages/EmployeeProfile";
 import EmployeeInterview from "./pages/EmployeeInterview";
 import ManagerInterview from "./pages/ManagerInterview";
 import AnalysisPage from "./pages/AnalysisPage";
-import StrategyHub from "./pages/StrategyHub";
+
 import InternalReorg from "./pages/InternalReorg";
 import SuccessionBoard from "./pages/SuccessionBoard";
 import RolesPage from "./pages/RolesPage";
@@ -57,7 +57,7 @@ const App = () => (
               <Route path="/employees/:id" element={<ProtectedRoute role="manager"><AppLayout><EmployeeProfile /></AppLayout></ProtectedRoute>} />
               <Route path="/analysis" element={<ProtectedRoute role="manager"><AppLayout><AnalysisPage /></AppLayout></ProtectedRoute>} />
               <Route path="/analysis/:id" element={<ProtectedRoute role="manager"><AppLayout><AnalysisPage /></AppLayout></ProtectedRoute>} />
-              <Route path="/strategy" element={<ProtectedRoute role="manager"><AppLayout><StrategyHub /></AppLayout></ProtectedRoute>} />
+              
               <Route path="/reorg" element={<ProtectedRoute role="manager"><AppLayout><InternalReorg /></AppLayout></ProtectedRoute>} />
               <Route path="/succession" element={<ProtectedRoute role="manager"><AppLayout><SuccessionBoard /></AppLayout></ProtectedRoute>} />
               <Route path="/roles" element={<ProtectedRoute role="manager"><AppLayout><RolesPage /></AppLayout></ProtectedRoute>} />
