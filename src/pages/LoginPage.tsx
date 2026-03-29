@@ -299,25 +299,7 @@ export default function LoginPage() {
                   error ? "border-destructive" : "border-border"
                 }`}
               />
-              {tab === "employee" ? (
-                <div className="mt-1 space-y-0.5">
-                  <p className="text-[11px] text-muted-foreground/60">Any employee email — Password: SkillSight2026!</p>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {employeeAccounts.map(e => (
-                      <button
-                        key={e}
-                        type="button"
-                        onClick={() => setEmail(e)}
-                        className="text-[10px] px-1.5 py-0.5 rounded bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                      >
-                        {e.split("@")[0]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <p className="text-[11px] text-muted-foreground/60 mt-1">{hints[tab].email}</p>
-              )}
+              
             </div>
 
             <div>
@@ -341,7 +323,7 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <p className="text-[11px] text-muted-foreground/60 mt-1">{hints[tab].password}</p>
+              
             </div>
 
             {error && (
@@ -370,9 +352,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-xs text-muted-foreground/50 text-center mt-4">
-            Demo accounts are pre-loaded. Use the hints above.
-          </p>
+              
 
           {/* Divider with "or" */}
           <div className="relative flex items-center my-5">
