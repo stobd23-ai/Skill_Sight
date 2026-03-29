@@ -53,9 +53,7 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="animate-fade-in">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-bmw-blue flex items-center justify-center">
-                  <span className="text-xs font-bold text-white">BMW</span>
-                </div>
+                <img src={bmwLogo} alt="BMW" className="w-8 h-8 rounded-lg" />
                 <div>
                   <h1 className="text-sm font-bold leading-tight">SkillSight</h1>
                   <p className="text-[11px] text-muted-foreground">BMW Group</p>
