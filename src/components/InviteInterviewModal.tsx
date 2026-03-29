@@ -183,7 +183,7 @@ export function InviteInterviewModal({ open, onOpenChange, employee, onSent }: P
           {/* Actions */}
           <div className="flex gap-2 pt-1">
             <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="flex-1">Cancel</Button>
-            <Button size="sm" onClick={handleSend} disabled={!roleId || !presetPack || sending} className="flex-1">
+            <Button size="sm" onClick={handleSend} disabled={!roleId || !presetPack || (presetPack === "custom" && !customFocus.trim()) || sending} className="flex-1">
               {sending ? "Sending..." : "Send Invitation"}
             </Button>
           </div>
