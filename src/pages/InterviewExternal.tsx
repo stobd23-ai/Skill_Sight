@@ -78,7 +78,7 @@ export default function InterviewExternal() {
     setIsAiTyping(true);
 
     try {
-      const targetSkills = Object.keys(candidate.requiredSkills || {});
+      const targetSkills = Object.keys(skillsToVector(candidate.requiredSkills));
       const { data, error } = await supabase.functions.invoke("interview-chat", {
         body: {
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
