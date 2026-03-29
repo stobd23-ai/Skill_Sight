@@ -209,10 +209,18 @@ export default function ManagerInterview() {
     setTimeout(() => navigate(`/analysis/${id}`), 3000);
   };
 
+  // Send first AI message when interview starts
+  const firstMessageSentRef = useRef(false);
+  useEffect(() => {
+    if (phase === "interviewing" && !firstMessageSentRef.current && messages.length === 0) {
+      firstMessageSentRef.current = true;
+      setTimeout(() => sendMessage(), 300);
+    }
+  }, [phase, messages.length, sendMessage]);
+
   const beginInterview = () => {
     if (!managerName.trim() || !managerTitle.trim()) return;
     setPhase("interviewing");
-    setTimeout(() => sendMessage(), 300);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
