@@ -158,13 +158,42 @@ export default function ExternalCandidateProfile() {
     if (!candidate) return null;
     try {
       const data = JSON.parse(candidate.worthy_reasoning || '{}');
-      // Accept if it has any meaningful assessment data
       if (data.method || data.verdict || data.reasoning || data.verdictLabel || data.confidence) return data;
       return null;
     } catch {
       return null;
     }
   }, [candidate?.worthy_reasoning]);
+
+  // Enrich gap analysis with CV-derived proficiency — must be before conditional returns
+  const gapAnalysis = useMemo(() => {
+    if (!candidate) return null;
+    const results_inner = (candidate.full_algorithm_results || {}) as any;
+    const rawGap = results_inner.gapAnalysis || results_inner.gap;
+    if (!rawGap?.criticalGaps) return rawGap || null;
+    const cvText = (candidate as any).candidate_message || "";
+    const roleData = candidate.roles as any;
+    const roleSkills = roleData?.required_skills;
+    if (!cvText || !roleSkills) return rawGap;
+
+    const cvSkills = computeCvSkillVector(cvText, roleSkills);
+    const interviewSkillsData = (candidate.interview_skills || {}) as Record<string, any>;
+    const roleSkillNames = parseRequiredSkills(roleSkills).map(s => s.name);
+    const mappedInterview = mapInterviewSkillsToRoleKeys(interviewSkillsData, roleSkillNames);
+
+    const merged: Record<string, number> = {};
+    Object.entries(cvSkills).forEach(([k, v]) => { merged[k] = Math.max(merged[k] || 0, v); });
+    Object.entries(mappedInterview).forEach(([k, v]) => { merged[k] = Math.max(merged[k] || 0, v); });
+
+    const enrichedGaps = rawGap.criticalGaps
+      .map((g: any) => ({
+        ...g,
+        currentProficiency: Math.max(g.currentProficiency || 0, merged[g.skill] || 0),
+      }))
+      .filter((g: any) => g.currentProficiency < g.requiredProficiency);
+
+    return { ...rawGap, criticalGaps: enrichedGaps };
+  }, [candidate]);
 
   if (isLoading) return <div className="flex items-center justify-center h-64"><LoadingSpinner /></div>;
   if (!candidate) return <div className="p-6">Candidate not found.</div>;
@@ -177,34 +206,6 @@ export default function ExternalCandidateProfile() {
   const momentumScore = results.momentumScore ?? results.momentumScoreVal;
   const momentumBreakdown = results.momentumBreakdown;
   const interviewCompleted = results.interviewCompleted === true || interview?.status === "completed";
-  const rawGapAnalysis = results.gapAnalysis || results.gap;
-
-  // Enrich gap analysis with CV-derived proficiency (fixes stored 0s)
-  const gapAnalysis = useMemo(() => {
-    if (!rawGapAnalysis?.criticalGaps) return rawGapAnalysis;
-    const cvText = (candidate as any).candidate_message || "";
-    const roleSkills = role?.required_skills;
-    if (!cvText || !roleSkills) return rawGapAnalysis;
-
-    const cvSkills = computeCvSkillVector(cvText, roleSkills);
-    const interviewSkills = (candidate.interview_skills || {}) as Record<string, any>;
-    const roleSkillNames = parseRequiredSkills(roleSkills).map(s => s.name);
-    const mappedInterview = mapInterviewSkillsToRoleKeys(interviewSkills, roleSkillNames);
-
-    // Merge CV + interview into one proficiency map
-    const merged: Record<string, number> = {};
-    Object.entries(cvSkills).forEach(([k, v]) => { merged[k] = Math.max(merged[k] || 0, v); });
-    Object.entries(mappedInterview).forEach(([k, v]) => { merged[k] = Math.max(merged[k] || 0, v); });
-
-    const enrichedGaps = rawGapAnalysis.criticalGaps
-      .map((g: any) => ({
-        ...g,
-        currentProficiency: Math.max(g.currentProficiency || 0, merged[g.skill] || 0),
-      }))
-      .filter((g: any) => g.currentProficiency < g.requiredProficiency);
-
-    return { ...rawGapAnalysis, criticalGaps: enrichedGaps };
-  }, [rawGapAnalysis, candidate, role]);
 
   const tfidfRarity = results.tfidfRarity || results.tfidf || {};
   const upskillingPaths = results.upskillingPaths || [];
