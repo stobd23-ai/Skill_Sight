@@ -6,7 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Shield, Send, Check, Sparkles, Brain, BarChart3, Target, Cpu, Zap } from "lucide-react";
 import { runFullAnalysis, detectRoleType, computeThreeLayerScore, getAHPWeightsForRole, type AlgorithmInput, type SkillVector, type RoleType } from "@/lib/algorithms";
-import { skillsToVector, skillsToWeights } from "@/lib/utils";
+import { skillsToVector, skillsToWeights, parseRequiredSkills } from "@/lib/utils";
+import { mapInterviewSkillsToRoleKeys } from "@/lib/interviewSkillMapping";
 
 interface Message { role: "ai" | "user"; content: string; timestamp: Date; }
 type Phase = "interviewing" | "processing" | "complete" | "expired";
