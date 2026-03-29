@@ -241,6 +241,34 @@ export default function ExternalCandidateProfile() {
     navigate("/employees?tab=external");
   };
 
+  const handleToggleInterviewPassed = async (passed: boolean) => {
+    await supabase.from("external_candidates").update({
+      interview_passed: passed,
+    } as any).eq("id", candidate.id);
+    refetch();
+    toast.success(passed ? "Interview marked as passed" : "Interview marked as not passed");
+  };
+
+  const handlePromote = async () => {
+    setPromoting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("promote-candidate", {
+        body: { candidateId: candidate.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`${candidate.name} has been promoted to internal employee!`);
+      navigate(`/employee/${data.employeeId}`);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to promote candidate");
+      setPromoting(false);
+    }
+  };
+
+  const interviewPassed = (candidate as any).interview_passed === true;
+  const cvPassed = candidate.interview_worthy === true || candidate.status === "completed" || candidate.status === "talent_pool" || candidate.status === "invited";
+  const canPromote = cvPassed && interviewPassed;
+
   const conversationHistory = interview?.conversation_history as any[] || [];
 
   return (
