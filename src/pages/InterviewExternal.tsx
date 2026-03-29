@@ -8,6 +8,7 @@ import { Shield, Send, Check, Sparkles, Brain, BarChart3, Target, Cpu, Zap } fro
 import { runFullAnalysis, detectRoleType, computeThreeLayerScore, getAHPWeightsForRole, type AlgorithmInput, type SkillVector, type RoleType } from "@/lib/algorithms";
 import { skillsToVector, skillsToWeights, parseRequiredSkills } from "@/lib/utils";
 import { mapInterviewSkillsToRoleKeys } from "@/lib/interviewSkillMapping";
+import { computeCvSkillVector } from "@/lib/cvCoverageScore";
 
 interface Message { role: "ai" | "user"; content: string; timestamp: Date; }
 type Phase = "interviewing" | "processing" | "complete" | "expired";
