@@ -1,0 +1,47 @@
+<svg viewBox="0 0 512 522" xmlns="http://www.w3.org/2000/svg" width="256" height="261">
+  <defs>
+    <linearGradient id="bg" x1="15%" y1="0%" x2="85%" y2="100%">
+      <stop offset="0%" stop-color="#2d6fa8"/>
+      <stop offset="50%" stop-color="#1a4f80"/>
+      <stop offset="100%" stop-color="#0f2f52"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.14)"/>
+      <stop offset="60%" stop-color="rgba(255,255,255,0.03)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </linearGradient>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e8f5ff"/>
+      <stop offset="100%" stop-color="#90c8f0"/>
+    </linearGradient>
+    <linearGradient id="border" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.25)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0.04)"/>
+    </linearGradient>
+    <radialGradient id="vignette" cx="50%" cy="100%" r="70%">
+      <stop offset="0%" stop-color="rgba(0,0,0,0.18)"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+    </radialGradient>
+  <mask id="imagine-text-gaps-8qmafi" maskUnits="userSpaceOnUse"><rect x="0" y="0" width="512" height="522" fill="white"/><rect x="73.0625" y="186.0500030517578" width="365.875" height="156" fill="black" rx="2"/></mask></defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="512" height="512" rx="116" ry="116" fill="url(#bg)" style="stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- Vignette -->
+  <rect x="0" y="0" width="512" height="512" rx="116" ry="116" fill="url(#vignette)" style="stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- Gloss top -->
+  <rect x="0" y="0" width="512" height="256" rx="116" ry="116" fill="url(#gloss)" style="stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- Thin elegant border -->
+  <rect x="1" y="1" width="510" height="510" rx="115" ry="115" fill="none" stroke="url(#border)" stroke-width="1.5" style="fill:none;color:rgb(255, 255, 255);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- Accent line above -->
+  <line x1="156" y1="208" x2="356" y2="208" stroke="rgba(160,210,255,0.3)" stroke-width="0.8" mask="url(#imagine-text-gaps-8qmafi)" style="fill:rgb(0, 0, 0);stroke:rgba(160, 210, 255, 0.3);color:rgb(255, 255, 255);stroke-width:0.8px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- BMW bold text -->
+  <text x="256" y="276" font-family="-apple-system, 'Helvetica Neue', Helvetica, sans-serif" font-size="136" font-weight="700" letter-spacing="6" fill="url(#textGrad)" text-anchor="middle" dominant-baseline="middle" style="stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:-apple-system, &quot;Helvetica Neue&quot;, Helvetica, sans-serif;font-size:136px;font-weight:700;text-anchor:middle;dominant-baseline:middle">BMW</text>
+
+  <!-- Accent line below -->
+  <line x1="156" y1="336" x2="356" y2="336" stroke="rgba(160,210,255,0.3)" stroke-width="0.8" mask="url(#imagine-text-gaps-8qmafi)" style="fill:rgb(0, 0, 0);stroke:rgba(160, 210, 255, 0.3);color:rgb(255, 255, 255);stroke-width:0.8px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+</svg>
