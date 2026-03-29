@@ -121,11 +121,15 @@ export default function ExecutiveDashboard() {
       const keyLower = key.toLowerCase();
       const skillEntries = allSkills.filter(s => s.skill_name.toLowerCase() === keyLower);
       const avgProf = skillEntries.length ? skillEntries.reduce((s, e) => s + (e.proficiency || 0), 0) / skillEntries.length : 0;
-      // Match role required_skills by display name keys
+      // required_skills is an array of {name, required_level, weight}
       const maxRequired = Math.max(0, ...roles.map(r => {
         const req = r.required_skills as any;
         if (!req) return 0;
-        // Try exact key, then case-insensitive search
+        if (Array.isArray(req)) {
+          const match = req.find((s: any) => s.name?.toLowerCase().includes(keyLower) || keyLower.includes(s.name?.toLowerCase()));
+          return match ? (match.required_level || 0) : 0;
+        }
+        // Fallback: plain object
         if (req[key] != null) return req[key];
         const found = Object.keys(req).find(k => k.toLowerCase() === keyLower);
         return found ? req[found] : 0;
