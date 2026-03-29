@@ -327,7 +327,7 @@ export default function ApplyPage() {
 
       // Determine status
       let candidateStatus: string;
-      if (hybrid.confidence === 'flagged') {
+      if (hybrid.verdict === 'flag') {
         candidateStatus = 'flagged_review';
       } else if (hybrid.worthy) {
         candidateStatus = 'pending_manager_review';
