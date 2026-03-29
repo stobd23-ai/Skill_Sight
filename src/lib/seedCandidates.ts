@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { runFullAnalysis, detectRoleType } from "@/lib/algorithms";
 import { skillsToVector, skillsToWeights } from "@/lib/utils";
+import { hybridWorthinessDecision } from "@/lib/verdictEngine";
 
 interface SeedCandidate {
   name: string;
