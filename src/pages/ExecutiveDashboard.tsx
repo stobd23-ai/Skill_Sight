@@ -105,16 +105,32 @@ export default function ExecutiveDashboard() {
   }, [roles, results, employees, externalCandidates, interviews]);
 
   const radarData = useMemo(() => {
-    const strategicSkills = ['ThermalEngineering', 'Python', 'MachineLearning', 'EVBatterySystems', 'AUTOSAR', 'ProjectManagement', 'DeepLearning', 'ManufacturingProcesses'];
+    const strategicSkills = [
+      { key: 'Thermal Engineering', label: 'Thermal Engineering' },
+      { key: 'Python', label: 'Python' },
+      { key: 'Machine Learning', label: 'Machine Learning' },
+      { key: 'EV Battery Systems', label: 'EV Battery Systems' },
+      { key: 'AUTOSAR', label: 'AUTOSAR' },
+      { key: 'Project Management', label: 'Project Management' },
+      { key: 'Deep Learning', label: 'Deep Learning' },
+      { key: 'Manufacturing Processes', label: 'Manufacturing Processes' },
+    ];
     if (!allSkills?.length || !roles?.length) return [];
-    return strategicSkills.map(skill => {
-      const skillEntries = allSkills.filter(s => s.skill_name === skill);
+    return strategicSkills.map(({ key, label }) => {
+      // Match employee skills by display name (case-insensitive)
+      const keyLower = key.toLowerCase();
+      const skillEntries = allSkills.filter(s => s.skill_name.toLowerCase() === keyLower);
       const avgProf = skillEntries.length ? skillEntries.reduce((s, e) => s + (e.proficiency || 0), 0) / skillEntries.length : 0;
+      // Match role required_skills by display name keys
       const maxRequired = Math.max(0, ...roles.map(r => {
         const req = r.required_skills as any;
-        return req?.[skill] || 0;
+        if (!req) return 0;
+        // Try exact key, then case-insensitive search
+        if (req[key] != null) return req[key];
+        const found = Object.keys(req).find(k => k.toLowerCase() === keyLower);
+        return found ? req[found] : 0;
       }));
-      return { skill: skill.replace(/([A-Z])/g, ' $1').trim(), workforce: Math.round(avgProf * 33.3), strategic: Math.round(maxRequired * 33.3) };
+      return { skill: label, workforce: Math.round(avgProf * 33.3), strategic: Math.round(maxRequired * 33.3) };
     });
   }, [allSkills, roles]);
 
