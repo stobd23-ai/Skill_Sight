@@ -667,6 +667,20 @@ export default function ExternalCandidateProfile() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* View Submitted CV Modal */}
+      <Dialog open={cvModalOpen} onOpenChange={setCvModalOpen}>
+        <DialogContent className="max-w-[720px] max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{candidate.name} — Submitted CV</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto rounded-md border border-border bg-muted/30 p-4">
+            <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed text-foreground">{(candidate as any).candidate_message || "No CV text available."}</pre>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCvModalOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
