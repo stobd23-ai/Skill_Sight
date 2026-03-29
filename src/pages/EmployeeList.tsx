@@ -186,7 +186,7 @@ export default function EmployeeList() {
     }
   };
 
-  const isTalentPool = (c: any) => c.status === "talent_pool" || c.status === "proceeding";
+  
 
   return (
     <div>
