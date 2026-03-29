@@ -6,7 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Shield, Send, Check, Sparkles, Brain, BarChart3, Target, Cpu, Zap } from "lucide-react";
 import { runFullAnalysis, detectRoleType, computeThreeLayerScore, getAHPWeightsForRole, type AlgorithmInput, type SkillVector, type RoleType } from "@/lib/algorithms";
-import { skillsToVector, skillsToWeights } from "@/lib/utils";
+import { skillsToVector, skillsToWeights, parseRequiredSkills } from "@/lib/utils";
+import { mapInterviewSkillsToRoleKeys } from "@/lib/interviewSkillMapping";
+import { computeCvSkillVector } from "@/lib/cvCoverageScore";
 
 interface Message { role: "ai" | "user"; content: string; timestamp: Date; }
 type Phase = "interviewing" | "processing" | "complete" | "expired";
@@ -175,17 +177,24 @@ export default function InterviewExternal() {
       }
 
       // Step 4: Run algorithms with animation
-      // Merge CV skills + interview-demonstrated skills
-      const empSkills: SkillVector = {};
-      // First load CV-based skills from the candidate's worthy_score context
-      const cvText = candidate.candidateMessage || "";
-      // Add interview-extracted skills
-      Object.entries(extractedSkills).forEach(([k, v]: [string, any]) => {
-        const prof = typeof v === "number" ? v : v?.proficiency || 0;
-        empSkills[k] = Math.max(empSkills[k] || 0, prof);
-      });
-
+      // Get role skill names for mapping
+      const parsedRoleSkills = parseRequiredSkills(candidate.requiredSkills);
+      const roleSkillNames = parsedRoleSkills.map(s => s.name);
       const reqSkills = skillsToVector(candidate.requiredSkills);
+
+      // Merge CV skills + interview-demonstrated skills using role display names
+      const empSkills: SkillVector = {};
+      // First: CV-based skill matching
+      const cvText = candidate.candidateMessage || "";
+      const cvSkills = computeCvSkillVector(cvText, candidate.requiredSkills);
+      Object.entries(cvSkills).forEach(([k, v]) => {
+        empSkills[k] = Math.max(empSkills[k] || 0, v);
+      });
+      // Then: interview-extracted skills mapped to role display names
+      const mappedInterviewSkills = mapInterviewSkillsToRoleKeys(extractedSkills, roleSkillNames);
+      Object.entries(mappedInterviewSkills).forEach(([k, v]) => {
+        empSkills[k] = Math.max(empSkills[k] || 0, v);
+      });
       const stratWeights = skillsToWeights(candidate.requiredSkills);
       const roleType: RoleType = detectRoleType(
         reqSkills as Record<string, number>,

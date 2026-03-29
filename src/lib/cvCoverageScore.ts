@@ -316,3 +316,28 @@ export function computeCvOnlySkillCoverage(cvText: string, rawRequiredSkills: an
 
   return Math.max(0, Math.min(1, matchedWeight / totalWeight));
 }
+
+/**
+ * Returns a SkillVector (keyed by role display names) with proficiency values
+ * derived from CV text analysis. Used to merge CV evidence with interview evidence
+ * for technical match computation.
+ */
+export function computeCvSkillVector(cvText: string, rawRequiredSkills: any): Record<string, number> {
+  const result: Record<string, number> = {};
+  if (!cvText) return result;
+
+  const requiredSkills = parseRequiredSkills(rawRequiredSkills);
+  if (requiredSkills.length === 0) return result;
+
+  const { normalizedCv, tokenDepths } = collectCanonicalDepths(cvText);
+
+  requiredSkills.forEach((skill) => {
+    const depth = getRoleSkillDepth(skill.name, normalizedCv, tokenDepths);
+    if (depth) {
+      // Map depth to proficiency: HIGH=3, MEDIUM=2, LOW=1
+      result[skill.name] = depth === "HIGH" ? 3 : depth === "MEDIUM" ? 2 : 1;
+    }
+  });
+
+  return result;
+}
