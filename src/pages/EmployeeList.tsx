@@ -16,7 +16,7 @@ import { AddExternalCandidateModal } from "@/components/AddExternalCandidateModa
 import { ReadinessRing } from "@/components/ReadinessRing";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { seedDemoCandidates, clearDemoCandidates, type SeedProgress } from "@/lib/seedCandidates";
+
 
 
 function useExternalCandidates() {
