@@ -6,7 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { runFullAnalysis, detectRoleType, computeThreeLayerScore, getAHPWeightsForRole, type AlgorithmInput, type SkillVector, type RoleType } from "@/lib/algorithms";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight, MessageSquare, Check, Sparkles, Brain, BarChart3, FileText, Cpu, Target, Shield, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, MessageSquare, Check, Sparkles, Brain, BarChart3, FileText, Cpu, Target, Shield, Zap, Clock, ChevronLeft } from "lucide-react";
 
 interface Message {
   role: "ai" | "user";
