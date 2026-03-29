@@ -191,7 +191,7 @@ The apply portal should have been on the main site but because we do not have ac
 
 **Including the active employees databse** -- our current demo has a small employee base and can only add employees by going thought the external candidates first but not everyone that is getting a job needs to necesarily apply (a company merger for example) so the head manager has to be given acces to the employee databse
 
-**Extedn web app for other roles** -- instead of just using this for hiring we could also make it keep count of everyone working under a certain brench manager so that he could know if anyone is severily underperfoming with no resonable excuse. Each role could have its own personalised data and functions it uses
+**Extend web app for other roles** -- instead of just using this for hiring we could also make it keep count of everyone working under a certain brench manager so that he could know if anyone is severily underperfoming with no resonable excuse. Each role could have its own personalised data and functions it uses
 
 ---
 
