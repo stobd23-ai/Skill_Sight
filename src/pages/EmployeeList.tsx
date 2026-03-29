@@ -194,14 +194,6 @@ export default function EmployeeList() {
       <PageHeader
         title="People"
         subtitle="BMW Group Workforce"
-        actions={
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => setShowAddModal(true)}>
-              <UserPlus className="h-4 w-4 mr-1" />External Candidate
-            </Button>
-            <Button size="sm"><Plus className="h-4 w-4 mr-1" />Add Employee</Button>
-          </div>
-        }
       />
       <div className="p-6 space-y-5">
         {/* Filter bar */}
