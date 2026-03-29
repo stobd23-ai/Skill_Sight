@@ -20,9 +20,7 @@ export function EmployeeLayout({ children }: { children: React.ReactNode }) {
         {/* Logo */}
         <div className="px-4 pt-5 pb-4 mb-2">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-[7px] font-bold text-white">BMW</span>
-            </div>
+            <img src={bmwLogo} alt="BMW" className="w-7 h-7 rounded-lg" />
             <div>
               <h1 className="text-sm font-bold leading-tight">SkillSight</h1>
               <p className="text-[10px] text-muted-foreground">My Portal</p>

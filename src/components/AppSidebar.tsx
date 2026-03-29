@@ -62,9 +62,7 @@ export function AppSidebar() {
             </div>
           )}
           {collapsed && (
-            <div className="w-8 h-8 rounded-lg bg-bmw-blue flex items-center justify-center mx-auto">
-              <span className="text-[8px] font-bold text-white">BMW</span>
-            </div>
+            <img src={bmwLogo} alt="BMW" className="w-8 h-8 rounded-lg mx-auto" />
           )}
         </div>
 
