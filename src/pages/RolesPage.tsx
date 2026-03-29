@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { SkillBadge } from "@/components/SkillBadge";
+import { formatSkillName, parseRequiredSkills, skillsToWeights } from "@/lib/utils";
 import type { SkillVector } from "@/lib/algorithms";
 
 interface SkillReq { name: string; required: number; weight: number | string }
