@@ -132,7 +132,7 @@ export function hybridWorthinessDecision(
     verdict = 'hard_reject';
     verdictLabel = '✕ Below Threshold — Hard Reject';
     worthy = false;
-    worthyScore = partialScore;
+    worthyScore = skill_coverage;
     domainGapClassification = 'critical';
   }
   // ── STRONG MATCH ──
@@ -146,14 +146,14 @@ export function hybridWorthinessDecision(
     verdict = 'recommend';
     verdictLabel = 'Strong Match — High Confidence';
     worthy = true;
-    worthyScore = partialScore;
+    worthyScore = skill_coverage;
     domainGapClassification = gap_severity === 'minor' ? 'no_significant_gaps' : 'trainable';
   }
   // ── FLAG (default middle bucket) ──
   else {
     verdict = 'flag';
     worthy = false;
-    worthyScore = partialScore;
+    worthyScore = skill_coverage;
 
     // Choose reason phrase
     if (domain_signal && experience_real && has_metric && gap_severity === 'critical') {
