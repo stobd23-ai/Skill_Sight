@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEmployee, useInterviews, useRoles } from "@/hooks/useData";
 import { supabase } from "@/integrations/supabase/client";
 import { runFullAnalysis, detectRoleType, computeThreeLayerScore, getAHPWeightsForRole, type AlgorithmInput, type SkillVector, type RoleType } from "@/lib/algorithms";
+import { skillsToVector, skillsToWeights } from "@/lib/utils";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
