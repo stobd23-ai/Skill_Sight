@@ -9,7 +9,7 @@ import { SkillBadge } from "@/components/SkillBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer } from "recharts";
-import { BarChart3, Sparkles, Star, Route } from "lucide-react";
+import { BarChart3, Sparkles, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function MyResults() {
@@ -27,11 +27,6 @@ export default function MyResults() {
     : 0;
 
   const gapAnalysis = latestResult?.gap_analysis as any;
-  const upskillingPaths = (latestResult?.upskilling_paths || []) as Array<{
-    targetSkill: string;
-    path: string[];
-    totalWeeks: number;
-  }>;
 
   // Fetch report
   useEffect(() => {
@@ -197,45 +192,12 @@ export default function MyResults() {
         </Card>
       </div>
 
-      {/* Learning Journey */}
-      {upskillingPaths.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Route className="h-4 w-4 text-primary" /> Your Learning Journey
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {upskillingPaths.map((path, i) => (
-                <div key={i}>
-                  <Badge variant="outline" className="text-xs font-medium mb-2">
-                    {path.targetSkill.replace(/([A-Z])/g, " $1").trim()}
-                  </Badge>
-                  <div className="flex items-center gap-1 flex-wrap">
-                    {path.path.map((node, j) => (
-                      <div key={j} className="flex items-center gap-1">
-                        <span className="px-2 py-0.5 text-xs rounded-md bg-primary/10 text-primary font-medium">
-                          {node.replace(/([A-Z])/g, " $1").trim()}
-                        </span>
-                        {j < path.path.length - 1 && (
-                          <span className="text-muted-foreground text-xs">→</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Filtered AI Report */}
+      {/* Filtered AI Insights */}
       {filteredReport && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">Your Personalised Development Plan</CardTitle>
+            <CardTitle className="text-[15px]">Career Insights & Next Steps</CardTitle>
+            <p className="text-xs text-muted-foreground">Based on your skills assessment and interview — here's what stands out about your profile.</p>
           </CardHeader>
           <CardContent>
             <div

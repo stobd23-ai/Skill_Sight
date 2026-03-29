@@ -17,9 +17,9 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
 import {
-  ArrowLeft, Download, RefreshCw, ArrowRight, Sparkles, Target,
-  BarChart3, Route, Star, AlertTriangle, Shield, ChevronDown, ChevronUp,
-  Zap, TrendingUp, Brain, Heart, Search, ShieldAlert,
+  ArrowLeft, Download, RefreshCw, ArrowRight, Sparkles,
+  BarChart3, Star, AlertTriangle, Shield, ChevronDown, ChevronUp,
+  Search, ShieldAlert,
 } from "lucide-react";
 
 export default function AnalysisPage() {
@@ -441,58 +441,6 @@ export default function AnalysisPage() {
           </Card>
         </div>
 
-        {/* Momentum Assessment */}
-        {momentumBreakdown && momentumBreakdown.momentum_score != null && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Zap className="h-4 w-4 text-primary" /> Momentum Assessment — Where This Person Is Going
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <MomentumRow
-                label="Learning Velocity"
-                icon={<Brain className="h-3.5 w-3.5" />}
-                value={momentumBreakdown.learning_velocity || 0}
-                evidence={momentumBreakdown.learning_velocity_evidence}
-                signals={momentumBreakdown.learning_velocity_signals}
-                color="hsl(var(--primary))"
-              />
-              <MomentumRow
-                label="Scope Trajectory"
-                icon={<TrendingUp className="h-3.5 w-3.5" />}
-                value={momentumBreakdown.scope_trajectory || 0}
-                evidence={momentumBreakdown.scope_trajectory_evidence}
-                signals={momentumBreakdown.scope_trajectory_signals}
-                color="hsl(var(--green, 142 76% 36%))"
-              />
-              <MomentumRow
-                label="Motivation Alignment"
-                icon={<Heart className="h-3.5 w-3.5" />}
-                value={momentumBreakdown.motivation_alignment || 0}
-                evidence={momentumBreakdown.motivation_alignment_evidence}
-                signals={momentumBreakdown.motivation_alignment_signals}
-                color="hsl(270 60% 55%)"
-              />
-
-              {momentumBreakdown.momentum_narrative && (
-                <div className="border-l-4 border-primary/40 bg-primary/5 rounded-r-lg p-4 mt-4">
-                  <p className="text-sm italic text-foreground/80">{momentumBreakdown.momentum_narrative}</p>
-                </div>
-              )}
-
-              {(momentumBreakdown.trajectory_risk === 'medium' || momentumBreakdown.trajectory_risk === 'high') && (
-                <div className="flex items-start gap-3 p-3 bg-status-amber-light rounded-lg border border-status-amber/20">
-                  <AlertTriangle className="h-4 w-4 text-status-amber mt-0.5" />
-                  <div>
-                    <span className="text-xs font-semibold text-status-amber">Trajectory Risk: {momentumBreakdown.trajectory_risk}</span>
-                    <p className="text-xs text-muted-foreground mt-0.5">{momentumBreakdown.trajectory_risk_reason}</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
 
         {/* Strengths + Rare Skills */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -578,40 +526,6 @@ export default function AnalysisPage() {
           </Card>
         </div>
 
-        {/* Learning Pathways */}
-        {upskillingPaths.length > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Route className="h-4 w-4 text-primary" /> Learning Pathways
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {upskillingPaths.map((path, i) => (
-                  <div key={i}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="outline" className="text-xs font-medium">{path.targetSkill.replace(/([A-Z])/g, ' $1').trim()}</Badge>
-                      <span className="text-[11px] text-muted-foreground font-mono">{path.totalWeeks} weeks total</span>
-                    </div>
-                    <div className="flex items-center gap-1 flex-wrap">
-                      {path.path.map((node, j) => (
-                        <div key={j} className="flex items-center gap-1">
-                          <span className="px-2 py-0.5 text-xs rounded-md bg-primary/10 text-primary font-medium">
-                            {node.replace(/([A-Z])/g, ' $1').trim()}
-                          </span>
-                          {j < path.path.length - 1 && (
-                            <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Transition Profile Banner */}
         {transitionProfile?.is_transitioning && (
@@ -652,9 +566,13 @@ export default function AnalysisPage() {
               <div className="prose prose-xs max-w-none prose-headings:text-foreground prose-headings:text-sm prose-headings:mt-3 prose-headings:mb-1 prose-p:text-foreground/80 prose-p:text-xs prose-p:mb-1.5 prose-p:leading-relaxed prose-strong:text-foreground prose-li:text-foreground/80 prose-li:text-xs prose-li:my-0.5" dangerouslySetInnerHTML={{ __html: markdownToHtml(report.replace(/### Risk Factors[\s\S]*?(?=\n### |\n## |$)/, '').replace(/### 90-Day Action Plan[\s\S]*?(?=\n### |\n## |$)/, '').replace(/### 6-Month Roadmap[\s\S]*?(?=\n### |\n## |$)/, '').replace(/### Recommended Development Timeline[\s\S]*?(?=\n### |\n## |$)/, '')) }} />
             ) : (
               <div className="text-center py-6">
-                <p className="text-xs text-muted-foreground mb-3">Generate AI assessment report</p>
-                <Button size="sm" onClick={generateReport} className="bg-primary text-primary-foreground text-xs h-7">
-                  Generate Report
+                <p className="text-xs text-muted-foreground mb-3">
+                  {(!employeeInterview && !managerInterview) 
+                    ? "An interview must be completed before generating an assessment report."
+                    : "Generate AI assessment report"}
+                </p>
+                <Button size="sm" onClick={generateReport} disabled={!employeeInterview && !managerInterview} className="bg-primary text-primary-foreground text-xs h-7">
+                  {(!employeeInterview && !managerInterview) ? "Interview Required" : "Generate Report"}
                 </Button>
               </div>
             )}
@@ -818,33 +736,6 @@ function ScoreWithFactors({
   );
 }
 
-// ─── Helper Components ──────────────────────────────────────────────
-
-function MomentumRow({ label, icon, value, evidence, signals, color }: {
-  label: string; icon: React.ReactNode; value: number;
-  evidence?: string; signals?: string[]; color: string;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center gap-2">
-        <span className="text-muted-foreground">{icon}</span>
-        <span className="text-sm font-medium flex-1">{label}</span>
-        <span className="font-mono text-sm font-semibold">{Math.round(value * 100)}%</span>
-      </div>
-      <div className="h-2 bg-secondary rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${value * 100}%`, backgroundColor: color }} />
-      </div>
-      {evidence && <p className="text-xs text-muted-foreground italic pl-6">{evidence}</p>}
-      {signals?.length ? (
-        <div className="flex flex-wrap gap-1 pl-6">
-          {signals.map((s, i) => (
-            <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{s}</span>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
 
 function MetricCard({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
   return (

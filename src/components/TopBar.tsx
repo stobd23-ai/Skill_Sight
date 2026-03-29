@@ -36,6 +36,16 @@ export function TopBar() {
   const isMainSection = mainSections.some(path => location.pathname === path);
   const canGoBack = location.key !== "default" && !isMainSection;
 
+  // Smart back navigation: preserve tab context
+  const handleBack = () => {
+    // If we're on an external candidate page, go back to external tab
+    if (location.pathname.startsWith("/external-candidate") || location.pathname.startsWith("/analysis-external")) {
+      navigate("/employees?tab=external");
+      return;
+    }
+    navigate(-1);
+  };
+
   const isManager = profile.role === "manager";
   const initials = profile.full_name
     ? profile.full_name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
@@ -52,7 +62,7 @@ export function TopBar() {
       <div className="flex items-center gap-2">
         {canGoBack && (
           <button
-            onClick={() => navigate(-1)}
+            onClick={handleBack}
             className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
