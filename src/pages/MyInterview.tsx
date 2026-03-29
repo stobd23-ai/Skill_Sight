@@ -6,7 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { runFullAnalysis, detectRoleType, computeThreeLayerScore, getAHPWeightsForRole, type AlgorithmInput, type SkillVector, type RoleType } from "@/lib/algorithms";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight, MessageSquare, Check, Sparkles, Brain, BarChart3, FileText, Cpu, Target, Shield, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, MessageSquare, Check, Sparkles, Brain, BarChart3, FileText, Cpu, Target, Shield, Zap, Clock, ChevronLeft } from "lucide-react";
 
 interface Message {
   role: "ai" | "user";
@@ -43,6 +44,7 @@ export default function MyInterview() {
   const [started, setStarted] = useState(false);
   const [pipelinePhase, setPipelinePhase] = useState<PipelinePhase>("idle");
   const [algoStep, setAlgoStep] = useState(0);
+  const [viewingPastInterview, setViewingPastInterview] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const displayedQuestionNumber = Math.min(Math.max(questionsAsked, 1), 12);
 
@@ -462,19 +464,126 @@ export default function MyInterview() {
     return <div className="flex items-center justify-center h-64"><LoadingSpinner /></div>;
   }
 
+  const completedInterviews = interviews?.filter(
+    i => i.interview_type === "employee" && i.status === "completed"
+  ) || [];
+
+  const pastInterviewToView = completedInterviews.find(i => i.id === viewingPastInterview);
+  const pastConversation = (pastInterviewToView?.conversation_history as any[] || []);
+
+  if (!activeInterview && viewingPastInterview && pastInterviewToView) {
+    const targetRole = roles?.find(r => r.id === pastInterviewToView.target_role_id);
+    return (
+      <div className="flex h-[calc(100vh-48px)]">
+        {/* Left panel */}
+        <div className="w-[300px] p-6 flex flex-col gap-4 border-r border-border bg-secondary/30 shrink-0">
+          <Button variant="ghost" size="sm" className="justify-start gap-2 -ml-2" onClick={() => setViewingPastInterview(null)}>
+            <ChevronLeft className="h-4 w-4" /> Back to interviews
+          </Button>
+          <div className="card-skillsight p-4">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold text-white"
+                style={{ backgroundColor: employee?.avatar_color || "#1c69d3" }}
+              >
+                {employee?.avatar_initials}
+              </div>
+              <div>
+                <p className="text-base font-bold">{employee?.name}</p>
+                <p className="text-[13px] text-muted-foreground">{employee?.job_title}</p>
+              </div>
+            </div>
+            {targetRole && (
+              <p className="text-[11px] uppercase tracking-widest text-muted-foreground mt-3">
+                {targetRole.title}
+              </p>
+            )}
+          </div>
+          <div className="card-skillsight p-4">
+            <p className="text-xs text-muted-foreground mb-1">Completed</p>
+            <p className="text-sm font-medium">
+              {pastInterviewToView.completed_at
+                ? new Date(pastInterviewToView.completed_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                : "Unknown date"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              {pastInterviewToView.questions_asked || 0} questions · {pastConversation.length} messages
+            </p>
+          </div>
+        </div>
+        {/* Chat replay */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {pastConversation.map((msg: any, i: number) => (
+            <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div className={`max-w-[70%] rounded-lg p-3 ${
+                msg.role === "user"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-foreground"
+              }`}>
+                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                {msg.timestamp && (
+                  <span className="text-[10px] opacity-60 mt-1 block">
+                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (!activeInterview) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-48px)]">
-        <Card className="max-w-md">
-          <CardContent className="p-8 text-center">
-            <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-lg font-bold mb-2">No Active Interview</h2>
-            <p className="text-sm text-muted-foreground">
-              Your manager will invite you to complete your career discovery interview.
-              You'll receive access here when it's ready.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="max-w-lg w-full space-y-6 p-6">
+          <Card>
+            <CardContent className="p-8 text-center">
+              <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h2 className="text-lg font-bold mb-2">No Active Interview</h2>
+              <p className="text-sm text-muted-foreground">
+                Your manager will invite you to complete your career discovery interview.
+                You'll receive access here when it's ready.
+              </p>
+            </CardContent>
+          </Card>
+
+          {completedInterviews.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                Past Interviews
+              </h3>
+              <div className="space-y-2">
+                {completedInterviews.map(interview => {
+                  const targetRole = roles?.find(r => r.id === interview.target_role_id);
+                  return (
+                    <Card
+                      key={interview.id}
+                      className="cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={() => setViewingPastInterview(interview.id)}
+                    >
+                      <CardContent className="p-4 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium">
+                            {targetRole?.title || "Career Discovery"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {interview.completed_at
+                              ? new Date(interview.completed_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                              : "Completed"} · {interview.questions_asked || 0} questions
+                          </p>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
