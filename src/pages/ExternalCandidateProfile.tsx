@@ -326,13 +326,14 @@ export default function ExternalCandidateProfile() {
           const confidence = hybridInfo.confidence || 'mixed_signals';
           const confLabel = confidence === 'high' ? 'High Confidence' : confidence === 'low' ? 'Low Confidence' : 'Mixed Signals';
           const reasoning = hybridInfo.reasoning || hybridInfo.aiReasoning || '';
-          const recruiterSummary = hybridInfo.recruiterSummary || hybridInfo.recruiter_summary || '';
+          const recruiterSummary = hybridInfo.recruiterSummary || hybridInfo.recruiter_summary || hybridInfo.recruiterNote || hybridInfo.recruiter_note || '';
           const absenceAnalysis = hybridInfo.absence_analysis || null;
           const seniorityCheck = hybridInfo.seniority_check || null;
           const domainGaps = hybridInfo.domain_gap_classification || null;
           const strongMetrics = (hybridInfo.strong_metrics_count || 0) + (hybridInfo.medium_metrics_count || 0);
-          const closingJudgment = hybridInfo.closing_judgment || hybridInfo.closingJudgment || '';
-          const ownershipSignal = hybridInfo.ownership_signal || hybridInfo.ownershipSignal || null;
+          const closingJudgment = hybridInfo.closing_judgment || hybridInfo.closingJudgment || hybridInfo.verb_quality_assessment || '';
+          const ownershipRaw = hybridInfo.ownership_signal || hybridInfo.ownershipSignal || null;
+          const builderVerbRatio = hybridInfo.builder_verb_ratio;
           const notWorthyReasons = hybridInfo.not_worthy_reasons || hybridInfo.concerns || candidate.not_worthy_reasons as any[] || [];
           const keyStrengths = hybridInfo.keyStrengths || hybridInfo.key_strengths || [];
 
